@@ -1,0 +1,5 @@
+queue_id,doc_category,doc_title,source_type,ingestion_env,approval_required,repo_allowed,status
+Q001,PUBLIC_REG,금융투자업규정,Public,Dev/Test/Prod,Y,CatalogOnly,Pending
+Q002,PUBLIC_REG,금융투자업규정시행세칙,Public,Dev/Test/Prod,Y,CatalogOnly,Pending
+Q003,NCR_GUIDE,NCR 산정기준 해설,InternalOfficial,Prod,Y,No,ManualUploadRequired
+Q004,INTERNAL_RULE,리스크관리 내부규정,Internal,Prod,Y,No,ProdOnly

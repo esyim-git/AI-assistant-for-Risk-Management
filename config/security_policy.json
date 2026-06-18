@@ -1,0 +1,20 @@
+{
+  "Network": {
+    "AllowExternalApi": false,
+    "AllowAutoUpdate": false,
+    "AllowTelemetry": false
+  },
+  "Sql": {
+    "AllowAutoExecute": false,
+    "DefaultMode": "ReadOnlyDraft"
+  },
+  "Vba": {
+    "AllowAutoExecute": false,
+    "BlockDangerousApi": true
+  },
+  "Data": {
+    "AllowRealDataInRepo": false,
+    "AllowInternalRegulationOriginalInRepo": false,
+    "AllowModelFileInRepo": false
+  }
+}

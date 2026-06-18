@@ -1,0 +1,6 @@
+source_id,category,title,source_org,source_type,status,note
+FIA_REG,PUBLIC_REG,금융투자업규정,국가법령정보센터,Public regulation,CATALOG_ONLY,최신 시행일 확인 후 운영 KB 적재
+FIA_REG_RULE,PUBLIC_REG,금융투자업규정시행세칙,국가법령정보센터,Public regulation,CATALOG_ONLY,최신 시행일 확인 후 운영 KB 적재
+CAPITAL_MARKET_ACT,PUBLIC_LAW,자본시장과 금융투자업에 관한 법률,국가법령정보센터,Public law,CATALOG_ONLY,관련 조항만 요약 적재
+NCR_GUIDE,NCR_GUIDE,NCR 산정기준 해설,회사 보유 공식본 또는 감독기관 배포본,Manual upload,MANUAL_APPROVAL_REQUIRED,공개 Repo에 원문 금지
+INTERNAL_RULES,INTERNAL_RULE,내부규정,회사 내부 문서관리시스템,Internal,PROD_ONLY,권한통제형 RAG

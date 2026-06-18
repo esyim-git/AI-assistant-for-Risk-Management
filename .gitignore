@@ -1,0 +1,61 @@
+# Build outputs
+bin/
+obj/
+.vs/
+artifacts/
+publish/
+release/
+
+# User/local IDE
+.vscode/settings.json
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Secrets
+.env
+*.env
+secrets/
+credentials/
+*.pfx
+*.key
+*.pem
+*.cer
+*.crt
+
+# Real/internal data - never commit
+real_data/
+exports/
+internal_docs/
+internal_regulations/
+prod_config/
+prod_logs/
+models/
+
+# Model weights are never committed; keep the model_pack README documentation
+model_pack/*.gguf
+model_pack/*.bin
+model_pack/*.safetensors
+model_pack/*.onnx
+model_pack/*.pt
+!model_pack/README_MODEL_PACK.md
+
+# Logs/temp
+*.log
+*.tmp
+*.bak
+*.cache
+logs/*
+reports/*
+!logs/.gitkeep
+!reports/.gitkeep
+
+# Office temp files
+~$*.xlsx
+~$*.xlsm
+~$*.docx
+
+# OS
+.DS_Store
+Thumbs.db

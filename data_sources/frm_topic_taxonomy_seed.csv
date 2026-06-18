@@ -1,0 +1,7 @@
+part,category,topic,repo_allowed,note
+Part I,Risk Management Foundations,Risk types and governance,SummaryOnly,FRM 원문 적재 금지
+Part I,Quantitative Analysis,"Probability, statistics, regression",SummaryOnly,자체 요약 카드
+Part I,Valuation and Risk Models,"VaR, Expected Shortfall, stress testing",SummaryOnly,자체 요약 카드
+Part II,Market Risk,Market risk measurement and management,SummaryOnly,자체 요약 카드
+Part II,Credit Risk,"Counterparty credit risk, CVA",SummaryOnly,자체 요약 카드
+Part II,Liquidity Risk,Liquidity and treasury risk,SummaryOnly,자체 요약 카드

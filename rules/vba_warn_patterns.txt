@@ -1,0 +1,6 @@
+# VBA warning patterns.
+# NOTE: 'Option Explicit'은 '필수 요소'다. RuleLoader는 이 패턴이 '없을 때' 경고해야 한다(부재 검사). 존재할 때 경고하지 않는다.
+# (현재 VbaSafetyChecker.cs는 부재를 올바르게 검사한다: ^\s*Option\s+Explicit)
+REQUIRE_PRESENT:Option\s+Explicit
+Application\.DisplayAlerts\s*=\s*False
+Application\.EnableEvents\s*=\s*False

@@ -1,0 +1,5 @@
+# SQL warning patterns.
+SELECT\s+\*
+WHERE\s+1\s*=\s*1
+CROSS\s+JOIN
+/\*\+

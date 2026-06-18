@@ -1,0 +1,10 @@
+# VBA deny patterns. Case-insensitive matching recommended.
+\bShell\b
+WScript\.Shell
+\bKill\b
+Declare\s+PtrSafe
+CreateObject\s*\(\s*"Scripting\.FileSystemObject"
+FollowHyperlink
+WinHttp
+MSXML2\.XMLHTTP
+Outlook\.Application

@@ -1,0 +1,15 @@
+# SQL deny patterns. Case-insensitive matching recommended.
+\bINSERT\b
+\bUPDATE\b
+\bDELETE\b
+\bMERGE\b
+\bCREATE\b
+\bALTER\b
+\bDROP\b
+\bTRUNCATE\b
+\bGRANT\b
+\bREVOKE\b
+\bEXEC\b
+\bCALL\b
+\bCOMMIT\b
+\bROLLBACK\b

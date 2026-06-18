@@ -1,0 +1,71 @@
+<Window x:Class="RiskManagementAI.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Risk Management AI Assistant" Height="720" Width="1180" MinHeight="640" MinWidth="1000">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="300" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="64" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="32" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.ColumnSpan="3" Background="#102033" Padding="16">
+            <DockPanel>
+                <TextBlock Text="Risk Management AI Assistant" Foreground="White" FontSize="22" FontWeight="SemiBold" />
+                <TextBlock x:Name="EnvironmentText" Text="Offline Mode / Local Model: Not Configured" Foreground="#B8D7FF" FontSize="13" HorizontalAlignment="Right" DockPanel.Dock="Right" />
+            </DockPanel>
+        </Border>
+
+        <Border Grid.Row="1" Grid.Column="0" Background="#F4F6F8" Padding="12">
+            <StackPanel>
+                <TextBlock Text="Menu" FontWeight="Bold" Margin="0,0,0,12" />
+                <Button Content="Dashboard" Margin="0,4" />
+                <Button Content="SQL Assistant" Margin="0,4" />
+                <Button Content="VBA Assistant" Margin="0,4" />
+                <Button Content="Data Analyzer" Margin="0,4" />
+                <Button Content="Risk Dashboard" Margin="0,4" />
+                <Button Content="Regulation / NCR" Margin="0,4" />
+                <Button Content="Feedback Center" Margin="0,4" />
+                <Button Content="History" Margin="0,4" />
+                <Button Content="Settings" Margin="0,4" />
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer Grid.Row="1" Grid.Column="1" Padding="18">
+            <StackPanel>
+                <TextBlock Text="업무 요청" FontSize="16" FontWeight="Bold" />
+                <TextBox x:Name="RequestBox" Height="86" TextWrapping="Wrap" AcceptsReturn="True" Margin="0,8,0,16"
+                         Text="기준일별 포트폴리오 한도 사용률 점검 SQL과 검증 SQL을 만들어줘." />
+
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                    <Button Content="SQL 검사" Width="110" Margin="0,0,8,0" Click="OnCheckSql" />
+                    <Button Content="VBA 검사" Width="110" Margin="0,0,8,0" Click="OnCheckVba" />
+                    <Button Content="Excel 함수 검사" Width="130" Click="OnCheckExcel" />
+                </StackPanel>
+
+                <TextBlock Text="결과" FontSize="16" FontWeight="Bold" />
+                <TextBox x:Name="ResultBox" Height="360" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" Margin="0,8,0,0" />
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Row="1" Grid.Column="2" Background="#FAFAFA" Padding="14" BorderBrush="#DDDDDD" BorderThickness="1,0,0,0">
+            <StackPanel>
+                <TextBlock Text="Safety Check" FontSize="16" FontWeight="Bold" />
+                <TextBlock Text="초기 MVP는 모델 없이도 룰 엔진이 동작합니다." TextWrapping="Wrap" Margin="0,8,0,16" />
+                <TextBlock Text="Status" FontWeight="Bold" />
+                <TextBlock x:Name="SafetyStatusText" Text="Ready" Margin="0,6,0,16" />
+                <TextBlock Text="Hidden Risk" FontWeight="Bold" />
+                <TextBlock Text="생성된 SQL/VBA는 사용자가 검토한 후 Golden6/Excel에서 수동 실행해야 합니다." TextWrapping="Wrap" Margin="0,6,0,0" />
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="2" Grid.ColumnSpan="3" Background="#EEF2F6" Padding="8">
+            <TextBlock Text="No external API · No auto execution · Self-contained offline runtime" FontSize="12" Foreground="#475569" />
+        </Border>
+    </Grid>
+</Window>
