@@ -9,12 +9,12 @@
 
 > Claude는 복귀 시 **이 블록만으로** 현재 상태·다음 작업을 파악할 수 있어야 한다.
 
-- **현재 상태(1줄)**: M2-06 UI 연동 + SmokeTest 확장 구현 및 feature CI 검증 완료, develop squash 반영 중.
-- **develop 최신 commit**: `d651d8b048765de02ff7d5c9d2b51d7dd78491d0`
-- **DONE (검증됨)**: P0-1 develop/main fast-forward sync; P0-2 release/v0.3.0 변경 반영; P0-3 `.gitignore` `*.zip` 추가; M2-01 NoModelMode; M2-02 DraftPipeline; M2-03 KbSearch; M2-05 ExamplePromotion; M2-06 feature CI `build` success
-- **진행 중이던 항목 / 중단 지점**: M2-06 develop squash commit/push/CI 확인
-- **NEXT UP (Claude가 바로 집을 작업)**: M2-04 Excel 2021 리포트 생성 방식 결정 확인
-- **BLOCKED 개수 / 핵심**: _0_
+- **현재 상태(1줄)**: M2-01/02/03/05/06 구현 완료. M2-04 Excel 2021 리포트는 생성 방식 결정 필요로 BLOCKED.
+- **develop 최신 commit**: `7b52aa29d3999a4295ac6189c4ea6cae3cb87c13` + M2-04 BLOCKED record commit(본 커밋; push 후 `origin/develop` 확인)
+- **DONE (검증됨)**: P0-1 develop/main fast-forward sync; P0-2 release/v0.3.0 변경 반영; P0-3 `.gitignore` `*.zip` 추가; M2-01 NoModelMode; M2-02 DraftPipeline; M2-03 KbSearch; M2-05 ExamplePromotion; M2-06 UI 연동
+- **진행 중이던 항목 / 중단 지점**: M2-04 시작 전 STOP. `docs/33` DM-03/M2-04가 Excel report 생성 방식 결정을 선행 요구.
+- **NEXT UP (Claude가 바로 집을 작업)**: M2-04 생성 방식 결정(OpenXML NuGet 승인 vs Interop vs CSV+템플릿) 후 재개
+- **BLOCKED 개수 / 핵심**: _1_ — M2-04 생성 방식/NuGet 결정 필요
 - **재현 검증**: `git fetch origin develop && git switch develop && dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI.SmokeTests`
 - **⚠️ Claude 확인 요망(자동결정/승격대기)**: _-_
 
@@ -48,8 +48,8 @@
 | M2-02 | SQL/VBA 초안 파이프라인(안전+감사) | DONE | `5b0d3d74260215dc171fd7d130feb4c9cd22a3fb` | 141 PASS | 생성물 Checker 통과+로그 |
 | M2-03 | 규정/NCR catalog 검색 | DONE | `803b5e049da45d3710da2e3b96bd4f73fae0bbf6` | 152 PASS | 공개 catalog만 |
 | M2-05 | 승인형 피드백 예제 승격 | DONE | `d651d8b048765de02ff7d5c9d2b51d7dd78491d0` | 158 PASS | 재학습 아님 |
-| M2-06 | UI 연동 + SmokeTest 확장 | DONE | M2-06 squash commit | 162 PASS | |
-| M2-04 | Excel 2021 리포트 | TODO | - | - | NuGet 필요 시 BLOCKED |
+| M2-06 | UI 연동 + SmokeTest 확장 | DONE | `7b52aa29d3999a4295ac6189c4ea6cae3cb87c13` | 162 PASS | |
+| M2-04 | Excel 2021 리포트 | BLOCKED | M2-04 BLOCKED record commit | - | 생성 방식/NuGet 결정 필요 |
 
 ### Phase 2 — 스트레치 (시간 여유 시)
 | ID | 항목 | 상태 | 커밋 | 비고 |
@@ -68,7 +68,7 @@ _(아직 없음)_
 > Hard-block 항목. 각: 무엇을 / 왜 막혔는지 / 제안 해결책 / 필요한 결정.
 
 <!-- [UTC] 항목 | 사유 | 제안 | 필요한 결정 -->
-_(아직 없음)_
+- [2026-06-19T17:05:09Z] M2-04 Excel 2021 리포트 | `docs/33` DM-03/M2-04가 생성 방식 결정을 선행 요구. OpenXML은 NuGet 추가라 STOP 대상이고, Interop/CSV+템플릿도 산출물 형식·Prod 오프라인 호환성 결정 필요. | 권장: (A) CSV+템플릿 우선으로 NuGet 없이 진행, 또는 (B) OpenXML SDK NuGet 승인 후 xlsx 생성, 또는 (C) Interop 금지/허용 명시. | M2-04 생성 방식과 NuGet 추가 승인 여부 |
 
 ## 5. 완료 보고 누적 (append-only)
 
@@ -148,7 +148,7 @@ _(아직 없음)_
 - 보안 게이트 A: 0건(금지어 가드 문구 오탐만 확인; 기존 ignored 루트 ZIP은 미포함) / NuGet: 없음
 - 결정/가정: 실제 모델 생성/내부 원문 RAG/재학습 없음. UI는 Core 기능 호출과 해시 audit 흐름 노출까지만 수행.
 - feature 검증: `feature/mvp2-m2-06-ui-integration` CI `build` success (`27838739866`)
-- develop 반영 커밋: M2-06 squash commit(본 커밋; push 후 `origin/develop` 확인)
+- develop 반영 커밋: `7b52aa29d3999a4295ac6189c4ea6cae3cb87c13`
 
 ## 6. 하트비트 로그 (≈1h 또는 항목 전환마다)
 
@@ -169,6 +169,7 @@ _(아직 없음)_
 - [2026-06-19T16:29:28Z] M2-05 feature CI `build` success, SmokeTest 158 PASS / 현재 항목: develop squash commit 작성 / 다음 항목: M2-06 UI 연동
 - [2026-06-19T16:32:08Z] M2-05 develop CI `build` success, SmokeTest 158 PASS / 현재 항목: M2-06 WPF 탭 연동 / 다음 항목: M2-06 feature 검증
 - [2026-06-19T17:02:29Z] M2-06 feature CI `build` success, SmokeTest 162 PASS / 현재 항목: develop squash commit 작성 / 다음 항목: M2-04 결정 확인
+- [2026-06-19T17:05:09Z] M2-06 develop CI `build` success, SmokeTest 162 PASS / 현재 항목: M2-04 결정 확인 / 다음 항목: BLOCKED 보고
 
 ## 7. Claude 재개 체크리스트
 
