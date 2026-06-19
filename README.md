@@ -238,3 +238,12 @@ dotnet run --project tests/RiskManagementAI.SmokeTests   # 전부 PASS 확인
 4. 단위마다 빌드/SmokeTest, 작은 단위 커밋
 
 > 백로그/가이드: `docs/21`, `docs/26` · 환경/배포: `docs/22`~`docs/25` · 보안/동기화: `docs/28`, `docs/29` · 데모: `docs/30`
+
+### 10-1. 목표 추진(Goal) 모드로 Codex 실행 시
+
+Codex를 자율 추진 모드로 돌리고, 그 결과를 Git Sync로 Claude Code가 인지하게 하려면:
+
+1. 시작 프롬프트: `prompts/codex_goal_mode_prompt.md`
+2. 상태 원장/결정/핸드백 규약: `docs/31_Codex_Goal_Mode_Worklog.md`
+
+Codex는 `feature/mvp1-rule-engine`에서 작업하며 단위마다 `docs/31`을 갱신·push하고, Claude는 `git fetch`로 동일 문서를 읽어 진행 상태를 파악한다.

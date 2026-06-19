@@ -5,5 +5,18 @@ public sealed record DataProfileResult(
     int RowCount,
     int ColumnCount,
     IReadOnlyList<string> Columns,
-    IReadOnlyDictionary<string, int> NullCounts
+    IReadOnlyDictionary<string, int> NullCounts,
+    int DuplicateRowCount,
+    IReadOnlyDictionary<string, int> BaseDateDistribution,
+    IReadOnlyDictionary<string, NumericColumnProfile> NumericColumns,
+    IReadOnlyList<string> Warnings
+);
+
+public sealed record NumericColumnProfile(
+    string ColumnName,
+    int NonNullCount,
+    decimal Sum,
+    decimal Min,
+    decimal Max,
+    int OutlierCount
 );

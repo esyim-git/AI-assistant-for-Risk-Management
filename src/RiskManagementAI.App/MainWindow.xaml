@@ -36,22 +36,92 @@
             </StackPanel>
         </Border>
 
-        <ScrollViewer Grid.Row="1" Grid.Column="1" Padding="18">
-            <StackPanel>
-                <TextBlock Text="업무 요청" FontSize="16" FontWeight="Bold" />
-                <TextBox x:Name="RequestBox" Height="86" TextWrapping="Wrap" AcceptsReturn="True" Margin="0,8,0,16"
-                         Text="기준일별 포트폴리오 한도 사용률 점검 SQL과 검증 SQL을 만들어줘." />
+        <Grid Grid.Row="1" Grid.Column="1" Margin="18">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="260" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-                    <Button Content="SQL 검사" Width="110" Margin="0,0,8,0" Click="OnCheckSql" />
-                    <Button Content="VBA 검사" Width="110" Margin="0,0,8,0" Click="OnCheckVba" />
-                    <Button Content="Excel 함수 검사" Width="130" Click="OnCheckExcel" />
-                </StackPanel>
+            <TabControl>
+                <TabItem Header="SQL">
+                    <Grid Margin="10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="36" />
+                        </Grid.RowDefinitions>
+                        <TextBox x:Name="SqlRequestBox" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                                 Text="SELECT TRADE_ID, BASE_DT FROM RISK_EXPOSURE_DAILY WHERE BASE_DT = :BASE_DT" />
+                        <Button Grid.Row="1" Content="SQL 검사" Width="110" HorizontalAlignment="Left" Margin="0,10,0,0" Click="OnCheckSql" />
+                    </Grid>
+                </TabItem>
 
-                <TextBlock Text="결과" FontSize="16" FontWeight="Bold" />
-                <TextBox x:Name="ResultBox" Height="360" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" Margin="0,8,0,0" />
-            </StackPanel>
-        </ScrollViewer>
+                <TabItem Header="VBA">
+                    <Grid Margin="10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="36" />
+                        </Grid.RowDefinitions>
+                        <TextBox x:Name="VbaRequestBox" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                                 Text="Option Explicit&#x0a;Sub SampleCheck()&#x0a;    MsgBox &quot;Review only&quot;&#x0a;End Sub" />
+                        <Button Grid.Row="1" Content="VBA 검사" Width="110" HorizontalAlignment="Left" Margin="0,10,0,0" Click="OnCheckVba" />
+                    </Grid>
+                </TabItem>
+
+                <TabItem Header="Excel">
+                    <Grid Margin="10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="36" />
+                        </Grid.RowDefinitions>
+                        <TextBox x:Name="ExcelRequestBox" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                                 Text="=XLOOKUP(A2,LimitTable[Desk],LimitTable[Limit])" />
+                        <Button Grid.Row="1" Content="Excel 검사" Width="110" HorizontalAlignment="Left" Margin="0,10,0,0" Click="OnCheckExcel" />
+                    </Grid>
+                </TabItem>
+
+                <TabItem Header="Data">
+                    <Grid Margin="10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="34" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="36" />
+                        </Grid.RowDefinitions>
+                        <TextBox x:Name="DataPathBox" Text="samples/dummy_data/risk_exposure_sample.csv" />
+                        <TextBox x:Name="DataPreviewBox" Grid.Row="1" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" Margin="0,8,0,0"
+                                 Text="CSV 프로파일 결과가 여기에 표시됩니다." IsReadOnly="True" />
+                        <Button Grid.Row="2" Content="CSV 분석" Width="110" HorizontalAlignment="Left" Margin="0,10,0,0" Click="OnProfileData" />
+                    </Grid>
+                </TabItem>
+            </TabControl>
+
+            <Grid Grid.Row="1" Margin="0,16,0,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="28" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <DockPanel>
+                    <TextBlock Text="결과" FontSize="16" FontWeight="Bold" />
+                    <TextBlock x:Name="FindingSummaryText" Text="Ready" Foreground="#475569" HorizontalAlignment="Right" DockPanel.Dock="Right" />
+                </DockPanel>
+                <ListBox x:Name="FindingList" Grid.Row="1" BorderBrush="#CBD5E1" BorderThickness="1" HorizontalContentAlignment="Stretch">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="{Binding Background}" BorderBrush="{Binding BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="10" Margin="2">
+                                <StackPanel>
+                                    <TextBlock FontWeight="SemiBold" Foreground="{Binding Foreground}">
+                                        <Run Text="{Binding Severity}" />
+                                        <Run Text=" / " />
+                                        <Run Text="{Binding Code}" />
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                    <TextBlock Text="{Binding Detail}" TextWrapping="Wrap" Foreground="#64748B" Margin="0,4,0,0" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </Grid>
 
         <Border Grid.Row="1" Grid.Column="2" Background="#FAFAFA" Padding="14" BorderBrush="#DDDDDD" BorderThickness="1,0,0,0">
             <StackPanel>
