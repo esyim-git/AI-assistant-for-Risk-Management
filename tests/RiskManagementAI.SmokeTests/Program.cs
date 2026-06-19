@@ -136,6 +136,23 @@ var customRuleFindings = new SqlSafetyChecker(customRuleSet).Check("VACUUM TABLE
 AssertTrue(!customRuleSet.UsedFallback, "Custom smoke rules should load without fallback");
 AssertTrue(customRuleFindings.Any(f => f.Code == "SQL_DENY_PATTERN" && string.Equals(f.MatchedText, "VACUUM", StringComparison.OrdinalIgnoreCase)), "Temporary SQL rule file pattern should be injected");
 
+var versionDriftRulesDirectory = Path.Combine("artifacts", "smoke-rules-b09-version");
+if (Directory.Exists(versionDriftRulesDirectory))
+{
+    Directory.Delete(versionDriftRulesDirectory, recursive: true);
+}
+
+Directory.CreateDirectory(versionDriftRulesDirectory);
+foreach (var sourceFile in Directory.EnumerateFiles("rules", "*.txt"))
+{
+    File.Copy(sourceFile, Path.Combine(versionDriftRulesDirectory, Path.GetFileName(sourceFile)));
+}
+
+var versionBeforeRuleChange = RuleLoader.LoadFromDirectory(versionDriftRulesDirectory);
+File.AppendAllText(Path.Combine(versionDriftRulesDirectory, "sql_warn_patterns.txt"), "\nFULL\\s+OUTER\\s+JOIN\n");
+var versionAfterRuleChange = RuleLoader.LoadFromDirectory(versionDriftRulesDirectory);
+AssertTrue(versionBeforeRuleChange.RuleVersion != versionAfterRuleChange.RuleVersion, "RuleLoader ruleset version should change when rule content changes");
+
 var fallbackRuleSet = RuleLoader.LoadFromDirectory(Path.Combine("artifacts", "missing-rules-b01"));
 var fallbackFindings = new SqlSafetyChecker(fallbackRuleSet).Check("DELETE FROM TRADE_SAMPLE").ToList();
 AssertTrue(fallbackRuleSet.UsedFallback, "Missing rules directory should use fallback");
@@ -157,6 +174,12 @@ var missingPolicyResult = PolicyLoader.LoadFromFile("config/missing_policy_smoke
 AssertTrue(missingPolicyResult.UsedFallback, "Missing security policy should use safe fallback");
 AssertTrue(!missingPolicyResult.Policy.Network.AllowExternalApi && !missingPolicyResult.Policy.Sql.AllowAutoExecute, "Security policy fallback should keep dangerous actions disabled");
 AssertTrue(PolicyLoader.LoadFromFile("../security_policy.json").UsedFallback, "PolicyLoader should reject non-config-relative paths");
+
+var invalidPolicyPath = Path.Combine("config", "smoke_invalid_policy.json");
+File.WriteAllText(invalidPolicyPath, "{ invalid json");
+var invalidPolicyResult = PolicyLoader.LoadFromFile(invalidPolicyPath);
+File.Delete(invalidPolicyPath);
+AssertTrue(invalidPolicyResult.UsedFallback && !invalidPolicyResult.Policy.Network.AllowExternalApi, "PolicyLoader should safe-fallback on invalid JSON policy");
 
 var profiler = new DataProfiler();
 var exposureProfile = profiler.ProfileCsv(Path.Combine("samples", "dummy_data", "risk_exposure_sample.csv"));
@@ -180,6 +203,11 @@ AssertTrue(smallProfile.NullCounts["DESK_CD"] == 1, "DataProfiler should count n
 AssertTrue(smallProfile.DuplicateRowCount == 1, "DataProfiler should count duplicate rows");
 AssertTrue(smallProfile.BaseDateDistribution["20260617"] == 2 && smallProfile.BaseDateDistribution["20260618"] == 1, "DataProfiler should count BASE_DT values");
 AssertTrue(smallProfile.NumericColumns["AMT"].Sum == 40m, "DataProfiler should compute small numeric sum");
+
+var noBaseDateCsv = Path.Combine(profileSmokeDirectory, "profile_no_base_dt.csv");
+File.WriteAllText(noBaseDateCsv, "DESK_CD,AMT\nEQD,10\nFIC,20\n");
+var noBaseDateProfile = profiler.ProfileCsv(noBaseDateCsv);
+AssertTrue(noBaseDateProfile.Warnings.Any(w => w.Contains("BASE_DT", StringComparison.OrdinalIgnoreCase)), "DataProfiler should warn when BASE_DT is missing");
 
 var taskLogPath = Path.Combine("logs", "smoke_task_log.jsonl");
 var feedbackLogPath = Path.Combine("logs", "smoke_feedback_log.jsonl");
@@ -213,6 +241,8 @@ AssertTrue(File.Exists(taskLogWriter.LogFilePath), "TaskLogWriter should create 
 AssertTrue(taskLogText.Contains(taskEntry.RequestHash, StringComparison.Ordinal), "TaskLogWriter should store request hash");
 AssertTrue(!taskLogText.Contains(rawRequest, StringComparison.Ordinal) && !taskLogText.Contains("ACCOUNT_NO", StringComparison.Ordinal), "TaskLogWriter should not store raw request/output text");
 AssertTrue(Throws<ArgumentException>(() => taskLogWriter.Append(taskEntry with { RequestHash = rawRequest })), "TaskLogWriter should reject non-hash RequestHash");
+AssertTrue(Throws<ArgumentException>(() => taskLogWriter.Append(taskEntry with { OutputHash = rawOutput })), "TaskLogWriter should reject non-hash OutputHash");
+AssertTrue(Throws<ArgumentException>(() => new TaskLogWriter("logs/../reports", "bad.jsonl")), "TaskLogWriter should reject paths outside logs");
 
 var feedbackEntry = new FeedbackLogEntry(
     "feedback-smoke-001",

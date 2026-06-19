@@ -88,8 +88,8 @@
 | B-05 | DataProfiler 구현 | TODO | DONE | b2c29c9 | `Data/DataProfiler.cs`, `Data/DataProfileResult.cs`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (88 PASS / 0 FAIL) | 샘플 CSV/Null/중복/BASE_DT/숫자 통계 검증 |
 | B-06 | TaskLog/FeedbackLog 저장기 | TODO | DONE | f26d154 | `Logging/*Writer.cs`, `Logging/LogHash.cs`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (95 PASS / 0 FAIL) | logs/*.jsonl append, hash 검증 |
 | B-07 | PolicyLoader (security_policy.json) | TODO | DONE | a48bfa8 | `Config/*Policy*.cs`, `App.xaml.cs`, `MainWindow.xaml.cs`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (107 PASS / 0 FAIL) | safe fallback + 차단 강제 |
-| B-08 | 최소 UI 보강 | WIP* | DONE | this commit | `App/MainWindow.xaml(.cs)` | PASS (0 warnings, 0 errors) | PASS (107 PASS / 0 FAIL) | 탭/심각도 색상 + 숨김 기동 smoke PASS |
-| B-09 | SmokeTest 확장 | WIP* | TODO | - | `tests/.../Program.cs` | - | - | 신규기능 회귀 |
+| B-08 | 최소 UI 보강 | WIP* | DONE | 6313cb4 | `App/MainWindow.xaml(.cs)` | PASS (0 warnings, 0 errors) | PASS (107 PASS / 0 FAIL) | 탭/심각도 색상 + 숨김 기동 smoke PASS |
+| B-09 | SmokeTest 확장 | WIP* | DONE | this commit | `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (112 PASS / 0 FAIL) | 신규기능 최종 회귀 |
 
 > `WIP*` = 스타터에 기초 구현이 있어 "검증/보강" 성격임을 의미(신규 생성 아님).
 
@@ -97,15 +97,15 @@
 
 > Codex가 MVP-1 종료 시 아래를 모두 체크한다. (출처: docs/21)
 
-- [ ] `dotnet build` 성공 (외부 NuGet 최소/없음)
-- [ ] SmokeTest 전부 PASS (실패 시 exit 1)
-- [ ] SQL DELETE/UPDATE/DROP 등 차단, 정상 SELECT 통과(Blocker 0)
-- [ ] VBA Shell/WScript/Kill 탐지, Option Explicit 누락 경고
-- [ ] Excel VSTACK/HSTACK/TEXTSPLIT/MAP/REDUCE/BYROW/BYCOL 탐지
-- [ ] 룰이 `rules/*.txt`에서 로드됨 (RuleLoader)
-- [ ] 더미 CSV 프로파일링 동작
-- [ ] TaskLog/FeedbackLog가 **해시 기반**으로 기록됨
-- [ ] Local LLM 없이 / 인터넷 없이 앱 실행 가능
+- [x] `dotnet build` 성공 (외부 NuGet 최소/없음)
+- [x] SmokeTest 전부 PASS (실패 시 exit 1)
+- [x] SQL DELETE/UPDATE/DROP 등 차단, 정상 SELECT 통과(Blocker 0)
+- [x] VBA Shell/WScript/Kill 탐지, Option Explicit 누락 경고
+- [x] Excel VSTACK/HSTACK/TEXTSPLIT/MAP/REDUCE/BYROW/BYCOL 탐지
+- [x] 룰이 `rules/*.txt`에서 로드됨 (RuleLoader)
+- [x] 더미 CSV 프로파일링 동작
+- [x] TaskLog/FeedbackLog가 **해시 기반**으로 기록됨
+- [x] Local LLM 없이 / 인터넷 없이 앱 실행 가능
 
 ---
 
@@ -230,6 +230,17 @@
 - NuGet 추가: 없음
 - 결정/가정: 새 UI 의존성 없이 WPF 기본 컨트롤만 사용. 숨김 기동 smoke로 앱이 즉시 종료되지 않음을 확인했다.
 - 남은 리스크/후속: B-09 최종 SmokeTest 확장 및 MVP-1 DoD 체크.
+- 커밋: 6313cb4 "feat: add tabbed safety review UI"
+
+#### [B-09] SmokeTest 확장 — DONE (2026-06-19)
+- 구현 요약: RuleLoader/DataProfiler/Log/Policy 신규 기능에 대한 최종 회귀 케이스를 추가했다. 룰 내용 변경 시 RuleVersion 변경, invalid policy JSON safe fallback, BASE_DT 누락 경고, OutputHash 검증, logs 밖 경로 차단을 확인한다.
+- 변경 파일: `tests/RiskManagementAI.SmokeTests/Program.cs`, `docs/31_Codex_Goal_Mode_Worklog.md`
+- 빌드 결과: `dotnet build RiskManagementAI.sln --no-restore` = 성공 (0 warnings / 0 errors)
+- SmokeTest 결과: 112 PASS / 0 FAIL (신규 추가 케이스: RuleVersion drift, invalid policy fallback, BASE_DT warning, OutputHash hash-only, logs path guard)
+- 보안 게이트 A: 통과(actionable 0건; 기존 정책/패키징 문구 false positive 확인)
+- NuGet 추가: 없음
+- 결정/가정: B-01~B-07에서 추가된 신규 기능을 최종 회귀망으로 고정. 테스트 데이터는 더미/임시 파일만 사용한다.
+- 남은 리스크/후속: Release ZIP 생성/검증은 별도 release 단계에서 `build/00`~`build/03`으로 수행.
 - 커밋: this commit
 
 ---
