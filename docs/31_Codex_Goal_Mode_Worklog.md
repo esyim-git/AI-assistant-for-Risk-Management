@@ -85,7 +85,7 @@
 | B-02 | SqlSafetyChecker 검증/보강 | WIP* | DONE | c98352e | `Safety/RuleLoader.cs`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (33 PASS / 0 FAIL) | 14개 deny + 4개 warn 검증 |
 | B-03 | VbaSafetyChecker 검증/보강 | WIP* | DONE | cee9e41 | `rules/vba_deny_patterns.txt`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (53 PASS / 0 FAIL) | 위험 API + REQUIRE_PRESENT 검증 |
 | B-04 | Excel2021FunctionChecker 검증/보강 | WIP* | DONE | 20061de | `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (74 PASS / 0 FAIL) | blocked 전체 + preferred 안내 검증 |
-| B-05 | DataProfiler 구현 | TODO | DONE | this commit | `Data/DataProfiler.cs`, `Data/DataProfileResult.cs`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (88 PASS / 0 FAIL) | 샘플 CSV/Null/중복/BASE_DT/숫자 통계 검증 |
+| B-05 | DataProfiler 구현 | TODO | DONE | b2c29c9 | `Data/DataProfiler.cs`, `Data/DataProfileResult.cs`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (88 PASS / 0 FAIL) | 샘플 CSV/Null/중복/BASE_DT/숫자 통계 검증 |
 | B-06 | TaskLog/FeedbackLog 저장기 | TODO | TODO | - | `Logging/*Writer.cs`(신규) | - | - | **해시만** 저장 |
 | B-07 | PolicyLoader (security_policy.json) | TODO | TODO | - | `Config/PolicyLoader.cs`(신규) | - | - | 없으면 전부 false |
 | B-08 | 최소 UI 보강 | WIP* | TODO | - | `App/MainWindow.xaml(.cs)` | - | - | 탭/심각도 색상 |
@@ -197,7 +197,7 @@
 - NuGet 추가: 없음
 - 결정/가정: CSV 우선 지원, XLSX는 후속 범위. 읽기 전용이며 실데이터 경로를 하드코딩하지 않음.
 - 남은 리스크/후속: B-06 TaskLog/FeedbackLog JSONL 저장기 구현.
-- 커밋: this commit
+- 커밋: b2c29c9 "feat: add CSV data profiler"
 
 ---
 
