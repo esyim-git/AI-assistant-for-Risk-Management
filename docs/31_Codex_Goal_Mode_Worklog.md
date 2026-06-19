@@ -84,7 +84,7 @@
 | B-01 | RuleLoader (rules/*.txt 주입) | TODO | DONE | e452324 | `Safety/RuleLoader.cs`, `Safety/SafetyRuleSet.cs`, checker 3종, SmokeTest | PASS (0 warnings, 0 errors) | PASS (15 PASS / 0 FAIL) | D-01/D-02/D-05/D-06 반영 |
 | B-02 | SqlSafetyChecker 검증/보강 | WIP* | DONE | c98352e | `Safety/RuleLoader.cs`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (33 PASS / 0 FAIL) | 14개 deny + 4개 warn 검증 |
 | B-03 | VbaSafetyChecker 검증/보강 | WIP* | DONE | cee9e41 | `rules/vba_deny_patterns.txt`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (53 PASS / 0 FAIL) | 위험 API + REQUIRE_PRESENT 검증 |
-| B-04 | Excel2021FunctionChecker 검증/보강 | WIP* | DONE | this commit | `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (74 PASS / 0 FAIL) | blocked 전체 + preferred 안내 검증 |
+| B-04 | Excel2021FunctionChecker 검증/보강 | WIP* | DONE | 20061de | `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (74 PASS / 0 FAIL) | blocked 전체 + preferred 안내 검증 |
 | B-05 | DataProfiler 구현 | TODO | TODO | - | `Data/DataProfiler.cs`(신규) | - | - | 더미 CSV 대상 |
 | B-06 | TaskLog/FeedbackLog 저장기 | TODO | TODO | - | `Logging/*Writer.cs`(신규) | - | - | **해시만** 저장 |
 | B-07 | PolicyLoader (security_policy.json) | TODO | TODO | - | `Config/PolicyLoader.cs`(신규) | - | - | 없으면 전부 false |
@@ -186,7 +186,7 @@
 - NuGet 추가: 없음
 - 결정/가정: D-02 적용. `excel_2021_preferred_functions.txt`는 메시지/대체안 안내용이며 탐지 패턴이 아님.
 - 남은 리스크/후속: B-05 DataProfiler 구현.
-- 커밋: this commit
+- 커밋: 20061de "test: cover Excel 2021 blocked functions"
 
 ---
 
