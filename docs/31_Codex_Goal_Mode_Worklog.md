@@ -88,7 +88,7 @@
 | B-05 | DataProfiler 구현 | TODO | DONE | b2c29c9 | `Data/DataProfiler.cs`, `Data/DataProfileResult.cs`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (88 PASS / 0 FAIL) | 샘플 CSV/Null/중복/BASE_DT/숫자 통계 검증 |
 | B-06 | TaskLog/FeedbackLog 저장기 | TODO | DONE | f26d154 | `Logging/*Writer.cs`, `Logging/LogHash.cs`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (95 PASS / 0 FAIL) | logs/*.jsonl append, hash 검증 |
 | B-07 | PolicyLoader (security_policy.json) | TODO | DONE | a48bfa8 | `Config/*Policy*.cs`, `App.xaml.cs`, `MainWindow.xaml.cs`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (107 PASS / 0 FAIL) | safe fallback + 차단 강제 |
-| B-08 | 최소 UI 보강 | WIP* | TODO | - | `App/MainWindow.xaml(.cs)` | - | - | 탭/심각도 색상 |
+| B-08 | 최소 UI 보강 | WIP* | DONE | this commit | `App/MainWindow.xaml(.cs)` | PASS (0 warnings, 0 errors) | PASS (107 PASS / 0 FAIL) | 탭/심각도 색상 + 숨김 기동 smoke PASS |
 | B-09 | SmokeTest 확장 | WIP* | TODO | - | `tests/.../Program.cs` | - | - | 신규기능 회귀 |
 
 > `WIP*` = 스타터에 기초 구현이 있어 "검증/보강" 성격임을 의미(신규 생성 아님).
@@ -220,6 +220,17 @@
 - 결정/가정: 정책 파일이 없거나 손상되면 전부 안전값(false)으로 폴백한다. 실제 외부 API/자동 실행 기능은 구현하지 않음.
 - 남은 리스크/후속: B-08 최소 UI 보강.
 - 커밋: a48bfa8 "feat: load offline security policy"
+
+#### [B-08] 최소 UI 보강 — DONE (2026-06-19)
+- 구현 요약: 단일 입력/텍스트 결과 UI를 SQL/VBA/Excel/Data 탭으로 분리하고, finding 목록을 심각도별 색상 카드로 표시한다. Data 탭은 더미 CSV 프로파일 요약과 프로파일 경고를 같은 결과 영역에 표시한다.
+- 변경 파일: `src/RiskManagementAI.App/MainWindow.xaml`, `src/RiskManagementAI.App/MainWindow.xaml.cs`, `docs/31_Codex_Goal_Mode_Worklog.md`
+- 빌드 결과: `dotnet build RiskManagementAI.sln --no-restore` = 성공 (0 warnings / 0 errors)
+- SmokeTest 결과: 107 PASS / 0 FAIL (기존 RuleLoader/DataProfiler/Log/Policy 회귀)
+- 보안 게이트 A: 통과(actionable 0건; 기존 정책/패키징 문구 false positive 확인)
+- NuGet 추가: 없음
+- 결정/가정: 새 UI 의존성 없이 WPF 기본 컨트롤만 사용. 숨김 기동 smoke로 앱이 즉시 종료되지 않음을 확인했다.
+- 남은 리스크/후속: B-09 최종 SmokeTest 확장 및 MVP-1 DoD 체크.
+- 커밋: this commit
 
 ---
 
