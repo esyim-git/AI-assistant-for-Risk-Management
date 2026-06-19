@@ -81,7 +81,7 @@
 | ID | 항목 | 시작상태 | 현재상태 | 커밋(short) | 핵심 변경파일 | build | SmokeTest | 비고 |
 |---|---|---|---|---|---|---|---|---|
 | S-0 | 설정(.sln 생성, ci 트리거 D-04) | TODO | DONE | d09dcdd | `RiskManagementAI.sln`, `.github/workflows/ci.yml`, `NuGet.Config` | PASS (0 warnings, 0 errors) | PASS (5 PASS / 0 FAIL) | repo-local NuGet config 추가(외부 package source 없음) |
-| B-01 | RuleLoader (rules/*.txt 주입) | TODO | TODO | - | `Safety/RuleLoader.cs`(신규) 외 | - | - | **최우선** |
+| B-01 | RuleLoader (rules/*.txt 주입) | TODO | DONE | this commit | `Safety/RuleLoader.cs`, `Safety/SafetyRuleSet.cs`, checker 3종, SmokeTest | PASS (0 warnings, 0 errors) | PASS (15 PASS / 0 FAIL) | D-01/D-02/D-05/D-06 반영 |
 | B-02 | SqlSafetyChecker 검증/보강 | WIP* | TODO | - | `Safety/SqlSafetyChecker.cs` | - | - | *기존 구현 보강 |
 | B-03 | VbaSafetyChecker 검증/보강 | WIP* | TODO | - | `Safety/VbaSafetyChecker.cs` | - | - | FollowHyperlink 등 흡수 |
 | B-04 | Excel2021FunctionChecker 검증/보강 | WIP* | TODO | - | `Excel/Excel2021FunctionChecker.cs` | - | - | preferred=안내용(D-02) |
@@ -143,6 +143,17 @@
 - 결정/가정: D-03, D-04 적용. Local Dev 검증용 .NET SDK 8.0.422는 user-local 설치이며 repo 산출물 아님.
 - 남은 리스크/후속: B-01 RuleLoader부터 순서대로 진행.
 - 커밋: d09dcdd "chore: set up MVP1 solution and CI trigger"
+
+#### [B-01] RuleLoader (rules/*.txt 주입) — DONE (2026-06-19)
+- 구현 요약: `rules/*.txt`를 로드하는 RuleLoader와 SafetyRuleSet을 추가하고, SQL/VBA/Excel checker가 룰셋 주입으로 동작하게 했다. `REQUIRE_PRESENT:`는 부재 시 경고로 처리하며, 룰 파일 누락/손상 시 내장 기본 룰셋으로 폴백하고 finding으로 표시한다.
+- 변경 파일: `src/RiskManagementAI.Core/Safety/RuleLoader.cs`, `src/RiskManagementAI.Core/Safety/SafetyRuleSet.cs`, `src/RiskManagementAI.Core/Safety/SqlSafetyChecker.cs`, `src/RiskManagementAI.Core/Safety/VbaSafetyChecker.cs`, `src/RiskManagementAI.Core/Excel/Excel2021FunctionChecker.cs`, `tests/RiskManagementAI.SmokeTests/Program.cs`, `docs/31_Codex_Goal_Mode_Worklog.md`
+- 빌드 결과: `dotnet build RiskManagementAI.sln --no-restore` = 성공 (0 warnings / 0 errors)
+- SmokeTest 결과: 15 PASS / 0 FAIL (신규 추가 케이스: RuleLoader repo rules 로드, RuleVersion, REQUIRE_PRESENT, 임시 룰 injection, fallback finding)
+- 보안 게이트 A: 통과(actionable 0건; 기존 정책/패키징 문구 false positive 확인)
+- NuGet 추가: 없음
+- 결정/가정: D-01/D-02/D-05/D-06 적용. 외부 임의 경로 로드는 차단하고 relative app-local 디렉터리만 허용.
+- 남은 리스크/후속: B-02에서 SQL deny/warn 커버리지와 transaction severity를 정식 보강.
+- 커밋: this commit
 
 ---
 
