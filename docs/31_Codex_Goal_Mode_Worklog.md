@@ -80,7 +80,7 @@
 
 | ID | 항목 | 시작상태 | 현재상태 | 커밋(short) | 핵심 변경파일 | build | SmokeTest | 비고 |
 |---|---|---|---|---|---|---|---|---|
-| S-0 | 설정(.sln 생성, ci 트리거 D-04) | TODO | TODO | - | `RiskManagementAI.sln`, `.github/workflows/ci.yml` | - | - | 본격 구현 전 1회 |
+| S-0 | 설정(.sln 생성, ci 트리거 D-04) | TODO | DONE | this commit | `RiskManagementAI.sln`, `.github/workflows/ci.yml`, `NuGet.Config` | PASS (0 warnings, 0 errors) | PASS (5 PASS / 0 FAIL) | repo-local NuGet config 추가(외부 package source 없음) |
 | B-01 | RuleLoader (rules/*.txt 주입) | TODO | TODO | - | `Safety/RuleLoader.cs`(신규) 외 | - | - | **최우선** |
 | B-02 | SqlSafetyChecker 검증/보강 | WIP* | TODO | - | `Safety/SqlSafetyChecker.cs` | - | - | *기존 구현 보강 |
 | B-03 | VbaSafetyChecker 검증/보강 | WIP* | TODO | - | `Safety/VbaSafetyChecker.cs` | - | - | FollowHyperlink 등 흡수 |
@@ -132,6 +132,17 @@
 ### 완료 보고 누적
 
 <!-- Codex는 이 줄 아래에 완료 보고를 추가한다. (아직 없음) -->
+
+#### [S-0] 설정(.sln 생성, ci 트리거 D-04) — DONE (2026-06-19)
+- 구현 요약: `RiskManagementAI.sln`을 생성하고 Core/App/SmokeTests 3개 프로젝트를 포함했다. CI push/pull_request 대상에 `feature/**`를 추가했다. sandbox-local 검증을 위해 외부 package source가 없는 repo-local `NuGet.Config`를 추가했다.
+- 변경 파일: `RiskManagementAI.sln`, `.github/workflows/ci.yml`, `NuGet.Config`, `docs/31_Codex_Goal_Mode_Worklog.md`
+- 빌드 결과: `dotnet build RiskManagementAI.sln --no-restore` = 성공 (0 warnings / 0 errors)
+- SmokeTest 결과: 5 PASS / 0 FAIL (기준선 케이스)
+- 보안 게이트 A: 통과(actionable 0건; 기존 정책/패키징 문구 false positive 확인)
+- NuGet 추가: 없음
+- 결정/가정: D-03, D-04 적용. Local Dev 검증용 .NET SDK 8.0.422는 user-local 설치이며 repo 산출물 아님.
+- 남은 리스크/후속: B-01 RuleLoader부터 순서대로 진행.
+- 커밋: this commit
 
 ---
 
