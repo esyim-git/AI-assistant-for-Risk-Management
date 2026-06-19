@@ -64,9 +64,11 @@ start RiskManagementAI.exe
 
 # Safety guard (Req 10/11): no model weights / secrets / real data may leak into the publish output.
 $ForbiddenExt = @(".gguf", ".safetensors", ".onnx", ".pt", ".pem", ".key", ".pfx", ".env")
+$ForbiddenPathNames = @("real_data", "secrets", "credentials", "exports")
 $Forbidden = Get-ChildItem -Path $PublishDir -Recurse -File -ErrorAction SilentlyContinue | Where-Object {
+    $pathParts = $_.FullName -split "[\\/]+"
     ($ForbiddenExt -contains $_.Extension) -or
-    ($_.FullName -match "\\(real_data|internal_docs|internal_regulations|secrets|credentials|exports)\\")
+    ($pathParts | Where-Object { ($ForbiddenPathNames -contains $_) -or ($_ -like "internal_*") })
 }
 if ($Forbidden) {
     $Forbidden | ForEach-Object { Write-Host "FORBIDDEN IN PUBLISH: $($_.FullName)" }
