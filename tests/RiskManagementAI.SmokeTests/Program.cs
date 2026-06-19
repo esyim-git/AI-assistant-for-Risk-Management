@@ -1,3 +1,4 @@
+using RiskManagementAI.Core.Data;
 using RiskManagementAI.Core.Excel;
 using RiskManagementAI.Core.Safety;
 
@@ -124,6 +125,29 @@ var fallbackFindings = new SqlSafetyChecker(fallbackRuleSet).Check("DELETE FROM 
 AssertTrue(fallbackRuleSet.UsedFallback, "Missing rules directory should use fallback");
 AssertTrue(fallbackFindings.Any(f => f.Code == "RULESET_FALLBACK"), "Fallback use should be reported as finding");
 AssertTrue(fallbackFindings.Any(f => f.Code == "SQL_DML_DELETE"), "Fallback rules should still block SQL DELETE");
+
+var profiler = new DataProfiler();
+var exposureProfile = profiler.ProfileCsv(Path.Combine("samples", "dummy_data", "risk_exposure_sample.csv"));
+AssertTrue(exposureProfile.SourceName == "risk_exposure_sample.csv", "DataProfiler should preserve source file name");
+AssertTrue(exposureProfile.RowCount == 6, "Risk exposure sample should have 6 data rows");
+AssertTrue(exposureProfile.ColumnCount == 10, "Risk exposure sample should have 10 columns");
+AssertTrue(exposureProfile.NullCounts.Values.All(count => count == 0), "Risk exposure sample should have zero nulls");
+AssertTrue(exposureProfile.DuplicateRowCount == 0, "Risk exposure sample should have zero duplicate rows");
+AssertTrue(exposureProfile.BaseDateDistribution["20260617"] == 5 && exposureProfile.BaseDateDistribution["20260616"] == 1, "Risk exposure sample should summarize BASE_DT distribution");
+AssertTrue(exposureProfile.NumericColumns["EXPOSURE_AMT"].Sum == 3830000000m, "Risk exposure sample should compute numeric sum");
+AssertTrue(exposureProfile.NumericColumns["EXPOSURE_AMT"].Min == -420000000m, "Risk exposure sample should compute numeric min");
+AssertTrue(exposureProfile.NumericColumns["EXPOSURE_AMT"].Max == 1250000000m, "Risk exposure sample should compute numeric max");
+
+var profileSmokeDirectory = Path.Combine("artifacts", "smoke-profile-b05");
+Directory.CreateDirectory(profileSmokeDirectory);
+var profileSmokeCsv = Path.Combine(profileSmokeDirectory, "profile_sample.csv");
+File.WriteAllText(profileSmokeCsv, "BASE_DT,DESK_CD,AMT\n20260617,EQD,10\n20260617,EQD,10\n20260618,,20\n");
+var smallProfile = profiler.ProfileCsv(profileSmokeCsv);
+AssertTrue(smallProfile.RowCount == 3, "Small profile sample should have 3 data rows");
+AssertTrue(smallProfile.NullCounts["DESK_CD"] == 1, "DataProfiler should count null values");
+AssertTrue(smallProfile.DuplicateRowCount == 1, "DataProfiler should count duplicate rows");
+AssertTrue(smallProfile.BaseDateDistribution["20260617"] == 2 && smallProfile.BaseDateDistribution["20260618"] == 1, "DataProfiler should count BASE_DT values");
+AssertTrue(smallProfile.NumericColumns["AMT"].Sum == 40m, "DataProfiler should compute small numeric sum");
 
 if (failed > 0)
 {
