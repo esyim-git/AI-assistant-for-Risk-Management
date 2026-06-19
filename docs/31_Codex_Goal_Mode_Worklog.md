@@ -86,7 +86,7 @@
 | B-03 | VbaSafetyChecker 검증/보강 | WIP* | DONE | cee9e41 | `rules/vba_deny_patterns.txt`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (53 PASS / 0 FAIL) | 위험 API + REQUIRE_PRESENT 검증 |
 | B-04 | Excel2021FunctionChecker 검증/보강 | WIP* | DONE | 20061de | `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (74 PASS / 0 FAIL) | blocked 전체 + preferred 안내 검증 |
 | B-05 | DataProfiler 구현 | TODO | DONE | b2c29c9 | `Data/DataProfiler.cs`, `Data/DataProfileResult.cs`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (88 PASS / 0 FAIL) | 샘플 CSV/Null/중복/BASE_DT/숫자 통계 검증 |
-| B-06 | TaskLog/FeedbackLog 저장기 | TODO | DONE | this commit | `Logging/*Writer.cs`, `Logging/LogHash.cs`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (95 PASS / 0 FAIL) | logs/*.jsonl append, hash 검증 |
+| B-06 | TaskLog/FeedbackLog 저장기 | TODO | DONE | f26d154 | `Logging/*Writer.cs`, `Logging/LogHash.cs`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (95 PASS / 0 FAIL) | logs/*.jsonl append, hash 검증 |
 | B-07 | PolicyLoader (security_policy.json) | TODO | TODO | - | `Config/PolicyLoader.cs`(신규) | - | - | 없으면 전부 false |
 | B-08 | 최소 UI 보강 | WIP* | TODO | - | `App/MainWindow.xaml(.cs)` | - | - | 탭/심각도 색상 |
 | B-09 | SmokeTest 확장 | WIP* | TODO | - | `tests/.../Program.cs` | - | - | 신규기능 회귀 |
@@ -208,7 +208,7 @@
 - NuGet 추가: 없음
 - 결정/가정: D-07 적용. 운영 쓰기 경로는 `logs/` 하위만 허용.
 - 남은 리스크/후속: B-07 PolicyLoader 구현.
-- 커밋: this commit
+- 커밋: f26d154 "feat: add hash-only JSONL log writers"
 
 ---
 
