@@ -1,0 +1,18 @@
+# CODEOWNERS
+# 기본 리뷰어 / 변경 책임자. 자세한 규약: docs/32_Branch_Governance.md
+# (브랜치 보호에서 "Require review from Code Owners"를 켜면 강제됨)
+
+# 전체 기본 오너 (Tech Lead / 문서오너)
+*                                         @esyim-git
+
+# 보안·정책·룰·규정 카탈로그는 특히 신중 검토 대상
+/rules/                                   @esyim-git
+/config/                                  @esyim-git
+/kb/                                      @esyim-git
+/.github/                                 @esyim-git
+/docs/05_Security_Policy.md               @esyim-git
+/docs/28_Security_Review_Checklist.md     @esyim-git
+
+# 빌드/배포 스크립트
+/build/                                   @esyim-git
+/deploy/                                  @esyim-git
