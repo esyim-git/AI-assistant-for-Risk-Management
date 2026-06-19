@@ -9,11 +9,11 @@
 
 > Claude는 복귀 시 **이 블록만으로** 현재 상태·다음 작업을 파악할 수 있어야 한다.
 
-- **현재 상태(1줄)**: M2-02 SQL/VBA 초안 파이프라인 구현 및 feature CI 검증 완료, develop squash 반영 중.
-- **develop 최신 commit**: `4cf822dac00cc23702c3728402836914d3217db6`
-- **DONE (검증됨)**: P0-1 develop/main fast-forward sync; P0-2 release/v0.3.0 변경 반영; P0-3 `.gitignore` `*.zip` 추가; M2-01 NoModelMode; M2-02 feature CI `build` success
-- **진행 중이던 항목 / 중단 지점**: M2-02 develop squash commit/push/CI 확인
-- **NEXT UP (Claude가 바로 집을 작업)**: M2-03 규정/NCR catalog 검색
+- **현재 상태(1줄)**: M2-03 규정/NCR 공개 catalog 검색 구현 및 feature CI 검증 완료, develop squash 반영 중.
+- **develop 최신 commit**: `5b0d3d74260215dc171fd7d130feb4c9cd22a3fb`
+- **DONE (검증됨)**: P0-1 develop/main fast-forward sync; P0-2 release/v0.3.0 변경 반영; P0-3 `.gitignore` `*.zip` 추가; M2-01 NoModelMode; M2-02 DraftPipeline; M2-03 feature CI `build` success
+- **진행 중이던 항목 / 중단 지점**: M2-03 develop squash commit/push/CI 확인
+- **NEXT UP (Claude가 바로 집을 작업)**: M2-05 승인형 피드백 예제 승격
 - **BLOCKED 개수 / 핵심**: _0_
 - **재현 검증**: `git fetch origin develop && git switch develop && dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI.SmokeTests`
 - **⚠️ Claude 확인 요망(자동결정/승격대기)**: _-_
@@ -45,8 +45,8 @@
 | ID | 항목 | 상태 | 커밋 | SmokeTest | 비고 |
 |---|---|---|---|---|---|
 | M2-01 | LLM 추상화 + NoModelMode | DONE | `4cf822dac00cc23702c3728402836914d3217db6` | 127 PASS | 모델 없이 기동 |
-| M2-02 | SQL/VBA 초안 파이프라인(안전+감사) | DONE | M2-02 squash commit | 141 PASS | 생성물 Checker 통과+로그 |
-| M2-03 | 규정/NCR catalog 검색 | TODO | - | - | 공개 catalog만 |
+| M2-02 | SQL/VBA 초안 파이프라인(안전+감사) | DONE | `5b0d3d74260215dc171fd7d130feb4c9cd22a3fb` | 141 PASS | 생성물 Checker 통과+로그 |
+| M2-03 | 규정/NCR catalog 검색 | DONE | M2-03 squash commit | 152 PASS | 공개 catalog만 |
 | M2-05 | 승인형 피드백 예제 승격 | TODO | - | - | 재학습 아님 |
 | M2-06 | UI 연동 + SmokeTest 확장 | TODO | - | - | |
 | M2-04 | Excel 2021 리포트 | TODO | - | - | NuGet 필요 시 BLOCKED |
@@ -121,7 +121,16 @@ _(아직 없음)_
 - 보안 게이트 A: 0건(금지어 가드 문구 오탐만 확인; 기존 ignored 루트 ZIP은 미포함) / NuGet: 없음
 - 결정/가정: UI 버튼 연동은 M2-06에서 수행. 본 단위는 Core pipeline 계약과 audit/safety 회귀 테스트를 우선 고정.
 - feature 검증: `feature/mvp2-m2-02-draft-pipeline` CI `build` success (`27836775914`)
-- develop 반영 커밋: M2-02 squash commit(본 커밋; push 후 `origin/develop` 확인)
+- develop 반영 커밋: `5b0d3d74260215dc171fd7d130feb4c9cd22a3fb`
+
+#### [M2-03] Regulation/NCR public catalog search — DONE (2026-06-19T16:23:46Z)
+- 구현 요약: `RegulationCatalog` CSV 로더와 `KbSearch` 키워드 검색을 추가. 응답은 항상 `검토용 초안`, `출처`, 버전/시행일 확인 문구를 포함하며 내부규정/NCR 원문은 포함하지 않음을 명시.
+- 변경 파일: `src/RiskManagementAI.Core/Kb/RegulationCatalog.cs`, `src/RiskManagementAI.Core/Kb/KbSearch.cs`, `tests/RiskManagementAI.SmokeTests/Program.cs`, `docs/36_MVP2_Autorun_Worklog.md`
+- build: GitHub Actions 성공(0/0; 로컬 PC는 .NET SDK 미설치로 CI 검증 사용) / SmokeTest: 152 PASS
+- 보안 게이트 A: 0건(금지어 가드 문구 오탐만 확인; 기존 ignored 루트 ZIP은 미포함) / NuGet: 없음
+- 결정/가정: 공개 catalog metadata만 검색. 내부 원문/공식본은 repo에 포함하지 않고 Prod 권한통제형 KB 승인 적재 대상으로 유지.
+- feature 검증: `feature/mvp2-m2-03-regulation-catalog` CI `build` success (`27837072364`)
+- develop 반영 커밋: M2-03 squash commit(본 커밋; push 후 `origin/develop` 확인)
 
 ## 6. 하트비트 로그 (≈1h 또는 항목 전환마다)
 
@@ -136,6 +145,8 @@ _(아직 없음)_
 - [2026-06-19T16:09:25Z] M2-01 feature CI `build` success, SmokeTest 127 PASS / 현재 항목: develop squash commit 작성 / 다음 항목: M2-02 초안 파이프라인
 - [2026-06-19T16:12:51Z] M2-01 develop CI `build` success, SmokeTest 127 PASS / 현재 항목: M2-02 DraftPipeline 구현 / 다음 항목: M2-02 feature 검증
 - [2026-06-19T16:16:42Z] M2-02 feature CI `build` success, SmokeTest 141 PASS / 현재 항목: develop squash commit 작성 / 다음 항목: M2-03 catalog 검색
+- [2026-06-19T16:19:27Z] M2-02 develop CI `build` success, SmokeTest 141 PASS / 현재 항목: M2-03 RegulationCatalog/KbSearch 구현 / 다음 항목: M2-03 feature 검증
+- [2026-06-19T16:23:46Z] M2-03 feature CI `build` success, SmokeTest 152 PASS / 현재 항목: develop squash commit 작성 / 다음 항목: M2-05 피드백 예제 승격
 
 ## 7. Claude 재개 체크리스트
 

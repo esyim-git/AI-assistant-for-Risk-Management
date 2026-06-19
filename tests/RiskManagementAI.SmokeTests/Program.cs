@@ -2,6 +2,7 @@ using RiskManagementAI.Core.Data;
 using RiskManagementAI.Core.Config;
 using RiskManagementAI.Core.Excel;
 using RiskManagementAI.Core.Generation;
+using RiskManagementAI.Core.Kb;
 using RiskManagementAI.Core.Logging;
 using RiskManagementAI.Core.Safety;
 
@@ -288,6 +289,34 @@ var draftPipelineLogText = File.ReadAllText(draftPipelineLogPath);
 AssertTrue(!draftPipelineLogText.Contains("make select draft", StringComparison.Ordinal), "DraftPipeline audit should not store raw prompt text");
 AssertTrue(!draftPipelineLogText.Contains("SELECT TRADE_ID", StringComparison.Ordinal), "DraftPipeline audit should not store raw draft text");
 AssertTrue(!draftPipelineLogText.Contains("user-smoke", StringComparison.Ordinal), "DraftPipeline audit should not store raw user id");
+
+var kbSearchLogPath = Path.Combine("logs", "smoke_kb_search_log.jsonl");
+if (File.Exists(kbSearchLogPath))
+{
+    File.Delete(kbSearchLogPath);
+}
+
+var regulationCatalog = RegulationCatalog.LoadDefault();
+AssertTrue(regulationCatalog.Entries.Count >= 5, "RegulationCatalog should load public catalog entries");
+var kbSearch = new KbSearch(
+    regulationCatalog,
+    new TaskLogWriter("logs", "smoke_kb_search_log.jsonl"),
+    loadedRuleSet.RuleVersion);
+var ncrSearchResponse = kbSearch.Search("NCR", "user-smoke");
+AssertTrue(ncrSearchResponse.Results.Any(result => result.SourceId == "NCR_GUIDE"), "KbSearch should find NCR catalog entry");
+AssertTrue(ncrSearchResponse.DraftAnswer.Contains("검토용 초안", StringComparison.Ordinal), "KbSearch answer should mark review draft");
+AssertTrue(ncrSearchResponse.DraftAnswer.Contains("출처", StringComparison.Ordinal), "KbSearch answer should always include sources");
+AssertTrue(ncrSearchResponse.DraftAnswer.Contains("원문은 포함하지 않습니다", StringComparison.Ordinal), "KbSearch answer should state internal originals are excluded");
+AssertTrue(ncrSearchResponse.AuditLogWritten, "KbSearch should write audit log when configured");
+
+var publicRegSearchResponse = kbSearch.Search("금융투자업규정", "user-smoke");
+AssertTrue(publicRegSearchResponse.Results.Any(result => result.SourceId == "FIA_REG"), "KbSearch should find public regulation catalog entry");
+var emptyKbSearchResponse = kbSearch.Search("없는검색어", "user-smoke");
+AssertTrue(emptyKbSearchResponse.Results.Count == 0, "KbSearch should return zero results for unmatched query");
+AssertTrue(emptyKbSearchResponse.DraftAnswer.Contains("검토용 초안", StringComparison.Ordinal) && emptyKbSearchResponse.DraftAnswer.Contains("출처", StringComparison.Ordinal), "KbSearch no-result answer should still include review draft and source");
+var kbSearchLogText = File.ReadAllText(kbSearchLogPath);
+AssertTrue(!kbSearchLogText.Contains("NCR", StringComparison.Ordinal), "KbSearch audit should not store raw query text");
+AssertTrue(!kbSearchLogText.Contains("user-smoke", StringComparison.Ordinal), "KbSearch audit should not store raw user id");
 
 var profiler = new DataProfiler();
 var exposureProfile = profiler.ProfileCsv(Path.Combine("samples", "dummy_data", "risk_exposure_sample.csv"));
