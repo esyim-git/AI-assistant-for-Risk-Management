@@ -83,7 +83,7 @@
 | S-0 | 설정(.sln 생성, ci 트리거 D-04) | TODO | DONE | d09dcdd | `RiskManagementAI.sln`, `.github/workflows/ci.yml`, `NuGet.Config` | PASS (0 warnings, 0 errors) | PASS (5 PASS / 0 FAIL) | repo-local NuGet config 추가(외부 package source 없음) |
 | B-01 | RuleLoader (rules/*.txt 주입) | TODO | DONE | e452324 | `Safety/RuleLoader.cs`, `Safety/SafetyRuleSet.cs`, checker 3종, SmokeTest | PASS (0 warnings, 0 errors) | PASS (15 PASS / 0 FAIL) | D-01/D-02/D-05/D-06 반영 |
 | B-02 | SqlSafetyChecker 검증/보강 | WIP* | DONE | c98352e | `Safety/RuleLoader.cs`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (33 PASS / 0 FAIL) | 14개 deny + 4개 warn 검증 |
-| B-03 | VbaSafetyChecker 검증/보강 | WIP* | TODO | - | `Safety/VbaSafetyChecker.cs` | - | - | FollowHyperlink 등 흡수 |
+| B-03 | VbaSafetyChecker 검증/보강 | WIP* | DONE | this commit | `rules/vba_deny_patterns.txt`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (53 PASS / 0 FAIL) | 위험 API + REQUIRE_PRESENT 검증 |
 | B-04 | Excel2021FunctionChecker 검증/보강 | WIP* | TODO | - | `Excel/Excel2021FunctionChecker.cs` | - | - | preferred=안내용(D-02) |
 | B-05 | DataProfiler 구현 | TODO | TODO | - | `Data/DataProfiler.cs`(신규) | - | - | 더미 CSV 대상 |
 | B-06 | TaskLog/FeedbackLog 저장기 | TODO | TODO | - | `Logging/*Writer.cs`(신규) | - | - | **해시만** 저장 |
@@ -165,6 +165,17 @@
 - 결정/가정: RuleLoader 기반 룰 주입 유지. SQL 원문은 로그에 저장하지 않음.
 - 남은 리스크/후속: B-03에서 VBA deny/warn 커버리지 보강.
 - 커밋: c98352e "test: cover SQL safety rule set"
+
+#### [B-03] VbaSafetyChecker 검증/보강 — DONE (2026-06-19)
+- 구현 요약: `FileSystemObject` 일반 표기도 탐지되도록 VBA deny 룰을 보강하고, 위험 API 및 `REQUIRE_PRESENT:Option Explicit` 동작을 SmokeTest로 검증했다.
+- 변경 파일: `rules/vba_deny_patterns.txt`, `tests/RiskManagementAI.SmokeTests/Program.cs`, `docs/31_Codex_Goal_Mode_Worklog.md`
+- 빌드 결과: `dotnet build RiskManagementAI.sln --no-restore` = 성공 (0 warnings / 0 errors)
+- SmokeTest 결과: 53 PASS / 0 FAIL (신규 추가 케이스: Shell/WScript.Shell/Kill/FileSystemObject/Declare PtrSafe/Outlook.Application/WinHttp/MSXML2.XMLHTTP/FollowHyperlink 탐지, Option Explicit 존재 시 누락 경고 없음, DisplayAlerts/EnableEvents warning)
+- 보안 게이트 A: 통과(actionable 0건; 기존 정책/패키징 문구 false positive 확인)
+- NuGet 추가: 없음
+- 결정/가정: D-05 적용. VBA 텍스트는 정적 검사만 하며 자동 실행 없음.
+- 남은 리스크/후속: B-04에서 Excel 2021 함수 호환성 커버리지 보강.
+- 커밋: this commit
 
 ---
 
