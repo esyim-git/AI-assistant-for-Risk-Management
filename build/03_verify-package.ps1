@@ -53,16 +53,15 @@ foreach ($d in $requiredDirs) {
 
 # 2b) Forbidden contents absent (Req 10/11).
 $forbiddenExt = @(".gguf", ".safetensors", ".onnx", ".pt", ".pem", ".key", ".pfx", ".env")
-$forbiddenPathParts = @("real_data/", "internal_docs/", "internal_regulations/", "secrets/", "credentials/", "exports/")
+$forbiddenPathNames = @("real_data", "secrets", "credentials", "exports")
 foreach ($e in $entries) {
     $ext = [System.IO.Path]::GetExtension($e)
     if ($forbiddenExt -contains $ext) {
         $problems += "FORBIDDEN file (model/secret) in ZIP: $e"
     }
-    foreach ($p in $forbiddenPathParts) {
-        if ($e -ilike "*$p*") {
-            $problems += "FORBIDDEN path (real-data/internal) in ZIP: $e"
-        }
+    $pathParts = $e -split "/+"
+    if ($pathParts | Where-Object { ($forbiddenPathNames -contains $_) -or ($_ -like "internal_*") }) {
+        $problems += "FORBIDDEN path (real-data/internal) in ZIP: $e"
     }
 }
 
