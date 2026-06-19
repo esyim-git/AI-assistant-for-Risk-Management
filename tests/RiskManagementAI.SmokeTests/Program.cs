@@ -90,6 +90,16 @@ AssertTrue(vbaChecker.Check("Option Explicit\nSub Test()\nApplication.EnableEven
 var excelChecker = new Excel2021FunctionChecker(loadedRuleSet);
 var excelFindings = excelChecker.CheckFormula("=VSTACK(A1:A3,B1:B3)").ToList();
 AssertTrue(excelFindings.Any(f => f.Code == "EXCEL_365_FUNCTION"), "VSTACK should be blocked for Excel 2021");
+AssertTrue(excelFindings.Any(f => f.Message.Contains("XLOOKUP", StringComparison.OrdinalIgnoreCase)), "Excel blocked function finding should include preferred function guidance");
+
+foreach (var functionName in loadedRuleSet.ExcelBlockedFunctions)
+{
+    var findings = excelChecker.CheckFormula($"={functionName}(A1:A3)").ToList();
+    AssertTrue(findings.Any(f => f.Code == "EXCEL_365_FUNCTION"), $"Excel 2021 blocked function {functionName} should be detected");
+}
+
+var allowedExcelFindings = excelChecker.CheckFormula("=XLOOKUP(A1,B:B,C:C)").ToList();
+AssertTrue(allowedExcelFindings.All(f => f.Code != "EXCEL_365_FUNCTION"), "Excel 2021 preferred function XLOOKUP should be allowed");
 
 var customRulesDirectory = Path.Combine("artifacts", "smoke-rules-b01");
 if (Directory.Exists(customRulesDirectory))
