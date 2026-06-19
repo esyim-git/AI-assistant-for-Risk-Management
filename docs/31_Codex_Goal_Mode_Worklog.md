@@ -277,6 +277,17 @@ dotnet run --project tests/RiskManagementAI.SmokeTests
 
 Claude는 §3/§4를 기준으로 ① 완료 항목 검증 ② 보안 게이트 A 재확인 ③ 다음 작업 지시 또는 PR/병합 판단을 수행한다.
 
+### 6.1 Claude Sync-back 검증 결과 (2026-06-19)
+
+> Tech Lead(Claude Code)가 `feature/mvp1-rule-engine` HEAD `86a3239`에 대해 독립 검증을 수행한 기록. **판정: PASS / 병합 가능.**
+
+- **CI(독립)**: GitHub Actions run `27818258602` (head_sha `86a3239`, event=push) → **conclusion success**. Windows에서 WPF App 빌드 + SmokeTest(Release) 통과(로컬에서 빌드 불가한 App 포함 커버).
+- **커밋 단위**: S-0~B-09 항목별 단위 커밋(feat/test + worklog 분리) 확인.
+- **보안 게이트 A 재확인**: actionable 0건. 실데이터/내부규정/모델파일/시크릿/인증서/주민번호 추적 0건.
+- **결정 핀다운 코드 준수**: D-01(RuleVersion=SHA-256 `ruleset-<12hex>`), D-02(Excel preferred=안내 전용·탐지=blocked만), D-03(.sln 커밋), D-04(ci `feature/**` 트리거), D-05(`REQUIRE_PRESENT` 부재경고), D-06(폴백+경고+경로 traversal 차단), D-07(`TaskLogWriter`가 비-SHA256 쓰기 거부 + `LogPathResolver` logs/ 한정) — **전부 일치**.
+- **계획 외 항목 판정**: `NuGet.Config`(`<clear/>`)=외부 피드 제거 오프라인 강제 장치로 **정당**. `vba_deny_patterns.txt` FSO/FollowHyperlink 정합 보강 **정당**.
+- **후속 nit(블로커 아님)**: `RuleLoader` 폴백 기본 VBA FSO 패턴이 파일의 넓힌 패턴과 미세 불일치(폴백은 룰파일 부재 시에만 사용되어 안전). 차기 정리 시 동기화 권장.
+
 ---
 
 ## 7. 보안·금지 리마인드 (위반 시 Codex 즉시 중단·보고)
