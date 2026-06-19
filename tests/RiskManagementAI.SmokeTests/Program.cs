@@ -30,6 +30,35 @@ AssertTrue(sqlFindings.Any(f => f.Code == "SQL_DML_DELETE"), "SQL DELETE should 
 var selectFindings = sqlChecker.Check("SELECT TRADE_ID, BASE_DT FROM TRADE_SAMPLE WHERE BASE_DT = :BASE_DT").ToList();
 AssertTrue(selectFindings.All(f => f.Severity != SafetySeverity.Blocker), "SELECT should not have blocker");
 
+var sqlDenySamples = new Dictionary<string, string>
+{
+    ["INSERT"] = "INSERT INTO TRADE_SAMPLE (ID) VALUES (1)",
+    ["UPDATE"] = "UPDATE TRADE_SAMPLE SET AMT = 0",
+    ["DELETE"] = "DELETE FROM TRADE_SAMPLE",
+    ["MERGE"] = "MERGE INTO TRADE_SAMPLE USING SRC ON (1=1)",
+    ["CREATE"] = "CREATE TABLE TMP_SAMPLE (ID NUMBER)",
+    ["ALTER"] = "ALTER TABLE TRADE_SAMPLE ADD TMP_COL NUMBER",
+    ["DROP"] = "DROP TABLE TRADE_SAMPLE",
+    ["TRUNCATE"] = "TRUNCATE TABLE TRADE_SAMPLE",
+    ["GRANT"] = "GRANT SELECT ON TRADE_SAMPLE TO USER_SAMPLE",
+    ["REVOKE"] = "REVOKE SELECT ON TRADE_SAMPLE FROM USER_SAMPLE",
+    ["EXEC"] = "EXEC PROC_SAMPLE",
+    ["CALL"] = "CALL PROC_SAMPLE()",
+    ["COMMIT"] = "COMMIT",
+    ["ROLLBACK"] = "ROLLBACK"
+};
+
+foreach (var (keyword, sql) in sqlDenySamples)
+{
+    var findings = sqlChecker.Check(sql).ToList();
+    AssertTrue(findings.Any(f => f.Severity == SafetySeverity.Blocker && string.Equals(f.MatchedText, keyword, StringComparison.OrdinalIgnoreCase)), $"SQL {keyword} should be blocker");
+}
+
+AssertTrue(sqlChecker.Check("SELECT * FROM TRADE_SAMPLE").Any(f => f.Code == "SQL_SELECT_STAR" && f.Severity == SafetySeverity.Medium), "SQL SELECT * should warn");
+AssertTrue(sqlChecker.Check("SELECT TRADE_ID FROM TRADE_SAMPLE WHERE 1=1").Any(f => f.Code == "SQL_WHERE_ALWAYS_TRUE"), "SQL WHERE 1=1 should warn");
+AssertTrue(sqlChecker.Check("SELECT A.ID FROM A CROSS JOIN B").Any(f => f.Code == "SQL_CROSS_JOIN"), "SQL CROSS JOIN should warn");
+AssertTrue(sqlChecker.Check("SELECT /*+ INDEX(A IDX_A) */ A.ID FROM A").Any(f => f.Code == "SQL_OPTIMIZER_HINT"), "SQL optimizer hint should warn");
+
 var vbaChecker = new VbaSafetyChecker(loadedRuleSet);
 var vbaFindings = vbaChecker.Check("Sub Test()\nShell \"cmd.exe\"\nEnd Sub").ToList();
 AssertTrue(vbaFindings.Any(f => f.Code == "VBA_SHELL"), "VBA Shell should be blocked");

@@ -285,7 +285,7 @@ public static class RuleLoader
             {
                 if (normalized.Contains(keyword, StringComparison.Ordinal))
                 {
-                    return new RulePattern($"SQL_TX_{keyword}", pattern, SafetySeverity.High, "트랜잭션 제어 명령은 초기 MVP에서 허용하지 않습니다.");
+                    return new RulePattern($"SQL_TX_{keyword}", pattern, SafetySeverity.Blocker, "트랜잭션 제어 명령은 초기 MVP에서 허용하지 않습니다.");
                 }
             }
 
