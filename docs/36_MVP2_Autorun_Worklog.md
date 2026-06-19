@@ -9,11 +9,11 @@
 
 > Claude는 복귀 시 **이 블록만으로** 현재 상태·다음 작업을 파악할 수 있어야 한다.
 
-- **현재 상태(1줄)**: _아직 시작 안 함 (Codex 자율 실행 대기)_
-- **develop 최신 commit**: _<hash>_
-- **DONE (검증됨)**: _-_
+- **현재 상태(1줄)**: P0-1 완료. `develop`를 `main`(`571c576708a483a742bd3b30cad19e9e07c52bd7`)까지 fast-forward 동기화했고 원격 push 완료.
+- **develop 최신 commit**: `571c576708a483a742bd3b30cad19e9e07c52bd7` (P0-1 sync target; 본 원장 갱신 커밋은 이후 HEAD)
+- **DONE (검증됨)**: P0-1 develop/main fast-forward sync
 - **진행 중이던 항목 / 중단 지점**: _-_
-- **NEXT UP (Claude가 바로 집을 작업)**: P0-1 develop를 main까지 fast-forward
+- **NEXT UP (Claude가 바로 집을 작업)**: P0-2 release/v0.3.0 검증 변경을 develop로 반영
 - **BLOCKED 개수 / 핵심**: _0_
 - **재현 검증**: `git fetch origin develop && git switch develop && dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI.SmokeTests`
 - **⚠️ Claude 확인 요망(자동결정/승격대기)**: _-_
@@ -24,11 +24,11 @@
 
 | 항목 | 값 |
 |---|---|
-| 시작(UTC) | _-_ |
+| 시작(UTC) | 2026-06-19T15:46:24Z |
 | 종료/한도(UTC) | _-_ |
 | 통합 브랜치 | `develop` (main은 미변경; 승격은 Claude/사람 전용) |
 | 작업 브랜치 규칙 | `feature/mvp2-<item>` → CI green → develop squash-merge → 삭제 |
-| 시작 시 develop | _<hash>_ / main | _<hash>_ |
+| 시작 시 develop | `64ac34b941a415374d752fe329b456c73fdd77e8` / main | `571c576708a483a742bd3b30cad19e9e07c52bd7` |
 
 ## 2. 상태 원장 (Status Ledger)
 
@@ -37,7 +37,7 @@
 ### Phase 0 — 정합/잔여 정리 (develop)
 | ID | 항목 | 상태 | 커밋 | 비고 |
 |---|---|---|---|---|
-| P0-1 | develop를 main까지 ff 동기화 | TODO | - | |
+| P0-1 | develop를 main까지 ff 동기화 | DONE | `571c576708a483a742bd3b30cad19e9e07c52bd7` | origin/develop push 완료 |
 | P0-2 | release/v0.3.0 변경 develop 반영(VERSION 0.3.0 + build/01 fail-fast/.keep) | TODO | - | main 승격 안 함 |
 | P0-3 | `.gitignore`에 `*.zip` 추가 | TODO | - | 루트 잔류 zip 차단 |
 
@@ -81,12 +81,18 @@ _(아직 없음)_
 - 결정/가정: (DM-xx/D-xx 또는 자동결정 참조)
 - develop 반영 커밋: <hash>
 ```
-_(아직 없음)_
+#### [P0-1] develop/main fast-forward sync — DONE (2026-06-19T15:46:24Z)
+- 구현 요약: `origin/develop`가 `origin/main`의 조상임을 확인한 뒤 `develop`를 `origin/main`까지 fast-forward하고 원격 push.
+- 변경 파일: 없음(브랜치 포인터 동기화), 본 원장 갱신은 후속 커밋.
+- build: 성공(0/0) / SmokeTest: 119 PASS
+- 보안 게이트 A: 0건(금지어 가드 문구 오탐만 확인) / NuGet: 없음
+- 결정/가정: `main`은 PR #4 merge commit `571c576708a483a742bd3b30cad19e9e07c52bd7`, `develop` 시작점은 `64ac34b941a415374d752fe329b456c73fdd77e8`.
+- develop 반영 커밋: `571c576708a483a742bd3b30cad19e9e07c52bd7`
 
 ## 6. 하트비트 로그 (≈1h 또는 항목 전환마다)
 
 <!-- [UTC] 진행 요약 / 현재 항목 / 다음 항목 -->
-_(아직 없음)_
+- [2026-06-19T15:46:24Z] P0-1 완료, build 0/0 + SmokeTest 119 PASS + Gate A 0건 / 현재 항목: P0-2 준비 / 다음 항목: release/v0.3.0 변경 develop 반영
 
 ## 7. Claude 재개 체크리스트
 
