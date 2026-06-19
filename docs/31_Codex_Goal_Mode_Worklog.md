@@ -89,7 +89,7 @@
 | B-06 | TaskLog/FeedbackLog 저장기 | TODO | DONE | f26d154 | `Logging/*Writer.cs`, `Logging/LogHash.cs`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (95 PASS / 0 FAIL) | logs/*.jsonl append, hash 검증 |
 | B-07 | PolicyLoader (security_policy.json) | TODO | DONE | a48bfa8 | `Config/*Policy*.cs`, `App.xaml.cs`, `MainWindow.xaml.cs`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (107 PASS / 0 FAIL) | safe fallback + 차단 강제 |
 | B-08 | 최소 UI 보강 | WIP* | DONE | 6313cb4 | `App/MainWindow.xaml(.cs)` | PASS (0 warnings, 0 errors) | PASS (107 PASS / 0 FAIL) | 탭/심각도 색상 + 숨김 기동 smoke PASS |
-| B-09 | SmokeTest 확장 | WIP* | DONE | this commit | `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (112 PASS / 0 FAIL) | 신규기능 최종 회귀 |
+| B-09 | SmokeTest 확장 | WIP* | DONE | e75f95e | `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (112 PASS / 0 FAIL) | 신규기능 최종 회귀 |
 
 > `WIP*` = 스타터에 기초 구현이 있어 "검증/보강" 성격임을 의미(신규 생성 아님).
 
@@ -241,7 +241,7 @@
 - NuGet 추가: 없음
 - 결정/가정: B-01~B-07에서 추가된 신규 기능을 최종 회귀망으로 고정. 테스트 데이터는 더미/임시 파일만 사용한다.
 - 남은 리스크/후속: Release ZIP 생성/검증은 별도 release 단계에서 `build/00`~`build/03`으로 수행.
-- 커밋: this commit
+- 커밋: e75f95e "test: extend MVP1 smoke coverage"
 
 ---
 
