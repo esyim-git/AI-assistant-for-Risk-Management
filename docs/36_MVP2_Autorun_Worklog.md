@@ -9,11 +9,11 @@
 
 > Claude는 복귀 시 **이 블록만으로** 현재 상태·다음 작업을 파악할 수 있어야 한다.
 
-- **현재 상태(1줄)**: P0-1 완료. `develop`를 `main`(`571c576708a483a742bd3b30cad19e9e07c52bd7`)까지 fast-forward 동기화했고 원격 push 완료.
-- **develop 최신 commit**: `571c576708a483a742bd3b30cad19e9e07c52bd7` (P0-1 sync target; 본 원장 갱신 커밋은 이후 HEAD)
-- **DONE (검증됨)**: P0-1 develop/main fast-forward sync
+- **현재 상태(1줄)**: P0-2 완료. `release/v0.3.0`의 검증 변경(VERSION 0.3.0, build/01 fail-fast, logs/reports `.keep`)을 develop squash commit으로 반영 중이며 build/SmokeTest/Gate A/feature CI 통과.
+- **develop 최신 commit**: `c531833a0ee493141383d11d54b543725d060346` + P0-2 squash commit(본 커밋; push 후 `git rev-parse origin/develop`로 확인)
+- **DONE (검증됨)**: P0-1 develop/main fast-forward sync; P0-2 release/v0.3.0 변경 반영
 - **진행 중이던 항목 / 중단 지점**: _-_
-- **NEXT UP (Claude가 바로 집을 작업)**: P0-2 release/v0.3.0 검증 변경을 develop로 반영
+- **NEXT UP (Claude가 바로 집을 작업)**: P0-3 `.gitignore` `*.zip` 추가
 - **BLOCKED 개수 / 핵심**: _0_
 - **재현 검증**: `git fetch origin develop && git switch develop && dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI.SmokeTests`
 - **⚠️ Claude 확인 요망(자동결정/승격대기)**: _-_
@@ -38,7 +38,7 @@
 | ID | 항목 | 상태 | 커밋 | 비고 |
 |---|---|---|---|---|
 | P0-1 | develop를 main까지 ff 동기화 | DONE | `571c576708a483a742bd3b30cad19e9e07c52bd7` | origin/develop push 완료 |
-| P0-2 | release/v0.3.0 변경 develop 반영(VERSION 0.3.0 + build/01 fail-fast/.keep) | TODO | - | main 승격 안 함 |
+| P0-2 | release/v0.3.0 변경 develop 반영(VERSION 0.3.0 + build/01 fail-fast/.keep) | DONE | `0c1d83256e2181dfe49b1a6d422830a0cc5a1637` source / P0-2 squash commit | main 승격 안 함 |
 | P0-3 | `.gitignore`에 `*.zip` 추가 | TODO | - | 루트 잔류 zip 차단 |
 
 ### Phase 1 — MVP-2 코어 (docs/33)
@@ -89,10 +89,20 @@ _(아직 없음)_
 - 결정/가정: `main`은 PR #4 merge commit `571c576708a483a742bd3b30cad19e9e07c52bd7`, `develop` 시작점은 `64ac34b941a415374d752fe329b456c73fdd77e8`.
 - develop 반영 커밋: `571c576708a483a742bd3b30cad19e9e07c52bd7`
 
+#### [P0-2] release/v0.3.0 verified changes into develop — DONE (2026-06-19T15:50:16Z)
+- 구현 요약: `release/v0.3.0`의 검증된 `VERSION`/`build/01_publish-win-x64.ps1` 변경을 `feature/mvp2-p0-2-release-sync`에 반영.
+- 변경 파일: `VERSION`, `build/01_publish-win-x64.ps1`, `docs/36_MVP2_Autorun_Worklog.md`
+- build: 성공(0/0) / SmokeTest: 119 PASS
+- 보안 게이트 A: 0건(금지어 가드 문구 오탐만 확인) / NuGet: 없음
+- 결정/가정: source commit `0c1d83256e2181dfe49b1a6d422830a0cc5a1637`; main 승격 없이 develop 통합만 진행.
+- develop 반영 커밋: P0-2 squash commit(본 커밋; push 후 `origin/develop` 확인)
+
 ## 6. 하트비트 로그 (≈1h 또는 항목 전환마다)
 
 <!-- [UTC] 진행 요약 / 현재 항목 / 다음 항목 -->
 - [2026-06-19T15:46:24Z] P0-1 완료, build 0/0 + SmokeTest 119 PASS + Gate A 0건 / 현재 항목: P0-2 준비 / 다음 항목: release/v0.3.0 변경 develop 반영
+- [2026-06-19T15:50:16Z] P0-2 feature 검증 완료, build 0/0 + SmokeTest 119 PASS + Gate A 0건 / 현재 항목: feature push/CI 확인 / 다음 항목: develop squash-merge 후 P0-3
+- [2026-06-19T15:52:56Z] P0-2 feature CI `build` success / 현재 항목: develop squash commit 작성 / 다음 항목: P0-3 `.gitignore` `*.zip` 추가
 
 ## 7. Claude 재개 체크리스트
 
