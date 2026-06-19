@@ -81,7 +81,7 @@
 | ID | 항목 | 시작상태 | 현재상태 | 커밋(short) | 핵심 변경파일 | build | SmokeTest | 비고 |
 |---|---|---|---|---|---|---|---|---|
 | S-0 | 설정(.sln 생성, ci 트리거 D-04) | TODO | DONE | d09dcdd | `RiskManagementAI.sln`, `.github/workflows/ci.yml`, `NuGet.Config` | PASS (0 warnings, 0 errors) | PASS (5 PASS / 0 FAIL) | repo-local NuGet config 추가(외부 package source 없음) |
-| B-01 | RuleLoader (rules/*.txt 주입) | TODO | DONE | this commit | `Safety/RuleLoader.cs`, `Safety/SafetyRuleSet.cs`, checker 3종, SmokeTest | PASS (0 warnings, 0 errors) | PASS (15 PASS / 0 FAIL) | D-01/D-02/D-05/D-06 반영 |
+| B-01 | RuleLoader (rules/*.txt 주입) | TODO | DONE | e452324 | `Safety/RuleLoader.cs`, `Safety/SafetyRuleSet.cs`, checker 3종, SmokeTest | PASS (0 warnings, 0 errors) | PASS (15 PASS / 0 FAIL) | D-01/D-02/D-05/D-06 반영 |
 | B-02 | SqlSafetyChecker 검증/보강 | WIP* | TODO | - | `Safety/SqlSafetyChecker.cs` | - | - | *기존 구현 보강 |
 | B-03 | VbaSafetyChecker 검증/보강 | WIP* | TODO | - | `Safety/VbaSafetyChecker.cs` | - | - | FollowHyperlink 등 흡수 |
 | B-04 | Excel2021FunctionChecker 검증/보강 | WIP* | TODO | - | `Excel/Excel2021FunctionChecker.cs` | - | - | preferred=안내용(D-02) |
@@ -153,7 +153,7 @@
 - NuGet 추가: 없음
 - 결정/가정: D-01/D-02/D-05/D-06 적용. 외부 임의 경로 로드는 차단하고 relative app-local 디렉터리만 허용.
 - 남은 리스크/후속: B-02에서 SQL deny/warn 커버리지와 transaction severity를 정식 보강.
-- 커밋: this commit
+- 커밋: e452324 "feat: load safety rules from rule files"
 
 ---
 
