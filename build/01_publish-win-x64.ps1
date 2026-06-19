@@ -27,6 +27,9 @@ dotnet publish $Project `
     -p:IncludeNativeLibrariesForSelfExtract=true `
     -p:Version=$Version `
     -o $PublishDir
+if ($LASTEXITCODE -ne 0) {
+    throw "dotnet publish failed with exit code $LASTEXITCODE."
+}
 
 Write-Host "Copying offline assets..."
 
@@ -55,6 +58,8 @@ foreach ($folder in $OptionalAssetFolders) {
 
 New-Item -ItemType Directory -Path (Join-Path $PublishDir "logs") -Force | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $PublishDir "reports") -Force | Out-Null
+"" | Set-Content -Path (Join-Path $PublishDir "logs\.keep") -Encoding ASCII
+"" | Set-Content -Path (Join-Path $PublishDir "reports\.keep") -Encoding ASCII
 
 @"
 @echo off
