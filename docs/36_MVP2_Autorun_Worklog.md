@@ -9,11 +9,11 @@
 
 > Claude는 복귀 시 **이 블록만으로** 현재 상태·다음 작업을 파악할 수 있어야 한다.
 
-- **현재 상태(1줄)**: M2-05 승인형 피드백 예제 승격 구현 및 feature CI 검증 완료, develop squash 반영 중.
-- **develop 최신 commit**: `803b5e049da45d3710da2e3b96bd4f73fae0bbf6`
-- **DONE (검증됨)**: P0-1 develop/main fast-forward sync; P0-2 release/v0.3.0 변경 반영; P0-3 `.gitignore` `*.zip` 추가; M2-01 NoModelMode; M2-02 DraftPipeline; M2-03 KbSearch; M2-05 feature CI `build` success
-- **진행 중이던 항목 / 중단 지점**: M2-05 develop squash commit/push/CI 확인
-- **NEXT UP (Claude가 바로 집을 작업)**: M2-06 UI 연동 + SmokeTest 확장
+- **현재 상태(1줄)**: M2-06 UI 연동 + SmokeTest 확장 구현 및 feature CI 검증 완료, develop squash 반영 중.
+- **develop 최신 commit**: `d651d8b048765de02ff7d5c9d2b51d7dd78491d0`
+- **DONE (검증됨)**: P0-1 develop/main fast-forward sync; P0-2 release/v0.3.0 변경 반영; P0-3 `.gitignore` `*.zip` 추가; M2-01 NoModelMode; M2-02 DraftPipeline; M2-03 KbSearch; M2-05 ExamplePromotion; M2-06 feature CI `build` success
+- **진행 중이던 항목 / 중단 지점**: M2-06 develop squash commit/push/CI 확인
+- **NEXT UP (Claude가 바로 집을 작업)**: M2-04 Excel 2021 리포트 생성 방식 결정 확인
 - **BLOCKED 개수 / 핵심**: _0_
 - **재현 검증**: `git fetch origin develop && git switch develop && dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI.SmokeTests`
 - **⚠️ Claude 확인 요망(자동결정/승격대기)**: _-_
@@ -47,8 +47,8 @@
 | M2-01 | LLM 추상화 + NoModelMode | DONE | `4cf822dac00cc23702c3728402836914d3217db6` | 127 PASS | 모델 없이 기동 |
 | M2-02 | SQL/VBA 초안 파이프라인(안전+감사) | DONE | `5b0d3d74260215dc171fd7d130feb4c9cd22a3fb` | 141 PASS | 생성물 Checker 통과+로그 |
 | M2-03 | 규정/NCR catalog 검색 | DONE | `803b5e049da45d3710da2e3b96bd4f73fae0bbf6` | 152 PASS | 공개 catalog만 |
-| M2-05 | 승인형 피드백 예제 승격 | DONE | M2-05 squash commit | 158 PASS | 재학습 아님 |
-| M2-06 | UI 연동 + SmokeTest 확장 | TODO | - | - | |
+| M2-05 | 승인형 피드백 예제 승격 | DONE | `d651d8b048765de02ff7d5c9d2b51d7dd78491d0` | 158 PASS | 재학습 아님 |
+| M2-06 | UI 연동 + SmokeTest 확장 | DONE | M2-06 squash commit | 162 PASS | |
 | M2-04 | Excel 2021 리포트 | TODO | - | - | NuGet 필요 시 BLOCKED |
 
 ### Phase 2 — 스트레치 (시간 여유 시)
@@ -139,7 +139,16 @@ _(아직 없음)_
 - 보안 게이트 A: 0건(금지어 가드 문구 오탐만 확인; 기존 ignored 루트 ZIP은 미포함) / NuGet: 없음
 - 결정/가정: 모델 재학습 없음. raw prompt/output 저장 없음. 승격 산출물은 FeedbackId/TaskId/UserIdHash/승인상태 기반 metadata만 포함.
 - feature 검증: `feature/mvp2-m2-05-feedback-promotion` CI `build` success (`27837325774`)
-- develop 반영 커밋: M2-05 squash commit(본 커밋; push 후 `origin/develop` 확인)
+- develop 반영 커밋: `d651d8b048765de02ff7d5c9d2b51d7dd78491d0`
+
+#### [M2-06] UI integration + smoke expansion — DONE (2026-06-19T17:02:29Z)
+- 구현 요약: WPF에 Draft/Regulation/Feedback 탭을 추가해 NoModel DraftPipeline, 공개 catalog 검색, 승인형 예제 승격을 연결. catalog 로드 실패는 앱 시작 실패가 아니라 finding으로 표시.
+- 변경 파일: `src/RiskManagementAI.App/MainWindow.xaml`, `src/RiskManagementAI.App/MainWindow.xaml.cs`, `tests/RiskManagementAI.SmokeTests/Program.cs`, `docs/36_MVP2_Autorun_Worklog.md`
+- build: GitHub Actions 성공(0/0; 로컬 PC는 .NET SDK 미설치로 CI 검증 사용) / SmokeTest: 162 PASS
+- 보안 게이트 A: 0건(금지어 가드 문구 오탐만 확인; 기존 ignored 루트 ZIP은 미포함) / NuGet: 없음
+- 결정/가정: 실제 모델 생성/내부 원문 RAG/재학습 없음. UI는 Core 기능 호출과 해시 audit 흐름 노출까지만 수행.
+- feature 검증: `feature/mvp2-m2-06-ui-integration` CI `build` success (`27838739866`)
+- develop 반영 커밋: M2-06 squash commit(본 커밋; push 후 `origin/develop` 확인)
 
 ## 6. 하트비트 로그 (≈1h 또는 항목 전환마다)
 
@@ -158,6 +167,8 @@ _(아직 없음)_
 - [2026-06-19T16:23:46Z] M2-03 feature CI `build` success, SmokeTest 152 PASS / 현재 항목: develop squash commit 작성 / 다음 항목: M2-05 피드백 예제 승격
 - [2026-06-19T16:26:28Z] M2-03 develop CI `build` success, SmokeTest 152 PASS / 현재 항목: M2-05 ExamplePromotion 구현 / 다음 항목: M2-05 feature 검증
 - [2026-06-19T16:29:28Z] M2-05 feature CI `build` success, SmokeTest 158 PASS / 현재 항목: develop squash commit 작성 / 다음 항목: M2-06 UI 연동
+- [2026-06-19T16:32:08Z] M2-05 develop CI `build` success, SmokeTest 158 PASS / 현재 항목: M2-06 WPF 탭 연동 / 다음 항목: M2-06 feature 검증
+- [2026-06-19T17:02:29Z] M2-06 feature CI `build` success, SmokeTest 162 PASS / 현재 항목: develop squash commit 작성 / 다음 항목: M2-04 결정 확인
 
 ## 7. Claude 재개 체크리스트
 

@@ -55,6 +55,24 @@
                     </Grid>
                 </TabItem>
 
+                <TabItem Header="Draft">
+                    <Grid Margin="10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="36" />
+                        </Grid.RowDefinitions>
+                        <TextBox x:Name="DraftRequestBox" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                                 Text="리스크 한도 점검용 조회 SQL 초안을 작성" />
+                        <TextBox x:Name="DraftResultBox" Grid.Row="1" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" Margin="0,8,0,0"
+                                 Text="NoModelMode 결과가 여기에 표시됩니다." IsReadOnly="True" />
+                        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10,0,0">
+                            <Button Content="SQL 초안" Width="110" Click="OnGenerateSqlDraft" />
+                            <Button Content="VBA 초안" Width="110" Margin="8,0,0,0" Click="OnGenerateVbaDraft" />
+                        </StackPanel>
+                    </Grid>
+                </TabItem>
+
                 <TabItem Header="VBA">
                     <Grid Margin="10">
                         <Grid.RowDefinitions>
@@ -90,6 +108,45 @@
                         <TextBox x:Name="DataPreviewBox" Grid.Row="1" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" Margin="0,8,0,0"
                                  Text="CSV 프로파일 결과가 여기에 표시됩니다." IsReadOnly="True" />
                         <Button Grid.Row="2" Content="CSV 분석" Width="110" HorizontalAlignment="Left" Margin="0,10,0,0" Click="OnProfileData" />
+                    </Grid>
+                </TabItem>
+
+                <TabItem Header="Regulation">
+                    <Grid Margin="10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="34" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="36" />
+                        </Grid.RowDefinitions>
+                        <TextBox x:Name="KbQueryBox" Text="NCR" />
+                        <TextBox x:Name="KbResultBox" Grid.Row="1" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" Margin="0,8,0,0"
+                                 Text="공개 catalog 검색 결과가 여기에 표시됩니다." IsReadOnly="True" />
+                        <Button Grid.Row="2" Content="Catalog 검색" Width="120" HorizontalAlignment="Left" Margin="0,10,0,0" Click="OnSearchKbCatalog" />
+                    </Grid>
+                </TabItem>
+
+                <TabItem Header="Feedback">
+                    <Grid Margin="10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="34" />
+                            <RowDefinition Height="34" />
+                            <RowDefinition Height="34" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="36" />
+                        </Grid.RowDefinitions>
+                        <TextBox x:Name="FeedbackIdBox" Text="feedback-ui-001" />
+                        <TextBox x:Name="FeedbackTaskIdBox" Grid.Row="1" Text="task-ui-001" Margin="0,6,0,0" />
+                        <Grid Grid.Row="2" Margin="0,6,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="FeedbackCodeBox" Text="APPROVED" />
+                            <TextBox x:Name="FeedbackReviewStatusBox" Grid.Column="1" Text="ReviewerApproved" Margin="8,0,0,0" />
+                        </Grid>
+                        <TextBox x:Name="FeedbackPromotionBox" Grid.Row="3" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" Margin="0,8,0,0"
+                                 Text="승격 결과가 여기에 표시됩니다." IsReadOnly="True" />
+                        <Button Grid.Row="4" Content="예제 승격" Width="110" HorizontalAlignment="Left" Margin="0,10,0,0" Click="OnPromoteFeedbackExample" />
                     </Grid>
                 </TabItem>
             </TabControl>

@@ -6,7 +6,9 @@ using System.Windows.Media;
 using RiskManagementAI.Core.Config;
 using RiskManagementAI.Core.Data;
 using RiskManagementAI.Core.Excel;
+using RiskManagementAI.Core.Feedback;
 using RiskManagementAI.Core.Generation;
+using RiskManagementAI.Core.Kb;
 using RiskManagementAI.Core.Logging;
 using RiskManagementAI.Core.Safety;
 
@@ -22,6 +24,10 @@ public partial class MainWindow : Window
     private readonly TaskLogWriter _taskLogWriter = new();
     private readonly PolicyLoadResult _policyLoadResult = App.SecurityPolicyLoadResult;
     private readonly ILocalDraftService _draftService;
+    private readonly DraftPipeline _draftPipeline;
+    private readonly KbSearch? _kbSearch;
+    private readonly SafetyFinding? _kbLoadFinding;
+    private readonly ExamplePromotion _examplePromotion = new();
 
     public MainWindow()
     {
@@ -30,6 +36,15 @@ public partial class MainWindow : Window
         _vbaChecker = new VbaSafetyChecker(_ruleSet);
         _excelChecker = new Excel2021FunctionChecker(_ruleSet);
         _draftService = new NoModelDraftService(_policyLoadResult.Policy);
+        _draftPipeline = new DraftPipeline(_draftService, _ruleSet, _taskLogWriter);
+        try
+        {
+            _kbSearch = new KbSearch(RegulationCatalog.LoadDefault(), _taskLogWriter, _ruleSet.RuleVersion);
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException or InvalidDataException or UnauthorizedAccessException)
+        {
+            _kbLoadFinding = new SafetyFinding("KB_CATALOG_LOAD_FAILED", SafetySeverity.High, ex.Message);
+        }
 
         InitializeComponent();
         EnvironmentText.Text = $"{BuildEnvironmentText(_policyLoadResult)} / {NoModelDraftService.ModeName}";
@@ -45,6 +60,11 @@ public partial class MainWindow : Window
             FindingDisplay.FromInfo("SECURITY_POLICY", BuildPolicySummary(_policyLoadResult.Policy))
         }.ToList();
         startupFindings.AddRange(draftStatus.Findings.Select(FindingDisplay.FromSafetyFinding));
+        if (_kbLoadFinding is not null)
+        {
+            startupFindings.Add(FindingDisplay.FromSafetyFinding(_kbLoadFinding));
+        }
+
         FindingList.ItemsSource = startupFindings;
         FindingSummaryText.Text = $"{startupFindings.Count} startup finding(s)";
     }
@@ -88,6 +108,26 @@ public partial class MainWindow : Window
         ShowFindings("VBA Safety Check", findings);
     }
 
+    private void OnGenerateSqlDraft(object sender, RoutedEventArgs e)
+    {
+        RunDraftPipeline(DraftRequestKind.Sql);
+    }
+
+    private void OnGenerateVbaDraft(object sender, RoutedEventArgs e)
+    {
+        RunDraftPipeline(DraftRequestKind.Vba);
+    }
+
+    private void RunDraftPipeline(DraftRequestKind kind)
+    {
+        var result = _draftPipeline.Generate(new DraftPipelineRequest(
+            kind,
+            DraftRequestBox.Text,
+            Environment.UserName));
+        DraftResultBox.Text = BuildDraftPipelineSummary(result);
+        ShowFindings($"{kind} Draft Pipeline", result.Findings);
+    }
+
     private void OnCheckExcel(object sender, RoutedEventArgs e)
     {
         var findings = _excelChecker.CheckFormula(ExcelRequestBox.Text).ToList();
@@ -98,6 +138,49 @@ public partial class MainWindow : Window
         }
 
         ShowFindings("Excel 2021 Function Check", findings);
+    }
+
+    private void OnSearchKbCatalog(object sender, RoutedEventArgs e)
+    {
+        if (_kbSearch is null)
+        {
+            var finding = _kbLoadFinding ?? new SafetyFinding("KB_CATALOG_UNAVAILABLE", SafetySeverity.High, "공개 catalog를 로드할 수 없습니다.");
+            KbResultBox.Text = finding.Message;
+            ShowFindings("Regulation Catalog", [finding]);
+            return;
+        }
+
+        var response = _kbSearch.Search(KbQueryBox.Text, Environment.UserName);
+        KbResultBox.Text = response.DraftAnswer;
+        var findings = response.Warnings
+            .Select(warning => new SafetyFinding("KB_SEARCH_WARNING", SafetySeverity.Low, warning))
+            .ToList();
+        findings.Add(new SafetyFinding(
+            "KB_SEARCH_RESULT",
+            SafetySeverity.Info,
+            $"공개 catalog 검색 결과 {response.Results.Count:N0}건. AuditLogWritten={response.AuditLogWritten}"));
+        ShowFindings("Regulation Catalog", findings);
+    }
+
+    private void OnPromoteFeedbackExample(object sender, RoutedEventArgs e)
+    {
+        var entry = new FeedbackLogEntry(
+            FeedbackIdBox.Text.Trim(),
+            FeedbackTaskIdBox.Text.Trim(),
+            DateTime.UtcNow,
+            LogHash.Sha256Hex(Environment.UserName),
+            FeedbackCodeBox.Text.Trim(),
+            FeedbackReviewStatusBox.Text.Trim());
+        var result = _examplePromotion.PromoteApproved([entry]);
+        FeedbackPromotionBox.Text = BuildPromotionSummary(result);
+        var findings = result.Warnings
+            .Select(warning => new SafetyFinding("FEEDBACK_PROMOTION_WARNING", SafetySeverity.Low, warning))
+            .ToList();
+        findings.Add(new SafetyFinding(
+            "FEEDBACK_PROMOTION_RESULT",
+            SafetySeverity.Info,
+            $"Promoted={result.PromotedExamples.Count:N0}, Skipped={result.SkippedEntries.Count:N0}, Mode={ExamplePromotion.PromotionModeName}"));
+        ShowFindings("Feedback Promotion", findings);
     }
 
     private void OnProfileData(object sender, RoutedEventArgs e)
@@ -164,6 +247,37 @@ public partial class MainWindow : Window
         }
 
         return "PASS";
+    }
+
+    private static string BuildDraftPipelineSummary(DraftPipelineResult result)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"SafetyResult: {result.SafetyResult}");
+        sb.AppendLine($"AcceptedForReview: {result.IsAcceptedForReview}");
+        sb.AppendLine($"AuditLogWritten: {result.AuditLogWritten}");
+        sb.AppendLine($"TaskId: {result.TaskId}");
+        sb.AppendLine(result.Message);
+        sb.AppendLine();
+        sb.AppendLine(result.DraftText ?? "(no draft text returned)");
+        return sb.ToString();
+    }
+
+    private static string BuildPromotionSummary(ExamplePromotionResult result)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"Promoted examples: {result.PromotedExamples.Count:N0}");
+        sb.AppendLine($"Skipped entries: {result.SkippedEntries.Count:N0}");
+        foreach (var example in result.PromotedExamples)
+        {
+            sb.AppendLine($"- {example.ExampleId} / {example.PromotionMode} / {example.ReviewStatus}");
+        }
+
+        foreach (var warning in result.Warnings)
+        {
+            sb.AppendLine($"Warning: {warning}");
+        }
+
+        return sb.ToString();
     }
 
     private void ShowFindings(string title, System.Collections.Generic.IReadOnlyList<SafetyFinding> findings)
