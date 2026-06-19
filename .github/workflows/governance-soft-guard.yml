@@ -1,0 +1,18 @@
+name: governance-soft-guard
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  main-soft-guard:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify main push provenance
+        shell: pwsh
+        run: ./build/04_verify-main-soft-guard.ps1

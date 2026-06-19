@@ -18,7 +18,7 @@
 ## 1. 브랜치 모델 (docs/06 정합)
 
 ```text
-main                      : 항상 배포 가능. PR로만 갱신. (보호 ON)
+main                      : 항상 배포 가능. PR로만 갱신. (보호 가능 시 ON, 아니면 soft guard)
 develop                   : 통합 개발 브랜치. feature를 모아 검증 후 main으로.
 feature/<name>            : 기능/구현 (예: feature/mvp2-llm-draft)
 release/vX.Y.Z            : 배포 준비 (버전 고정·Release ZIP)
@@ -26,12 +26,13 @@ hotfix/<name>             : 긴급 수정
 ```
 
 - 신규 작업은 `develop`(또는 최신 `main`)에서 분기 → PR → `develop` 병합 → 안정화 후 `main` 병합.
-- `main`/`develop` 직접 push 금지(보호 규칙으로 강제). 커밋 타입: `feat/fix/docs/chore/refactor/test/security`.
+- `main`/`develop` 직접 push 금지. 보호 규칙이 사용 가능한 플랜에서는 GitHub가 강제하고, private Free 상태에서는 `docs/35` soft guard로 우회를 감지한다. 커밋 타입: `feat/fix/docs/chore/refactor/test/security`.
 
 ## 2. main 브랜치 보호 — 적용할 설정 (수동)
 
 > 브랜치 보호는 저장소 **Settings**에서 직접 켠다(현재 자동화 도구 없음).
 > 경로: GitHub repo → **Settings → Branches → Add branch ruleset (또는 Add rule)** → 대상 `main`.
+> 현재 private repository + GitHub Free 상태에서는 GitHub가 branch protection/rulesets를 제공하지 않는다. `docs/35_Private_Free_Soft_Guard.md`의 soft guard를 적용하고, Pro/Team 업그레이드 또는 public 전환 시 아래 설정으로 즉시 전환한다.
 
 권장 설정:
 
@@ -49,6 +50,13 @@ hotfix/<name>             : 긴급 수정
 
 `develop`에도 동일 규칙(승인 1, status check `build`)을 권장하되, 운영 속도를 위해 "Code Owners 강제"는 선택.
 
+## 2.1 private Free 임시 운영
+
+- Repository는 private 유지.
+- GitHub branch protection API 적용 결과: `403 Upgrade to GitHub Pro or make this repository public to enable this feature.`
+- 강제 보호 대신 repository merge setting을 squash only로 제한하고, `.github/workflows/governance-soft-guard.yml`로 `main` 직접 push 우회를 감지한다.
+- soft guard는 push 자체를 막지 못한다. 실패한 workflow를 신호로 보고 즉시 정정한다.
+
 ## 3. 리뷰 규약
 
 - **CODEOWNERS** (`.github/CODEOWNERS`): 기본 오너 `@esyim-git`. `rules/`·`config/`·`kb/`·`build/`·`deploy/`·보안문서는 신중 검토.
@@ -58,19 +66,20 @@ hotfix/<name>             : 긴급 수정
 ## 4. 병합 정책
 
 - 기본 **Squash merge**(잘게 나뉜 커밋을 한 줄로) — MVP-1 PR #1과 동일.
-- merge commit은 큰 기능 통합 시 선택. `--force`/`reset --hard`는 금지(docs/29).
+- private Free soft guard 상태에서는 repository 설정으로 merge commit/rebase merge를 비활성화하고 squash merge만 허용한다. `--force`/`reset --hard`는 금지(docs/29).
 - 병합 후 feature 브랜치 삭제 권장.
 
 ## 5. 적용 절차 (한 번)
 
 1. (완료) `develop` 브랜치 생성 — `main`에서 분기.
 2. (이 PR) `.github/CODEOWNERS`, `.github/pull_request_template.md`, 본 문서 추가.
-3. (수동) §2 설정을 `main`(필요 시 `develop`)에 적용.
-4. 이후 모든 변경은 PR 경유.
+3. (현재) private Free 제약으로 §2 강제 보호는 미적용, `docs/35` soft guard 적용.
+4. Pro/Team 업그레이드 또는 public 전환 시 §2 설정을 `main`(필요 시 `develop`)에 적용.
+5. 이후 모든 변경은 PR 경유.
 
 ## 테스트 / 확인
 
-- 보호 적용 후, `main`에 직접 push 시도가 거부되는지 확인.
+- 보호 적용 후, `main`에 직접 push 시도가 거부되는지 확인. private Free soft guard 상태에서는 `main` 우회 push가 `governance-soft-guard` 실패로 감지되는지 확인.
 - PR 생성 시 PR 템플릿이 자동 채워지는지, `build` 체크가 필수로 뜨는지 확인.
 
 ## 향후 확장
