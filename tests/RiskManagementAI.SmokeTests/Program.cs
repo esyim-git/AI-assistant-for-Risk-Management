@@ -1,4 +1,5 @@
 using RiskManagementAI.Core.Data;
+using RiskManagementAI.Core.Config;
 using RiskManagementAI.Core.Excel;
 using RiskManagementAI.Core.Logging;
 using RiskManagementAI.Core.Safety;
@@ -140,6 +141,22 @@ var fallbackFindings = new SqlSafetyChecker(fallbackRuleSet).Check("DELETE FROM 
 AssertTrue(fallbackRuleSet.UsedFallback, "Missing rules directory should use fallback");
 AssertTrue(fallbackFindings.Any(f => f.Code == "RULESET_FALLBACK"), "Fallback use should be reported as finding");
 AssertTrue(fallbackFindings.Any(f => f.Code == "SQL_DML_DELETE"), "Fallback rules should still block SQL DELETE");
+
+var policyLoadResult = PolicyLoader.LoadDefault();
+AssertTrue(!policyLoadResult.UsedFallback, "PolicyLoader should load repo security policy");
+AssertTrue(!policyLoadResult.Policy.Network.AllowExternalApi, "Security policy should block external API");
+AssertTrue(!policyLoadResult.Policy.Network.AllowAutoUpdate, "Security policy should block auto update");
+AssertTrue(!policyLoadResult.Policy.Network.AllowTelemetry, "Security policy should block telemetry");
+AssertTrue(!policyLoadResult.Policy.Sql.AllowAutoExecute, "Security policy should block SQL auto execution");
+AssertTrue(!policyLoadResult.Policy.Vba.AllowAutoExecute, "Security policy should block VBA auto execution");
+AssertTrue(Throws<InvalidOperationException>(() => policyLoadResult.Policy.EnsureExternalApiAllowed()), "Security policy should enforce external API block");
+AssertTrue(Throws<InvalidOperationException>(() => policyLoadResult.Policy.EnsureSqlAutoExecuteAllowed()), "Security policy should enforce SQL auto-execute block");
+AssertTrue(Throws<InvalidOperationException>(() => policyLoadResult.Policy.EnsureVbaAutoExecuteAllowed()), "Security policy should enforce VBA auto-execute block");
+
+var missingPolicyResult = PolicyLoader.LoadFromFile("config/missing_policy_smoke.json");
+AssertTrue(missingPolicyResult.UsedFallback, "Missing security policy should use safe fallback");
+AssertTrue(!missingPolicyResult.Policy.Network.AllowExternalApi && !missingPolicyResult.Policy.Sql.AllowAutoExecute, "Security policy fallback should keep dangerous actions disabled");
+AssertTrue(PolicyLoader.LoadFromFile("../security_policy.json").UsedFallback, "PolicyLoader should reject non-config-relative paths");
 
 var profiler = new DataProfiler();
 var exposureProfile = profiler.ProfileCsv(Path.Combine("samples", "dummy_data", "risk_exposure_sample.csv"));
