@@ -6,6 +6,7 @@ using System.Windows.Media;
 using RiskManagementAI.Core.Config;
 using RiskManagementAI.Core.Data;
 using RiskManagementAI.Core.Excel;
+using RiskManagementAI.Core.Generation;
 using RiskManagementAI.Core.Logging;
 using RiskManagementAI.Core.Safety;
 
@@ -20,6 +21,7 @@ public partial class MainWindow : Window
     private readonly DataProfiler _dataProfiler = new();
     private readonly TaskLogWriter _taskLogWriter = new();
     private readonly PolicyLoadResult _policyLoadResult = App.SecurityPolicyLoadResult;
+    private readonly ILocalDraftService _draftService;
 
     public MainWindow()
     {
@@ -27,18 +29,24 @@ public partial class MainWindow : Window
         _sqlChecker = new SqlSafetyChecker(_ruleSet);
         _vbaChecker = new VbaSafetyChecker(_ruleSet);
         _excelChecker = new Excel2021FunctionChecker(_ruleSet);
+        _draftService = new NoModelDraftService(_policyLoadResult.Policy);
 
         InitializeComponent();
-        EnvironmentText.Text = BuildEnvironmentText(_policyLoadResult);
+        EnvironmentText.Text = $"{BuildEnvironmentText(_policyLoadResult)} / {NoModelDraftService.ModeName}";
         SafetyStatusText.Text = _policyLoadResult.UsedFallback
             ? "Security policy fallback active"
             : "Security policy loaded";
-        FindingList.ItemsSource = new[]
+        var draftStatus = _draftService.GenerateDraft(new DraftRequest(
+            DraftRequestKind.General,
+            "Startup local model availability check"));
+        var startupFindings = new[]
         {
             FindingDisplay.FromInfo("SYSTEM_READY", "Risk Management AI Assistant가 오프라인 모드로 시작되었습니다."),
             FindingDisplay.FromInfo("SECURITY_POLICY", BuildPolicySummary(_policyLoadResult.Policy))
-        };
-        FindingSummaryText.Text = "2 info";
+        }.ToList();
+        startupFindings.AddRange(draftStatus.Findings.Select(FindingDisplay.FromSafetyFinding));
+        FindingList.ItemsSource = startupFindings;
+        FindingSummaryText.Text = $"{startupFindings.Count} startup finding(s)";
     }
 
     private static string BuildEnvironmentText(PolicyLoadResult policyLoadResult)

@@ -9,11 +9,11 @@
 
 > Claude는 복귀 시 **이 블록만으로** 현재 상태·다음 작업을 파악할 수 있어야 한다.
 
-- **현재 상태(1줄)**: Phase 0 완료 후보. P0-1~P0-3 모두 구현·검증했고 P0-3 feature CI `build` success 확인 후 develop squash commit 작성 중.
-- **develop 최신 commit**: `b04ab2ea1a5e1d822edc1758ad9a0b4c3c1e499a` + P0-3 squash commit(본 커밋; push 후 `git rev-parse origin/develop`로 확인)
-- **DONE (검증됨)**: P0-1 develop/main fast-forward sync; P0-2 release/v0.3.0 변경 반영; P0-3 `.gitignore` `*.zip` 추가(feature 검증 완료)
-- **진행 중이던 항목 / 중단 지점**: _-_
-- **NEXT UP (Claude가 바로 집을 작업)**: M2-01 LLM 추상화 + NoModelMode
+- **현재 상태(1줄)**: M2-01 LLM 추상화 + NoModelMode 구현 및 feature CI 검증 완료, develop squash 반영 중.
+- **develop 최신 commit**: `25c58aa2846127daa7b393ba9c9066892d569c8e` + M2-01 squash commit(본 커밋; push 후 `origin/develop` 확인)
+- **DONE (검증됨)**: P0-1 develop/main fast-forward sync; P0-2 release/v0.3.0 변경 반영; P0-3 `.gitignore` `*.zip` 추가; M2-01 feature CI `build` success
+- **진행 중이던 항목 / 중단 지점**: M2-01 develop squash commit/push/CI 확인
+- **NEXT UP (Claude가 바로 집을 작업)**: M2-02 SQL/VBA 초안 파이프라인(안전+감사)
 - **BLOCKED 개수 / 핵심**: _0_
 - **재현 검증**: `git fetch origin develop && git switch develop && dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI.SmokeTests`
 - **⚠️ Claude 확인 요망(자동결정/승격대기)**: _-_
@@ -39,12 +39,12 @@
 |---|---|---|---|---|
 | P0-1 | develop를 main까지 ff 동기화 | DONE | `571c576708a483a742bd3b30cad19e9e07c52bd7` | origin/develop push 완료 |
 | P0-2 | release/v0.3.0 변경 develop 반영(VERSION 0.3.0 + build/01 fail-fast/.keep) | DONE | `b04ab2ea1a5e1d822edc1758ad9a0b4c3c1e499a` | main 승격 안 함 |
-| P0-3 | `.gitignore`에 `*.zip` 추가 | DONE | P0-3 squash commit | 루트 잔류 zip 차단 |
+| P0-3 | `.gitignore`에 `*.zip` 추가 | DONE | `25c58aa2846127daa7b393ba9c9066892d569c8e` | 루트 잔류 zip 차단 |
 
 ### Phase 1 — MVP-2 코어 (docs/33)
 | ID | 항목 | 상태 | 커밋 | SmokeTest | 비고 |
 |---|---|---|---|---|---|
-| M2-01 | LLM 추상화 + NoModelMode | TODO | - | - | 모델 없이 기동 |
+| M2-01 | LLM 추상화 + NoModelMode | DONE | M2-01 squash commit | 127 PASS | 모델 없이 기동 |
 | M2-02 | SQL/VBA 초안 파이프라인(안전+감사) | TODO | - | - | 생성물 Checker 통과+로그 |
 | M2-03 | 규정/NCR catalog 검색 | TODO | - | - | 공개 catalog만 |
 | M2-05 | 승인형 피드백 예제 승격 | TODO | - | - | 재학습 아님 |
@@ -103,7 +103,16 @@ _(아직 없음)_
 - build: 성공(0/0) / SmokeTest: 119 PASS
 - 보안 게이트 A: 0건(금지어 가드 문구 오탐만 확인) / NuGet: 없음
 - 결정/가정: 기존 루트 `risk-agent-learning-materials-v0.1.zip`은 건드리지 않고 ignore 처리만 적용.
-- develop 반영 커밋: P0-3 squash commit(본 커밋; push 후 `origin/develop` 확인)
+- develop 반영 커밋: `25c58aa2846127daa7b393ba9c9066892d569c8e`
+
+#### [M2-01] LLM abstraction + NoModelMode — DONE (2026-06-19T16:09:25Z)
+- 구현 요약: `ILocalDraftService` 추상화와 기본 `NoModelDraftService`를 추가. 모델 파일/외부통신/추론 라이브러리 없이 생성 호출이 안전 안내와 policy finding만 반환하도록 구현하고, WPF 시작 상태에 NoModelMode를 주입.
+- 변경 파일: `src/RiskManagementAI.Core/Generation/ILocalDraftService.cs`, `src/RiskManagementAI.Core/Generation/NoModelDraftService.cs`, `src/RiskManagementAI.App/MainWindow.xaml.cs`, `tests/RiskManagementAI.SmokeTests/Program.cs`, `docs/36_MVP2_Autorun_Worklog.md`
+- build: GitHub Actions 성공(0/0; 로컬 PC는 .NET SDK 미설치로 CI 검증 사용) / SmokeTest: 127 PASS
+- 보안 게이트 A: 0건(금지어 가드 문구 오탐만 확인; 기존 ignored 루트 ZIP은 미포함) / NuGet: 없음
+- 결정/가정: 실제 추론 구현은 후속. NoModelMode는 항상 `IsAvailable=false`, `DraftText=null`이며 외부통신/자동실행 차단 상태를 finding으로 반환.
+- feature 검증: `feature/mvp2-m2-01-nomodel-draft` CI `build` success (`27836431845`)
+- develop 반영 커밋: M2-01 squash commit(본 커밋; push 후 `origin/develop` 확인)
 
 ## 6. 하트비트 로그 (≈1h 또는 항목 전환마다)
 
@@ -114,6 +123,8 @@ _(아직 없음)_
 - [2026-06-19T15:57:23Z] P0-3 적용 시작, 추적 ZIP 0개 확인 / 현재 항목: `.gitignore` `*.zip` + 검증 / 다음 항목: M2-01 LLM 추상화
 - [2026-06-19T15:58:25Z] P0-3 feature 검증 완료, build 0/0 + SmokeTest 119 PASS + Gate A 0건 / 현재 항목: feature push/CI 확인 / 다음 항목: develop squash-merge 후 M2-01
 - [2026-06-19T16:00:09Z] P0-3 feature CI `build` success / 현재 항목: develop squash commit 작성 / 다음 항목: M2-01 LLM 추상화 + NoModelMode
+- [2026-06-19T16:04:02Z] P0-3 develop CI `build` success, Phase 0 완료 / 현재 항목: M2-01 NoModel draft service 구현 / 다음 항목: M2-01 feature 검증
+- [2026-06-19T16:09:25Z] M2-01 feature CI `build` success, SmokeTest 127 PASS / 현재 항목: develop squash commit 작성 / 다음 항목: M2-02 초안 파이프라인
 
 ## 7. Claude 재개 체크리스트
 

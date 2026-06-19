@@ -1,6 +1,7 @@
 using RiskManagementAI.Core.Data;
 using RiskManagementAI.Core.Config;
 using RiskManagementAI.Core.Excel;
+using RiskManagementAI.Core.Generation;
 using RiskManagementAI.Core.Logging;
 using RiskManagementAI.Core.Safety;
 
@@ -208,6 +209,29 @@ File.WriteAllText(nullSectionPolicyPath, "{ \"Network\": null }");
 var nullSectionPolicyResult = PolicyLoader.LoadFromFile(nullSectionPolicyPath);
 File.Delete(nullSectionPolicyPath);
 AssertTrue(nullSectionPolicyResult.UsedFallback && !nullSectionPolicyResult.Policy.Network.AllowExternalApi, "PolicyLoader should safe-fallback on null policy sections");
+
+var noModelDraftService = new NoModelDraftService(policyLoadResult.Policy);
+var noModelDraftResponse = noModelDraftService.GenerateDraft(new DraftRequest(
+    DraftRequestKind.Sql,
+    "SELECT draft request for review-only output",
+    "dummy context"));
+AssertTrue(!noModelDraftResponse.IsAvailable, "NoModelDraftService should keep generation unavailable");
+AssertTrue(noModelDraftResponse.Mode == NoModelDraftService.ModeName, "NoModelDraftService should report NoModelMode");
+AssertTrue(noModelDraftResponse.DraftText is null, "NoModelDraftService should not return generated draft text");
+AssertTrue(noModelDraftResponse.Findings.Any(f => f.Code == "DRAFT_NO_MODEL_MODE" && f.Severity == SafetySeverity.Info), "NoModelDraftService should return safe no-model guidance");
+AssertTrue(noModelDraftResponse.Findings.Any(f => f.Code == "DRAFT_EXTERNAL_COMM_BLOCKED"), "NoModelDraftService should confirm external communications are blocked");
+AssertTrue(noModelDraftResponse.Findings.Any(f => f.Code == "DRAFT_AUTO_EXECUTE_BLOCKED"), "NoModelDraftService should confirm auto execution is blocked");
+AssertTrue(noModelDraftService.GenerateDraft(null).Findings.Any(f => f.Code == "DRAFT_PROMPT_EMPTY"), "NoModelDraftService should not throw for an empty request");
+
+var unsafeDraftPolicy = policyLoadResult.Policy with
+{
+    Network = policyLoadResult.Policy.Network with
+    {
+        AllowExternalApi = true
+    }
+};
+var unsafeDraftResponse = new NoModelDraftService(unsafeDraftPolicy).GenerateDraft(new DraftRequest(DraftRequestKind.General, "policy check"));
+AssertTrue(unsafeDraftResponse.Findings.Any(f => f.Code == "DRAFT_POLICY_UNSAFE_NETWORK" && f.Severity == SafetySeverity.High), "NoModelDraftService should flag unsafe network policy");
 
 var profiler = new DataProfiler();
 var exposureProfile = profiler.ProfileCsv(Path.Combine("samples", "dummy_data", "risk_exposure_sample.csv"));
