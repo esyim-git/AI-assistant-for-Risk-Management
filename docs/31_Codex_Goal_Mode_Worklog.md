@@ -288,6 +288,13 @@ Claude는 §3/§4를 기준으로 ① 완료 항목 검증 ② 보안 게이트 
 - **계획 외 항목 판정**: `NuGet.Config`(`<clear/>`)=외부 피드 제거 오프라인 강제 장치로 **정당**. `vba_deny_patterns.txt` FSO/FollowHyperlink 정합 보강 **정당**.
 - **후속 nit(블로커 아님)**: `RuleLoader` 폴백 기본 VBA FSO 패턴이 파일의 넓힌 패턴과 미세 불일치(폴백은 룰파일 부재 시에만 사용되어 안전). 차기 정리 시 동기화 권장.
 
+### 6.2 Codex PR follow-up 검증 결과 (2026-06-19)
+
+- **후속 nit 해소**: `RuleLoader` 폴백 기본 VBA FSO 패턴을 `rules/vba_deny_patterns.txt`의 `Scripting\.FileSystemObject|FileSystemObject`와 동기화했다.
+- **회귀 고정**: fallback 룰셋에서도 `Dim fso As FileSystemObject` 선언이 `VBA_FSO`로 탐지되는 SmokeTest를 추가했다.
+- **검증**: `dotnet build RiskManagementAI.sln --no-restore` 성공(0 warnings / 0 errors), `dotnet run --project tests/RiskManagementAI.SmokeTests --no-build` 성공(113 PASS / 0 FAIL).
+- **보안 게이트 A**: actionable 0건. NuGet 추가 없음.
+
 ---
 
 ## 7. 보안·금지 리마인드 (위반 시 Codex 즉시 중단·보고)

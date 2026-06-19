@@ -158,6 +158,11 @@ var fallbackFindings = new SqlSafetyChecker(fallbackRuleSet).Check("DELETE FROM 
 AssertTrue(fallbackRuleSet.UsedFallback, "Missing rules directory should use fallback");
 AssertTrue(fallbackFindings.Any(f => f.Code == "RULESET_FALLBACK"), "Fallback use should be reported as finding");
 AssertTrue(fallbackFindings.Any(f => f.Code == "SQL_DML_DELETE"), "Fallback rules should still block SQL DELETE");
+AssertTrue(
+    new VbaSafetyChecker(fallbackRuleSet)
+        .Check("Option Explicit\nSub Test()\nDim fso As FileSystemObject\nEnd Sub")
+        .Any(f => f.Code == "VBA_FSO"),
+    "Fallback rules should detect direct FileSystemObject declarations");
 
 var policyLoadResult = PolicyLoader.LoadDefault();
 AssertTrue(!policyLoadResult.UsedFallback, "PolicyLoader should load repo security policy");

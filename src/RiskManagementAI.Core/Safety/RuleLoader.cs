@@ -66,7 +66,7 @@ public static class RuleLoader
         @"WScript\.Shell",
         @"\bKill\b",
         @"Declare\s+PtrSafe",
-        @"CreateObject\s*\(\s*""Scripting\.FileSystemObject""",
+        @"Scripting\.FileSystemObject|FileSystemObject",
         @"FollowHyperlink",
         @"WinHttp",
         @"MSXML2\.XMLHTTP",
