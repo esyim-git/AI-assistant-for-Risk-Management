@@ -82,7 +82,7 @@
 |---|---|---|---|---|---|---|---|---|
 | S-0 | 설정(.sln 생성, ci 트리거 D-04) | TODO | DONE | d09dcdd | `RiskManagementAI.sln`, `.github/workflows/ci.yml`, `NuGet.Config` | PASS (0 warnings, 0 errors) | PASS (5 PASS / 0 FAIL) | repo-local NuGet config 추가(외부 package source 없음) |
 | B-01 | RuleLoader (rules/*.txt 주입) | TODO | DONE | e452324 | `Safety/RuleLoader.cs`, `Safety/SafetyRuleSet.cs`, checker 3종, SmokeTest | PASS (0 warnings, 0 errors) | PASS (15 PASS / 0 FAIL) | D-01/D-02/D-05/D-06 반영 |
-| B-02 | SqlSafetyChecker 검증/보강 | WIP* | DONE | this commit | `Safety/RuleLoader.cs`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (33 PASS / 0 FAIL) | 14개 deny + 4개 warn 검증 |
+| B-02 | SqlSafetyChecker 검증/보강 | WIP* | DONE | c98352e | `Safety/RuleLoader.cs`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (33 PASS / 0 FAIL) | 14개 deny + 4개 warn 검증 |
 | B-03 | VbaSafetyChecker 검증/보강 | WIP* | TODO | - | `Safety/VbaSafetyChecker.cs` | - | - | FollowHyperlink 등 흡수 |
 | B-04 | Excel2021FunctionChecker 검증/보강 | WIP* | TODO | - | `Excel/Excel2021FunctionChecker.cs` | - | - | preferred=안내용(D-02) |
 | B-05 | DataProfiler 구현 | TODO | TODO | - | `Data/DataProfiler.cs`(신규) | - | - | 더미 CSV 대상 |
@@ -164,7 +164,7 @@
 - NuGet 추가: 없음
 - 결정/가정: RuleLoader 기반 룰 주입 유지. SQL 원문은 로그에 저장하지 않음.
 - 남은 리스크/후속: B-03에서 VBA deny/warn 커버리지 보강.
-- 커밋: this commit
+- 커밋: c98352e "test: cover SQL safety rule set"
 
 ---
 
