@@ -9,11 +9,11 @@
 
 > Claude는 복귀 시 **이 블록만으로** 현재 상태·다음 작업을 파악할 수 있어야 한다.
 
-- **현재 상태(1줄)**: P0-2 완료. `release/v0.3.0`의 검증 변경(VERSION 0.3.0, build/01 fail-fast, logs/reports `.keep`)을 develop squash commit으로 반영 중이며 build/SmokeTest/Gate A/feature CI 통과.
-- **develop 최신 commit**: `c531833a0ee493141383d11d54b543725d060346` + P0-2 squash commit(본 커밋; push 후 `git rev-parse origin/develop`로 확인)
-- **DONE (검증됨)**: P0-1 develop/main fast-forward sync; P0-2 release/v0.3.0 변경 반영
+- **현재 상태(1줄)**: Phase 0 완료 후보. P0-1~P0-3 모두 구현·검증했고 P0-3 feature CI `build` success 확인 후 develop squash commit 작성 중.
+- **develop 최신 commit**: `b04ab2ea1a5e1d822edc1758ad9a0b4c3c1e499a` + P0-3 squash commit(본 커밋; push 후 `git rev-parse origin/develop`로 확인)
+- **DONE (검증됨)**: P0-1 develop/main fast-forward sync; P0-2 release/v0.3.0 변경 반영; P0-3 `.gitignore` `*.zip` 추가(feature 검증 완료)
 - **진행 중이던 항목 / 중단 지점**: _-_
-- **NEXT UP (Claude가 바로 집을 작업)**: P0-3 `.gitignore` `*.zip` 추가
+- **NEXT UP (Claude가 바로 집을 작업)**: M2-01 LLM 추상화 + NoModelMode
 - **BLOCKED 개수 / 핵심**: _0_
 - **재현 검증**: `git fetch origin develop && git switch develop && dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI.SmokeTests`
 - **⚠️ Claude 확인 요망(자동결정/승격대기)**: _-_
@@ -38,8 +38,8 @@
 | ID | 항목 | 상태 | 커밋 | 비고 |
 |---|---|---|---|---|
 | P0-1 | develop를 main까지 ff 동기화 | DONE | `571c576708a483a742bd3b30cad19e9e07c52bd7` | origin/develop push 완료 |
-| P0-2 | release/v0.3.0 변경 develop 반영(VERSION 0.3.0 + build/01 fail-fast/.keep) | DONE | `0c1d83256e2181dfe49b1a6d422830a0cc5a1637` source / P0-2 squash commit | main 승격 안 함 |
-| P0-3 | `.gitignore`에 `*.zip` 추가 | TODO | - | 루트 잔류 zip 차단 |
+| P0-2 | release/v0.3.0 변경 develop 반영(VERSION 0.3.0 + build/01 fail-fast/.keep) | DONE | `b04ab2ea1a5e1d822edc1758ad9a0b4c3c1e499a` | main 승격 안 함 |
+| P0-3 | `.gitignore`에 `*.zip` 추가 | DONE | P0-3 squash commit | 루트 잔류 zip 차단 |
 
 ### Phase 1 — MVP-2 코어 (docs/33)
 | ID | 항목 | 상태 | 커밋 | SmokeTest | 비고 |
@@ -95,7 +95,15 @@ _(아직 없음)_
 - build: 성공(0/0) / SmokeTest: 119 PASS
 - 보안 게이트 A: 0건(금지어 가드 문구 오탐만 확인) / NuGet: 없음
 - 결정/가정: source commit `0c1d83256e2181dfe49b1a6d422830a0cc5a1637`; main 승격 없이 develop 통합만 진행.
-- develop 반영 커밋: P0-2 squash commit(본 커밋; push 후 `origin/develop` 확인)
+- develop 반영 커밋: `b04ab2ea1a5e1d822edc1758ad9a0b4c3c1e499a`
+
+#### [P0-3] ignore ZIP artifacts — DONE (2026-06-19T15:57:23Z)
+- 구현 요약: `git ls-files '*.zip'` 결과 추적 ZIP 0개 확인 후 `.gitignore`에 `*.zip` 추가.
+- 변경 파일: `.gitignore`, `docs/36_MVP2_Autorun_Worklog.md`
+- build: 성공(0/0) / SmokeTest: 119 PASS
+- 보안 게이트 A: 0건(금지어 가드 문구 오탐만 확인) / NuGet: 없음
+- 결정/가정: 기존 루트 `risk-agent-learning-materials-v0.1.zip`은 건드리지 않고 ignore 처리만 적용.
+- develop 반영 커밋: P0-3 squash commit(본 커밋; push 후 `origin/develop` 확인)
 
 ## 6. 하트비트 로그 (≈1h 또는 항목 전환마다)
 
@@ -103,6 +111,9 @@ _(아직 없음)_
 - [2026-06-19T15:46:24Z] P0-1 완료, build 0/0 + SmokeTest 119 PASS + Gate A 0건 / 현재 항목: P0-2 준비 / 다음 항목: release/v0.3.0 변경 develop 반영
 - [2026-06-19T15:50:16Z] P0-2 feature 검증 완료, build 0/0 + SmokeTest 119 PASS + Gate A 0건 / 현재 항목: feature push/CI 확인 / 다음 항목: develop squash-merge 후 P0-3
 - [2026-06-19T15:52:56Z] P0-2 feature CI `build` success / 현재 항목: develop squash commit 작성 / 다음 항목: P0-3 `.gitignore` `*.zip` 추가
+- [2026-06-19T15:57:23Z] P0-3 적용 시작, 추적 ZIP 0개 확인 / 현재 항목: `.gitignore` `*.zip` + 검증 / 다음 항목: M2-01 LLM 추상화
+- [2026-06-19T15:58:25Z] P0-3 feature 검증 완료, build 0/0 + SmokeTest 119 PASS + Gate A 0건 / 현재 항목: feature push/CI 확인 / 다음 항목: develop squash-merge 후 M2-01
+- [2026-06-19T16:00:09Z] P0-3 feature CI `build` success / 현재 항목: develop squash commit 작성 / 다음 항목: M2-01 LLM 추상화 + NoModelMode
 
 ## 7. Claude 재개 체크리스트
 
