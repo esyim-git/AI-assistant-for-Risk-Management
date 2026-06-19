@@ -86,7 +86,7 @@
 | B-03 | VbaSafetyChecker 검증/보강 | WIP* | DONE | cee9e41 | `rules/vba_deny_patterns.txt`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (53 PASS / 0 FAIL) | 위험 API + REQUIRE_PRESENT 검증 |
 | B-04 | Excel2021FunctionChecker 검증/보강 | WIP* | DONE | 20061de | `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (74 PASS / 0 FAIL) | blocked 전체 + preferred 안내 검증 |
 | B-05 | DataProfiler 구현 | TODO | DONE | b2c29c9 | `Data/DataProfiler.cs`, `Data/DataProfileResult.cs`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (88 PASS / 0 FAIL) | 샘플 CSV/Null/중복/BASE_DT/숫자 통계 검증 |
-| B-06 | TaskLog/FeedbackLog 저장기 | TODO | TODO | - | `Logging/*Writer.cs`(신규) | - | - | **해시만** 저장 |
+| B-06 | TaskLog/FeedbackLog 저장기 | TODO | DONE | this commit | `Logging/*Writer.cs`, `Logging/LogHash.cs`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (95 PASS / 0 FAIL) | logs/*.jsonl append, hash 검증 |
 | B-07 | PolicyLoader (security_policy.json) | TODO | TODO | - | `Config/PolicyLoader.cs`(신규) | - | - | 없으면 전부 false |
 | B-08 | 최소 UI 보강 | WIP* | TODO | - | `App/MainWindow.xaml(.cs)` | - | - | 탭/심각도 색상 |
 | B-09 | SmokeTest 확장 | WIP* | TODO | - | `tests/.../Program.cs` | - | - | 신규기능 회귀 |
@@ -198,6 +198,17 @@
 - 결정/가정: CSV 우선 지원, XLSX는 후속 범위. 읽기 전용이며 실데이터 경로를 하드코딩하지 않음.
 - 남은 리스크/후속: B-06 TaskLog/FeedbackLog JSONL 저장기 구현.
 - 커밋: b2c29c9 "feat: add CSV data profiler"
+
+#### [B-06] TaskLog/FeedbackLog 저장기 — DONE (2026-06-19)
+- 구현 요약: `logs/` 이하 JSON Lines append writer를 추가하고, TaskLog의 RequestHash/OutputHash를 SHA-256 hex로 검증한다. SmokeTest는 raw request/output 텍스트가 JSONL에 저장되지 않는지 확인한다.
+- 변경 파일: `src/RiskManagementAI.Core/Logging/TaskLogWriter.cs`, `src/RiskManagementAI.Core/Logging/FeedbackLogWriter.cs`, `src/RiskManagementAI.Core/Logging/LogPathResolver.cs`, `src/RiskManagementAI.Core/Logging/LogHash.cs`, `tests/RiskManagementAI.SmokeTests/Program.cs`, `docs/31_Codex_Goal_Mode_Worklog.md`
+- 빌드 결과: `dotnet build RiskManagementAI.sln --no-restore` = 성공 (0 warnings / 0 errors)
+- SmokeTest 결과: 95 PASS / 0 FAIL (신규 추가 케이스: TaskLog/FeedbackLog JSONL 생성, request hash 저장, raw request/output 미저장, non-hash RequestHash 거부)
+- 보안 게이트 A: 통과(actionable 0건; 기존 정책/패키징 문구 false positive 확인)
+- NuGet 추가: 없음
+- 결정/가정: D-07 적용. 운영 쓰기 경로는 `logs/` 하위만 허용.
+- 남은 리스크/후속: B-07 PolicyLoader 구현.
+- 커밋: this commit
 
 ---
 

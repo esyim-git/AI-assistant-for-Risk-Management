@@ -1,5 +1,6 @@
 using RiskManagementAI.Core.Data;
 using RiskManagementAI.Core.Excel;
+using RiskManagementAI.Core.Logging;
 using RiskManagementAI.Core.Safety;
 
 var failed = 0;
@@ -14,6 +15,20 @@ void AssertTrue(bool condition, string name)
     {
         Console.WriteLine($"FAIL: {name}");
         failed++;
+    }
+}
+
+bool Throws<TException>(Action action)
+    where TException : Exception
+{
+    try
+    {
+        action();
+        return false;
+    }
+    catch (TException)
+    {
+        return true;
     }
 }
 
@@ -148,6 +163,54 @@ AssertTrue(smallProfile.NullCounts["DESK_CD"] == 1, "DataProfiler should count n
 AssertTrue(smallProfile.DuplicateRowCount == 1, "DataProfiler should count duplicate rows");
 AssertTrue(smallProfile.BaseDateDistribution["20260617"] == 2 && smallProfile.BaseDateDistribution["20260618"] == 1, "DataProfiler should count BASE_DT values");
 AssertTrue(smallProfile.NumericColumns["AMT"].Sum == 40m, "DataProfiler should compute small numeric sum");
+
+var taskLogPath = Path.Combine("logs", "smoke_task_log.jsonl");
+var feedbackLogPath = Path.Combine("logs", "smoke_feedback_log.jsonl");
+if (File.Exists(taskLogPath))
+{
+    File.Delete(taskLogPath);
+}
+
+if (File.Exists(feedbackLogPath))
+{
+    File.Delete(feedbackLogPath);
+}
+
+var rawRequest = "SELECT TRADE_ID FROM TRADE_SAMPLE WHERE ACCOUNT_NO = 'DUMMY-001'";
+var rawOutput = "SELECT TRADE_ID FROM TRADE_SAMPLE WHERE ACCOUNT_NO = :ACCOUNT_NO";
+var taskEntry = new TaskLogEntry(
+    "task-smoke-001",
+    DateTime.UtcNow,
+    LogHash.Sha256Hex("user-smoke"),
+    "SqlSafetyCheck",
+    "SqlSafetyChecker",
+    LogHash.Sha256Hex(rawRequest),
+    LogHash.Sha256Hex(rawOutput),
+    "PASS",
+    loadedRuleSet.RuleVersion);
+
+var taskLogWriter = new TaskLogWriter("logs", "smoke_task_log.jsonl");
+taskLogWriter.Append(taskEntry);
+var taskLogText = File.ReadAllText(taskLogWriter.LogFilePath);
+AssertTrue(File.Exists(taskLogWriter.LogFilePath), "TaskLogWriter should create JSONL file");
+AssertTrue(taskLogText.Contains(taskEntry.RequestHash, StringComparison.Ordinal), "TaskLogWriter should store request hash");
+AssertTrue(!taskLogText.Contains(rawRequest, StringComparison.Ordinal) && !taskLogText.Contains("ACCOUNT_NO", StringComparison.Ordinal), "TaskLogWriter should not store raw request/output text");
+AssertTrue(Throws<ArgumentException>(() => taskLogWriter.Append(taskEntry with { RequestHash = rawRequest })), "TaskLogWriter should reject non-hash RequestHash");
+
+var feedbackEntry = new FeedbackLogEntry(
+    "feedback-smoke-001",
+    taskEntry.TaskId,
+    DateTime.UtcNow,
+    taskEntry.UserId,
+    "APPROVED",
+    "ReviewerApproved");
+
+var feedbackLogWriter = new FeedbackLogWriter("logs", "smoke_feedback_log.jsonl");
+feedbackLogWriter.Append(feedbackEntry);
+var feedbackLogText = File.ReadAllText(feedbackLogWriter.LogFilePath);
+AssertTrue(File.Exists(feedbackLogWriter.LogFilePath), "FeedbackLogWriter should create JSONL file");
+AssertTrue(feedbackLogText.Contains(feedbackEntry.FeedbackId, StringComparison.Ordinal), "FeedbackLogWriter should store feedback id");
+AssertTrue(!feedbackLogText.Contains(rawRequest, StringComparison.Ordinal), "FeedbackLogWriter should not store raw request text");
 
 if (failed > 0)
 {
