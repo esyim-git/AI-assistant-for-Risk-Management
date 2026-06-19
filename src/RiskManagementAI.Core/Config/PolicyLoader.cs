@@ -35,8 +35,14 @@ public static class PolicyLoader
         {
             var json = File.ReadAllText(resolvedPath);
             var policy = JsonSerializer.Deserialize<SecurityPolicy>(json, JsonOptions);
-            return policy is null
-                ? CreateFallback($"Policy file '{relativePolicyPath}' was empty or invalid.")
+            if (policy is null)
+            {
+                return CreateFallback($"Policy file '{relativePolicyPath}' was empty or invalid.");
+            }
+
+            var validationWarning = ValidatePolicy(policy);
+            return validationWarning is not null
+                ? CreateFallback(validationWarning)
                 : new PolicyLoadResult(policy, UsedFallback: false, Warnings: Array.Empty<string>());
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
@@ -67,16 +73,41 @@ public static class PolicyLoader
 
     private static string? ResolvePolicyPath(string relativePolicyPath)
     {
+        var appBaseCandidate = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, relativePolicyPath));
+        if (File.Exists(appBaseCandidate))
+        {
+            return appBaseCandidate;
+        }
+
         var currentDirectoryCandidate = Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, relativePolicyPath));
         if (File.Exists(currentDirectoryCandidate))
         {
             return currentDirectoryCandidate;
         }
 
-        var appBaseCandidate = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, relativePolicyPath));
-        if (File.Exists(appBaseCandidate))
+        return null;
+    }
+
+    private static string? ValidatePolicy(SecurityPolicy policy)
+    {
+        if (policy.Network is null)
         {
-            return appBaseCandidate;
+            return "Security policy is missing the Network section.";
+        }
+
+        if (policy.Sql is null)
+        {
+            return "Security policy is missing the Sql section.";
+        }
+
+        if (policy.Vba is null)
+        {
+            return "Security policy is missing the Vba section.";
+        }
+
+        if (policy.Data is null)
+        {
+            return "Security policy is missing the Data section.";
         }
 
         return null;

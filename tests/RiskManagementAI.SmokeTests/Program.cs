@@ -153,6 +153,23 @@ File.AppendAllText(Path.Combine(versionDriftRulesDirectory, "sql_warn_patterns.t
 var versionAfterRuleChange = RuleLoader.LoadFromDirectory(versionDriftRulesDirectory);
 AssertTrue(versionBeforeRuleChange.RuleVersion != versionAfterRuleChange.RuleVersion, "RuleLoader ruleset version should change when rule content changes");
 
+var emptyMandatoryRulesDirectory = Path.Combine("artifacts", "smoke-rules-b09-empty-mandatory");
+if (Directory.Exists(emptyMandatoryRulesDirectory))
+{
+    Directory.Delete(emptyMandatoryRulesDirectory, recursive: true);
+}
+
+Directory.CreateDirectory(emptyMandatoryRulesDirectory);
+foreach (var sourceFile in Directory.EnumerateFiles("rules", "*.txt"))
+{
+    File.Copy(sourceFile, Path.Combine(emptyMandatoryRulesDirectory, Path.GetFileName(sourceFile)));
+}
+
+File.WriteAllText(Path.Combine(emptyMandatoryRulesDirectory, "sql_deny_patterns.txt"), "# accidental truncation\n\n");
+var emptyMandatoryRuleSet = RuleLoader.LoadFromDirectory(emptyMandatoryRulesDirectory);
+AssertTrue(emptyMandatoryRuleSet.UsedFallback, "RuleLoader should fallback when a mandatory rule group is empty");
+AssertTrue(new SqlSafetyChecker(emptyMandatoryRuleSet).Check("DELETE FROM TRADE_SAMPLE").Any(f => f.Code == "SQL_DML_DELETE"), "Fallback after empty mandatory rules should still block DELETE");
+
 var fallbackRuleSet = RuleLoader.LoadFromDirectory(Path.Combine("artifacts", "missing-rules-b01"));
 var fallbackFindings = new SqlSafetyChecker(fallbackRuleSet).Check("DELETE FROM TRADE_SAMPLE").ToList();
 AssertTrue(fallbackRuleSet.UsedFallback, "Missing rules directory should use fallback");
@@ -185,6 +202,12 @@ File.WriteAllText(invalidPolicyPath, "{ invalid json");
 var invalidPolicyResult = PolicyLoader.LoadFromFile(invalidPolicyPath);
 File.Delete(invalidPolicyPath);
 AssertTrue(invalidPolicyResult.UsedFallback && !invalidPolicyResult.Policy.Network.AllowExternalApi, "PolicyLoader should safe-fallback on invalid JSON policy");
+
+var nullSectionPolicyPath = Path.Combine("config", "smoke_null_section_policy.json");
+File.WriteAllText(nullSectionPolicyPath, "{ \"Network\": null }");
+var nullSectionPolicyResult = PolicyLoader.LoadFromFile(nullSectionPolicyPath);
+File.Delete(nullSectionPolicyPath);
+AssertTrue(nullSectionPolicyResult.UsedFallback && !nullSectionPolicyResult.Policy.Network.AllowExternalApi, "PolicyLoader should safe-fallback on null policy sections");
 
 var profiler = new DataProfiler();
 var exposureProfile = profiler.ProfileCsv(Path.Combine("samples", "dummy_data", "risk_exposure_sample.csv"));
@@ -247,6 +270,8 @@ AssertTrue(taskLogText.Contains(taskEntry.RequestHash, StringComparison.Ordinal)
 AssertTrue(!taskLogText.Contains(rawRequest, StringComparison.Ordinal) && !taskLogText.Contains("ACCOUNT_NO", StringComparison.Ordinal), "TaskLogWriter should not store raw request/output text");
 AssertTrue(Throws<ArgumentException>(() => taskLogWriter.Append(taskEntry with { RequestHash = rawRequest })), "TaskLogWriter should reject non-hash RequestHash");
 AssertTrue(Throws<ArgumentException>(() => taskLogWriter.Append(taskEntry with { OutputHash = rawOutput })), "TaskLogWriter should reject non-hash OutputHash");
+AssertTrue(Throws<ArgumentException>(() => taskLogWriter.Append(taskEntry with { UserId = "plain-user" })), "TaskLogWriter should reject non-hash UserId");
+AssertTrue(Throws<ArgumentException>(() => taskLogWriter.Append(taskEntry with { RuleVersion = "ruleset-not-valid" })), "TaskLogWriter should reject malformed RuleVersion");
 AssertTrue(Throws<ArgumentException>(() => new TaskLogWriter("logs/../reports", "bad.jsonl")), "TaskLogWriter should reject paths outside logs");
 
 var feedbackEntry = new FeedbackLogEntry(
@@ -263,6 +288,7 @@ var feedbackLogText = File.ReadAllText(feedbackLogWriter.LogFilePath);
 AssertTrue(File.Exists(feedbackLogWriter.LogFilePath), "FeedbackLogWriter should create JSONL file");
 AssertTrue(feedbackLogText.Contains(feedbackEntry.FeedbackId, StringComparison.Ordinal), "FeedbackLogWriter should store feedback id");
 AssertTrue(!feedbackLogText.Contains(rawRequest, StringComparison.Ordinal), "FeedbackLogWriter should not store raw request text");
+AssertTrue(Throws<ArgumentException>(() => feedbackLogWriter.Append(feedbackEntry with { UserId = "plain-user" })), "FeedbackLogWriter should reject non-hash UserId");
 
 if (failed > 0)
 {

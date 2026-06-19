@@ -295,6 +295,15 @@ Claude는 §3/§4를 기준으로 ① 완료 항목 검증 ② 보안 게이트 
 - **검증**: `dotnet build RiskManagementAI.sln --no-restore` 성공(0 warnings / 0 errors), `dotnet run --project tests/RiskManagementAI.SmokeTests --no-build` 성공(113 PASS / 0 FAIL).
 - **보안 게이트 A**: actionable 0건. NuGet 추가 없음.
 
+### 6.3 Codex review feedback 해결 결과 (2026-06-19)
+
+- **P1 해결**: 필수 룰 그룹(`sql_deny`, `vba_deny`, `vba REQUIRE_PRESENT`, `excel blocked`)이 주석/빈 줄만 남은 경우 `UsedFallback=false`로 로드하지 않고 safe fallback으로 전환한다.
+- **P2 해결**: 룰/정책 파일은 packaged app-base 경로를 CWD보다 우선한다. 정책 JSON의 null section은 safe fallback으로 처리한다.
+- **P2 해결**: `TaskLogWriter`/`FeedbackLogWriter`가 `UserId` SHA-256을 강제하고, `TaskLogWriter`가 `RuleVersion=ruleset-<12 hex>`를 강제한다.
+- **P2 해결**: WPF SQL/VBA/Excel 검사 실행 시 `TaskLogWriter`로 해시 기반 audit log를 append한다. Data 탭은 `InvalidDataException`도 `DATA_PROFILE_ERROR` finding으로 표시한다.
+- **검증**: `dotnet build RiskManagementAI.sln --no-restore` 성공(0 warnings / 0 errors), `dotnet run --project tests/RiskManagementAI.SmokeTests --no-build` 성공(119 PASS / 0 FAIL), WPF hidden startup smoke PASS.
+- **보안 게이트 A**: actionable 0건. NuGet 추가 없음.
+
 ---
 
 ## 7. 보안·금지 리마인드 (위반 시 Codex 즉시 중단·보고)

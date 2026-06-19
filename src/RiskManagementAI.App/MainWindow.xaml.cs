@@ -6,20 +6,28 @@ using System.Windows.Media;
 using RiskManagementAI.Core.Config;
 using RiskManagementAI.Core.Data;
 using RiskManagementAI.Core.Excel;
+using RiskManagementAI.Core.Logging;
 using RiskManagementAI.Core.Safety;
 
 namespace RiskManagementAI.App;
 
 public partial class MainWindow : Window
 {
-    private readonly SqlSafetyChecker _sqlChecker = new();
-    private readonly VbaSafetyChecker _vbaChecker = new();
-    private readonly Excel2021FunctionChecker _excelChecker = new();
+    private readonly SafetyRuleSet _ruleSet;
+    private readonly SqlSafetyChecker _sqlChecker;
+    private readonly VbaSafetyChecker _vbaChecker;
+    private readonly Excel2021FunctionChecker _excelChecker;
     private readonly DataProfiler _dataProfiler = new();
+    private readonly TaskLogWriter _taskLogWriter = new();
     private readonly PolicyLoadResult _policyLoadResult = App.SecurityPolicyLoadResult;
 
     public MainWindow()
     {
+        _ruleSet = RuleLoader.LoadDefault();
+        _sqlChecker = new SqlSafetyChecker(_ruleSet);
+        _vbaChecker = new VbaSafetyChecker(_ruleSet);
+        _excelChecker = new Excel2021FunctionChecker(_ruleSet);
+
         InitializeComponent();
         EnvironmentText.Text = BuildEnvironmentText(_policyLoadResult);
         SafetyStatusText.Text = _policyLoadResult.UsedFallback
@@ -51,18 +59,36 @@ public partial class MainWindow : Window
     private void OnCheckSql(object sender, RoutedEventArgs e)
     {
         var findings = _sqlChecker.Check(SqlRequestBox.Text).ToList();
+        var auditFinding = AppendAuditLog("SqlSafetyCheck", nameof(SqlSafetyChecker), SqlRequestBox.Text, findings);
+        if (auditFinding is not null)
+        {
+            findings.Add(auditFinding);
+        }
+
         ShowFindings("SQL Safety Check", findings);
     }
 
     private void OnCheckVba(object sender, RoutedEventArgs e)
     {
         var findings = _vbaChecker.Check(VbaRequestBox.Text).ToList();
+        var auditFinding = AppendAuditLog("VbaSafetyCheck", nameof(VbaSafetyChecker), VbaRequestBox.Text, findings);
+        if (auditFinding is not null)
+        {
+            findings.Add(auditFinding);
+        }
+
         ShowFindings("VBA Safety Check", findings);
     }
 
     private void OnCheckExcel(object sender, RoutedEventArgs e)
     {
         var findings = _excelChecker.CheckFormula(ExcelRequestBox.Text).ToList();
+        var auditFinding = AppendAuditLog("Excel2021FunctionCheck", nameof(Excel2021FunctionChecker), ExcelRequestBox.Text, findings);
+        if (auditFinding is not null)
+        {
+            findings.Add(auditFinding);
+        }
+
         ShowFindings("Excel 2021 Function Check", findings);
     }
 
@@ -85,12 +111,51 @@ public partial class MainWindow : Window
                 ? "Data profile warning"
                 : "Data profile ready";
         }
-        catch (Exception ex) when (ex is ArgumentException or IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is ArgumentException or IOException or InvalidDataException or UnauthorizedAccessException)
         {
             DataPreviewBox.Text = ex.Message;
             var error = new SafetyFinding("DATA_PROFILE_ERROR", SafetySeverity.High, ex.Message);
             ShowFindings("Data Profile", [error]);
         }
+    }
+
+    private SafetyFinding? AppendAuditLog(string taskType, string toolType, string inputText, IReadOnlyList<SafetyFinding> findings)
+    {
+        try
+        {
+            var resultText = BuildSafetyResult(findings);
+            var outputDigest = string.Join('|', findings.Select(f => $"{f.Severity}:{f.Code}:{f.Position}"));
+            _taskLogWriter.Append(new TaskLogEntry(
+                $"task-{Guid.NewGuid():N}",
+                DateTime.UtcNow,
+                LogHash.Sha256Hex(Environment.UserName),
+                taskType,
+                toolType,
+                LogHash.Sha256Hex(inputText),
+                LogHash.Sha256Hex(outputDigest),
+                resultText,
+                _ruleSet.RuleVersion));
+            return null;
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException or UnauthorizedAccessException)
+        {
+            return new SafetyFinding("TASK_LOG_WRITE_FAILED", SafetySeverity.High, ex.Message);
+        }
+    }
+
+    private static string BuildSafetyResult(IReadOnlyList<SafetyFinding> findings)
+    {
+        if (findings.Any(f => f.Severity == SafetySeverity.Blocker))
+        {
+            return "BLOCKED";
+        }
+
+        if (findings.Any(f => f.Severity == SafetySeverity.High))
+        {
+            return "REVIEW_REQUIRED";
+        }
+
+        return "PASS";
     }
 
     private void ShowFindings(string title, System.Collections.Generic.IReadOnlyList<SafetyFinding> findings)

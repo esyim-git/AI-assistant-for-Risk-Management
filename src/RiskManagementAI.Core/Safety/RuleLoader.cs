@@ -112,14 +112,23 @@ public static class RuleLoader
                 fileContents[fileName] = File.ReadAllText(filePath, Encoding.UTF8);
             }
 
-            var sqlDenyRules = BuildSqlRules(ReadActiveLines(fileContents["sql_deny_patterns.txt"]), SafetySeverity.Blocker, isDeny: true).ToArray();
-            var sqlWarnRules = BuildSqlRules(ReadActiveLines(fileContents["sql_warn_patterns.txt"]), SafetySeverity.Medium, isDeny: false).ToArray();
+            var sqlDenyPatterns = ReadActiveLines(fileContents["sql_deny_patterns.txt"]).ToArray();
+            var sqlWarnPatterns = ReadActiveLines(fileContents["sql_warn_patterns.txt"]).ToArray();
+            var vbaDenyPatterns = ReadActiveLines(fileContents["vba_deny_patterns.txt"]).ToArray();
             var (vbaWarnPatterns, vbaRequiredPatterns) = SplitRequiredPresent(ReadActiveLines(fileContents["vba_warn_patterns.txt"]));
-            var vbaDenyRules = BuildVbaDenyRules(ReadActiveLines(fileContents["vba_deny_patterns.txt"])).ToArray();
-            var vbaWarnRules = BuildVbaWarnRules(vbaWarnPatterns).ToArray();
-            var vbaRequiredRules = BuildVbaRequiredRules(vbaRequiredPatterns).ToArray();
             var excelBlockedFunctions = ReadActiveLines(fileContents["excel_2021_blocked_functions.txt"]).ToArray();
             var excelPreferredFunctions = ReadActiveLines(fileContents["excel_2021_preferred_functions.txt"]).ToArray();
+
+            ValidateMandatoryGroup("sql_deny_patterns.txt", sqlDenyPatterns);
+            ValidateMandatoryGroup("vba_deny_patterns.txt", vbaDenyPatterns);
+            ValidateMandatoryGroup("vba_warn_patterns.txt REQUIRE_PRESENT", vbaRequiredPatterns);
+            ValidateMandatoryGroup("excel_2021_blocked_functions.txt", excelBlockedFunctions);
+
+            var sqlDenyRules = BuildSqlRules(sqlDenyPatterns, SafetySeverity.Blocker, isDeny: true).ToArray();
+            var sqlWarnRules = BuildSqlRules(sqlWarnPatterns, SafetySeverity.Medium, isDeny: false).ToArray();
+            var vbaDenyRules = BuildVbaDenyRules(vbaDenyPatterns).ToArray();
+            var vbaWarnRules = BuildVbaWarnRules(vbaWarnPatterns).ToArray();
+            var vbaRequiredRules = BuildVbaRequiredRules(vbaRequiredPatterns).ToArray();
 
             ValidateRegexRules(sqlDenyRules, sqlWarnRules, vbaDenyRules, vbaWarnRules, vbaRequiredRules);
 
@@ -135,7 +144,7 @@ public static class RuleLoader
                 UsedFallback: false,
                 LoadWarnings: Array.Empty<string>());
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or RegexParseException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or InvalidDataException or RegexParseException)
         {
             return CreateFallbackRuleSet($"Rule files could not be loaded safely: {ex.Message}");
         }
@@ -186,19 +195,27 @@ public static class RuleLoader
 
     private static string? ResolveRulesDirectory(string relativeRulesDirectory)
     {
-        var currentDirectoryCandidate = Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, relativeRulesDirectory));
-        if (Directory.Exists(currentDirectoryCandidate))
-        {
-            return currentDirectoryCandidate;
-        }
-
         var appBaseCandidate = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, relativeRulesDirectory));
         if (Directory.Exists(appBaseCandidate))
         {
             return appBaseCandidate;
         }
 
+        var currentDirectoryCandidate = Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, relativeRulesDirectory));
+        if (Directory.Exists(currentDirectoryCandidate))
+        {
+            return currentDirectoryCandidate;
+        }
+
         return null;
+    }
+
+    private static void ValidateMandatoryGroup(string groupName, IReadOnlyCollection<string> values)
+    {
+        if (values.Count == 0)
+        {
+            throw new InvalidDataException($"Mandatory rule group '{groupName}' has no active rules.");
+        }
     }
 
     private static IEnumerable<string> ReadActiveLines(string content)

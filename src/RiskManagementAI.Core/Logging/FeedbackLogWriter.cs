@@ -35,5 +35,10 @@ public sealed class FeedbackLogWriter
         {
             throw new ArgumentException("TaskId가 비어 있습니다.", nameof(entry));
         }
+
+        if (!LogHash.IsSha256Hex(entry.UserId))
+        {
+            throw new ArgumentException("UserId는 SHA-256 hex 해시여야 합니다.", nameof(entry));
+        }
     }
 }
