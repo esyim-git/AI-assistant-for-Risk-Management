@@ -87,7 +87,7 @@
 | B-04 | Excel2021FunctionChecker 검증/보강 | WIP* | DONE | 20061de | `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (74 PASS / 0 FAIL) | blocked 전체 + preferred 안내 검증 |
 | B-05 | DataProfiler 구현 | TODO | DONE | b2c29c9 | `Data/DataProfiler.cs`, `Data/DataProfileResult.cs`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (88 PASS / 0 FAIL) | 샘플 CSV/Null/중복/BASE_DT/숫자 통계 검증 |
 | B-06 | TaskLog/FeedbackLog 저장기 | TODO | DONE | f26d154 | `Logging/*Writer.cs`, `Logging/LogHash.cs`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (95 PASS / 0 FAIL) | logs/*.jsonl append, hash 검증 |
-| B-07 | PolicyLoader (security_policy.json) | TODO | DONE | this commit | `Config/*Policy*.cs`, `App.xaml.cs`, `MainWindow.xaml.cs`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (107 PASS / 0 FAIL) | safe fallback + 차단 강제 |
+| B-07 | PolicyLoader (security_policy.json) | TODO | DONE | a48bfa8 | `Config/*Policy*.cs`, `App.xaml.cs`, `MainWindow.xaml.cs`, `tests/.../Program.cs` | PASS (0 warnings, 0 errors) | PASS (107 PASS / 0 FAIL) | safe fallback + 차단 강제 |
 | B-08 | 최소 UI 보강 | WIP* | TODO | - | `App/MainWindow.xaml(.cs)` | - | - | 탭/심각도 색상 |
 | B-09 | SmokeTest 확장 | WIP* | TODO | - | `tests/.../Program.cs` | - | - | 신규기능 회귀 |
 
@@ -219,7 +219,7 @@
 - NuGet 추가: 없음
 - 결정/가정: 정책 파일이 없거나 손상되면 전부 안전값(false)으로 폴백한다. 실제 외부 API/자동 실행 기능은 구현하지 않음.
 - 남은 리스크/후속: B-08 최소 UI 보강.
-- 커밋: this commit
+- 커밋: a48bfa8 "feat: load offline security policy"
 
 ---
 
