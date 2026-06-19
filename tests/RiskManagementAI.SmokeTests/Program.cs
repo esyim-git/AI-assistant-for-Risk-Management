@@ -1,6 +1,7 @@
 using RiskManagementAI.Core.Data;
 using RiskManagementAI.Core.Config;
 using RiskManagementAI.Core.Excel;
+using RiskManagementAI.Core.Feedback;
 using RiskManagementAI.Core.Generation;
 using RiskManagementAI.Core.Kb;
 using RiskManagementAI.Core.Logging;
@@ -317,6 +318,37 @@ AssertTrue(emptyKbSearchResponse.DraftAnswer.Contains("검토용 초안", String
 var kbSearchLogText = File.ReadAllText(kbSearchLogPath);
 AssertTrue(!kbSearchLogText.Contains("NCR", StringComparison.Ordinal), "KbSearch audit should not store raw query text");
 AssertTrue(!kbSearchLogText.Contains("user-smoke", StringComparison.Ordinal), "KbSearch audit should not store raw user id");
+
+var approvedFeedback = new FeedbackLogEntry(
+    "feedback-approved-001",
+    "task-smoke-approved-001",
+    DateTime.UtcNow,
+    LogHash.Sha256Hex("reviewer-one"),
+    "APPROVED",
+    "ReviewerApproved");
+var rejectedFeedback = approvedFeedback with
+{
+    FeedbackId = "feedback-rejected-001",
+    TaskId = "task-smoke-rejected-001",
+    FeedbackCode = "REJECTED",
+    ReviewStatus = "ReviewerRejected"
+};
+var pendingFeedback = approvedFeedback with
+{
+    FeedbackId = "feedback-pending-001",
+    TaskId = "task-smoke-pending-001",
+    FeedbackCode = "PENDING",
+    ReviewStatus = "ReviewerPending"
+};
+var promotionResult = new ExamplePromotion().PromoteApproved(
+    [approvedFeedback, rejectedFeedback, pendingFeedback, approvedFeedback],
+    new DateTime(2026, 06, 19, 0, 0, 0, DateTimeKind.Utc));
+AssertTrue(promotionResult.PromotedExamples.Count == 1, "ExamplePromotion should promote only approved feedback once");
+AssertTrue(promotionResult.PromotedExamples[0].PromotionMode == ExamplePromotion.PromotionModeName, "ExamplePromotion should use curation-only mode");
+AssertTrue(promotionResult.PromotedExamples[0].UserIdHash == approvedFeedback.UserId, "ExamplePromotion should preserve hashed user id");
+AssertTrue(promotionResult.SkippedEntries.Any(entry => entry.FeedbackId == rejectedFeedback.FeedbackId), "ExamplePromotion should skip rejected feedback");
+AssertTrue(promotionResult.SkippedEntries.Any(entry => entry.FeedbackId == pendingFeedback.FeedbackId), "ExamplePromotion should skip pending feedback");
+AssertTrue(promotionResult.Warnings.Any(warning => warning.Contains("Duplicate", StringComparison.OrdinalIgnoreCase)), "ExamplePromotion should warn on duplicate approved feedback");
 
 var profiler = new DataProfiler();
 var exposureProfile = profiler.ProfileCsv(Path.Combine("samples", "dummy_data", "risk_exposure_sample.csv"));
