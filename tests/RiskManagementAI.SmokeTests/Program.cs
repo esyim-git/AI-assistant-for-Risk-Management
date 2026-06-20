@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Xml.Linq;
 using RiskManagementAI.Core.Data;
 using RiskManagementAI.Core.Config;
 using RiskManagementAI.Core.Excel;
@@ -369,6 +370,30 @@ AssertTrue(uiKbResponse.Results.Count > 0 && uiKbResponse.AuditLogWritten, "UI i
 AssertTrue(uiPromotionResult.PromotedExamples.Count == 1, "UI integration smoke should run feedback promotion");
 var uiIntegrationLogText = File.ReadAllText(uiIntegrationLogPath);
 AssertTrue(!uiIntegrationLogText.Contains("ui draft smoke", StringComparison.Ordinal) && !uiIntegrationLogText.Contains("user-smoke", StringComparison.Ordinal), "UI integration audit should not store raw prompt or user id");
+
+XNamespace wpf = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+var mainWindowXaml = XDocument.Load(Path.Combine("src", "RiskManagementAI.App", "MainWindow.xaml"));
+var expectedMenuButtons = new[]
+{
+    "Dashboard",
+    "SQL Assistant",
+    "VBA Assistant",
+    "Data Analyzer",
+    "Risk Dashboard",
+    "Excel Report",
+    "Regulation / NCR",
+    "Feedback Center",
+    "History",
+    "Settings"
+};
+var menuButtonClicks = mainWindowXaml
+    .Descendants(wpf + "Button")
+    .Where(button => expectedMenuButtons.Contains((string?)button.Attribute("Content") ?? string.Empty))
+    .ToDictionary(
+        button => (string)button.Attribute("Content")!,
+        button => (string?)button.Attribute("Click") ?? string.Empty);
+AssertTrue(expectedMenuButtons.All(menuButtonClicks.ContainsKey), "UI shell should include all left menu buttons");
+AssertTrue(menuButtonClicks.Values.All(click => !string.IsNullOrWhiteSpace(click)), "Left menu buttons should be wired to click handlers");
 
 var profiler = new DataProfiler();
 var exposureProfile = profiler.ProfileCsv(Path.Combine("samples", "dummy_data", "risk_exposure_sample.csv"));

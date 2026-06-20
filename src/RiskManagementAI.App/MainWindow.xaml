@@ -24,16 +24,16 @@
         <Border Grid.Row="1" Grid.Column="0" Background="#F4F6F8" Padding="12">
             <StackPanel>
                 <TextBlock Text="Menu" FontWeight="Bold" Margin="0,0,0,12" />
-                <Button Content="Dashboard" Margin="0,4" />
-                <Button Content="SQL Assistant" Margin="0,4" />
-                <Button Content="VBA Assistant" Margin="0,4" />
-                <Button Content="Data Analyzer" Margin="0,4" />
-                <Button Content="Risk Dashboard" Margin="0,4" />
-                <Button Content="Excel Report" Margin="0,4" />
-                <Button Content="Regulation / NCR" Margin="0,4" />
-                <Button Content="Feedback Center" Margin="0,4" />
-                <Button Content="History" Margin="0,4" />
-                <Button Content="Settings" Margin="0,4" />
+                <Button Content="Dashboard" Margin="0,4" Click="OnShowDashboard" />
+                <Button Content="SQL Assistant" Margin="0,4" Click="OnNavigateSql" />
+                <Button Content="VBA Assistant" Margin="0,4" Click="OnNavigateVba" />
+                <Button Content="Data Analyzer" Margin="0,4" Click="OnNavigateData" />
+                <Button Content="Risk Dashboard" Margin="0,4" Click="OnNavigateRiskDashboard" />
+                <Button Content="Excel Report" Margin="0,4" Click="OnNavigateReport" />
+                <Button Content="Regulation / NCR" Margin="0,4" Click="OnNavigateRegulation" />
+                <Button Content="Feedback Center" Margin="0,4" Click="OnNavigateFeedback" />
+                <Button Content="History" Margin="0,4" Click="OnShowHistory" />
+                <Button Content="Settings" Margin="0,4" Click="OnShowSettings" />
             </StackPanel>
         </Border>
 
@@ -43,7 +43,7 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <TabControl>
+            <TabControl x:Name="MainTabs">
                 <TabItem Header="SQL">
                     <Grid Margin="10">
                         <Grid.RowDefinitions>
