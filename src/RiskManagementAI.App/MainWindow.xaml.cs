@@ -87,6 +87,87 @@ public partial class MainWindow : Window
         return $"Policy: ExternalApi={policy.Network.AllowExternalApi}, AutoUpdate={policy.Network.AllowAutoUpdate}, Telemetry={policy.Network.AllowTelemetry}, SQLAutoExecute={policy.Sql.AllowAutoExecute}, VBAAutoExecute={policy.Vba.AllowAutoExecute}";
     }
 
+    private void OnShowDashboard(object sender, RoutedEventArgs e)
+    {
+        MainTabs.SelectedIndex = 0;
+        ShowFindings("Dashboard", [
+            new SafetyFinding(
+                "DASHBOARD_MVP_STATUS",
+                SafetySeverity.Info,
+                "MVP-2에서는 가운데 탭의 SQL/Draft/VBA/Excel/Data/Report/Regulation/Feedback 기능을 사용합니다.")
+        ]);
+    }
+
+    private void OnNavigateSql(object sender, RoutedEventArgs e)
+    {
+        MainTabs.SelectedIndex = 0;
+        ShowFindings("SQL Assistant", [
+            new SafetyFinding("NAVIGATION_SQL", SafetySeverity.Info, "SQL 탭으로 이동했습니다. SQL 검사 버튼으로 안전 검사를 실행하세요.")
+        ]);
+    }
+
+    private void OnNavigateVba(object sender, RoutedEventArgs e)
+    {
+        MainTabs.SelectedIndex = 2;
+        ShowFindings("VBA Assistant", [
+            new SafetyFinding("NAVIGATION_VBA", SafetySeverity.Info, "VBA 탭으로 이동했습니다. VBA 검사 버튼으로 안전 검사를 실행하세요.")
+        ]);
+    }
+
+    private void OnNavigateData(object sender, RoutedEventArgs e)
+    {
+        MainTabs.SelectedIndex = 4;
+        ShowFindings("Data Analyzer", [
+            new SafetyFinding("NAVIGATION_DATA", SafetySeverity.Info, "Data 탭으로 이동했습니다. CSV 분석 버튼으로 샘플 프로파일링을 실행하세요.")
+        ]);
+    }
+
+    private void OnNavigateRiskDashboard(object sender, RoutedEventArgs e)
+    {
+        MainTabs.SelectedIndex = 5;
+        ShowFindings("Risk Dashboard", [
+            new SafetyFinding("RISK_DASHBOARD_MVP_STATUS", SafetySeverity.Info, "MVP-2에서는 Excel Report 탭에서 review-only 리스크 리포트를 생성합니다.")
+        ]);
+    }
+
+    private void OnNavigateReport(object sender, RoutedEventArgs e)
+    {
+        MainTabs.SelectedIndex = 5;
+        ShowFindings("Excel Report", [
+            new SafetyFinding("NAVIGATION_REPORT", SafetySeverity.Info, "Report 탭으로 이동했습니다. 리포트 생성 버튼으로 reports/ 아래 xlsx를 생성하세요.")
+        ]);
+    }
+
+    private void OnNavigateRegulation(object sender, RoutedEventArgs e)
+    {
+        MainTabs.SelectedIndex = 6;
+        ShowFindings("Regulation / NCR", [
+            new SafetyFinding("NAVIGATION_REGULATION", SafetySeverity.Info, "Regulation 탭으로 이동했습니다. 공개 catalog 검색을 실행하세요.")
+        ]);
+    }
+
+    private void OnNavigateFeedback(object sender, RoutedEventArgs e)
+    {
+        MainTabs.SelectedIndex = 7;
+        ShowFindings("Feedback Center", [
+            new SafetyFinding("NAVIGATION_FEEDBACK", SafetySeverity.Info, "Feedback 탭으로 이동했습니다. 승인형 예제 승격을 확인하세요.")
+        ]);
+    }
+
+    private void OnShowHistory(object sender, RoutedEventArgs e)
+    {
+        ShowFindings("History", [
+            new SafetyFinding("HISTORY_NOT_IMPLEMENTED", SafetySeverity.Low, "History 화면은 아직 MVP 범위 밖입니다. 현재 감사 로그는 logs/task_log.jsonl에 해시 전용으로 저장됩니다.")
+        ]);
+    }
+
+    private void OnShowSettings(object sender, RoutedEventArgs e)
+    {
+        ShowFindings("Settings", [
+            new SafetyFinding("SETTINGS_NOT_IMPLEMENTED", SafetySeverity.Low, "Settings 화면은 아직 MVP 범위 밖입니다. 현재 보안 정책은 config/security_policy.json과 safe fallback으로 고정됩니다.")
+        ]);
+    }
+
     private void OnCheckSql(object sender, RoutedEventArgs e)
     {
         var findings = _sqlChecker.Check(SqlRequestBox.Text).ToList();
