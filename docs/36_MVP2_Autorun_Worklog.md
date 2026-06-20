@@ -55,7 +55,7 @@
 | ID | 항목 | 상태 | 커밋 | 비고 |
 |---|---|---|---|---|
 | S2-* | 룰/테스트/문서/데모 하드닝 | TODO | - | docs/10 로드맵 |
-| S2-REL-00 | Release rehearsal prereq gate | WIP | `feature/release-rehearsal-sdk-prereq` | `build/00` SDK 부재 감지 보강 |
+| S2-REL-00 | Release rehearsal prereq gate | DONE | `77527485eb627f0e5c9db6019e8f03941faf7840` | `build/00` SDK 부재 감지 보강. ZIP 생성은 SDK 부재로 BLOCKED |
 
 ## 3. 자동 결정 로그 (⚠️ Claude 검토용)
 
@@ -162,6 +162,14 @@ _(아직 없음)_
 - develop 검증: `develop` CI `build` success (`27858904182`, 180 PASS / 0 FAIL, 0 warnings / 0 errors)
 - develop 반영 커밋: `46108dc1e3a6f7f0ea3c6fc7e5a2a8e3959498c7`
 
+#### [S2-REL-00] release rehearsal prereq gate hardening — DONE (2026-06-20T03:40:42Z)
+- 구현 요약: `build/00_check-prereqs.ps1`가 `dotnet` 실행 파일 존재만 확인하던 gap을 보강했다. `dotnet --list-sdks` 결과가 비어 있거나 .NET 8 SDK가 없으면 fail-fast한다.
+- 변경 파일: `build/00_check-prereqs.ps1`, `docs/34_Release_Rehearsal_Guide.md`, `docs/36_MVP2_Autorun_Worklog.md`
+- 검증: 현재 PC에서 `build/00_check-prereqs.ps1` 재실행 시 runtime-only dotnet을 감지하고 `.NET SDK not found... release publishing requires .NET 8 SDK`로 실패(정상 차단). feature CI `build` success (`27859065259`, 180 PASS / 0 FAIL, 0 warnings / 0 errors).
+- 보안 게이트 A: 0건 / NuGet: 없음
+- 결정/가정: 릴리스 ZIP 생성은 SDK 없는 현재 PC에서 강행하지 않는다. .NET 8 SDK가 있는 Dev/Test PC에서 `build/00~03 -Version 0.3.0`을 재개한다.
+- develop 반영 커밋: `77527485eb627f0e5c9db6019e8f03941faf7840`
+
 ## 6. 하트비트 로그 (≈1h 또는 항목 전환마다)
 
 <!-- [UTC] 진행 요약 / 현재 항목 / 다음 항목 -->
@@ -187,6 +195,7 @@ _(아직 없음)_
 - [2026-06-20T03:30:03Z] M2-04 develop squash commit 작성(`46108dc`) / 현재 항목: docs/36 DONE 갱신 / 다음 항목: develop push + CI 확인
 - [2026-06-20T03:33:17Z] M2-04 develop CI `build` success, SmokeTest 180 PASS / 현재 항목: MVP-2 코어 완료 / 다음 항목: main 승격 PR 또는 release packaging rehearsal
 - [2026-06-20T03:37:22Z] Release rehearsal 시도: `build/00`가 runtime-only dotnet을 성공 처리하는 gap 확인 후 SDK 부재 시 fail-fast로 보강 / 현재 항목: S2-REL-00 prereq gate / 다음 항목: feature CI + develop 반영
+- [2026-06-20T03:40:42Z] S2-REL-00 feature CI success, develop squash commit 작성(`7752748`) / 현재 항목: docs/36 DONE 갱신 / 다음 항목: develop push + CI 확인
 
 ## 7. Claude 재개 체크리스트
 
