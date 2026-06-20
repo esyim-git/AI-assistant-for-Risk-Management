@@ -27,6 +27,7 @@ public partial class MainWindow : Window
     private readonly DataProfiler _dataProfiler = new();
     private readonly LimitMonitor _limitMonitor = new();
     private readonly AuditLogReader _auditLogReader = new();
+    private readonly SecuritySettingsSnapshotBuilder _settingsSnapshotBuilder = new();
     private readonly TaskLogWriter _taskLogWriter = new();
     private readonly PolicyLoadResult _policyLoadResult = App.SecurityPolicyLoadResult;
     private readonly ILocalDraftService _draftService;
@@ -66,7 +67,8 @@ public partial class MainWindow : Window
             [MainTabKey.Report] = ReportTab,
             [MainTabKey.Regulation] = RegulationTab,
             [MainTabKey.Feedback] = FeedbackTab,
-            [MainTabKey.History] = HistoryTab
+            [MainTabKey.History] = HistoryTab,
+            [MainTabKey.Settings] = SettingsTab
         };
         EnvironmentText.Text = $"{BuildEnvironmentText(_policyLoadResult)} / {NoModelDraftService.ModeName}";
         SafetyStatusText.Text = _policyLoadResult.UsedFallback
@@ -190,9 +192,12 @@ public partial class MainWindow : Window
 
     private void OnShowSettings(object sender, RoutedEventArgs e)
     {
-        ShowFindings("Settings", [
-            new SafetyFinding("SETTINGS_NOT_IMPLEMENTED", SafetySeverity.Low, "Settings 화면은 아직 MVP 범위 밖입니다. 현재 보안 정책은 config/security_policy.json과 safe fallback으로 고정됩니다.")
-        ]);
+        SelectMainTab(
+            MainTabKey.Settings,
+            "Settings",
+            "NAVIGATION_SETTINGS",
+            "Settings 탭으로 이동했습니다. 정책은 view-only로 표시됩니다.");
+        RefreshSettings();
     }
 
     private void SelectMainTab(MainTabKey key, string title, string code, string message)
@@ -336,6 +341,29 @@ public partial class MainWindow : Window
             HistoryGrid.ItemsSource = Array.Empty<AuditHistoryRowDisplay>();
             var error = new SafetyFinding("AUDIT_HISTORY_ERROR", SafetySeverity.High, ex.Message);
             ShowFindings("History", [error]);
+        }
+    }
+
+    private void OnRefreshSettings(object sender, RoutedEventArgs e)
+    {
+        RefreshSettings();
+    }
+
+    private void RefreshSettings()
+    {
+        try
+        {
+            var snapshot = _settingsSnapshotBuilder.Build(_policyLoadResult, _ruleSet.RuleVersion, NoModelDraftService.ModeName);
+            SettingsGrid.ItemsSource = snapshot.Rows.Select(SettingsRowDisplay.FromRow).ToList();
+            SettingsSummaryText.Text = BuildSettingsSummary(snapshot);
+            ShowFindings("Settings", snapshot.Findings);
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException or UnauthorizedAccessException)
+        {
+            SettingsSummaryText.Text = ex.Message;
+            SettingsGrid.ItemsSource = Array.Empty<SettingsRowDisplay>();
+            var error = new SafetyFinding("SETTINGS_VIEW_ERROR", SafetySeverity.High, ex.Message);
+            ShowFindings("Settings", [error]);
         }
     }
 
@@ -529,6 +557,12 @@ public partial class MainWindow : Window
         var taskCount = result.Records.Count(record => string.Equals(record.Source, "TaskLog", StringComparison.Ordinal));
         var feedbackCount = result.Records.Count(record => string.Equals(record.Source, "FeedbackLog", StringComparison.Ordinal));
         return $"Records={result.Records.Count:N0} / TaskLog={taskCount:N0} / FeedbackLog={feedbackCount:N0} / Warnings={result.Findings.Count:N0}";
+    }
+
+    private static string BuildSettingsSummary(SecuritySettingsSnapshot snapshot)
+    {
+        var fallback = snapshot.UsedFallback ? "Fallback active" : "Config loaded";
+        return $"{fallback} / RuleVersion={snapshot.RuleVersion} / ModelMode={snapshot.ModelMode} / Rows={snapshot.Rows.Count:N0}";
     }
 
     private static IReadOnlyList<ExcelReportLimitRow> BuildUiLimitRows(DataProfileResult profile)
@@ -755,6 +789,18 @@ public partial class MainWindow : Window
         }
     }
 
+    private sealed record SettingsRowDisplay(
+        string Section,
+        string Name,
+        string Value,
+        string Meaning)
+    {
+        public static SettingsRowDisplay FromRow(SecuritySettingRow row)
+        {
+            return new SettingsRowDisplay(row.Section, row.Name, row.Value, row.Meaning);
+        }
+    }
+
     private enum MainTabKey
     {
         Sql,
@@ -766,6 +812,7 @@ public partial class MainWindow : Window
         Report,
         Regulation,
         Feedback,
-        History
+        History,
+        Settings
     }
 }

@@ -269,6 +269,35 @@
                         <Button Grid.Row="2" Content="로그 새로고침" Width="110" HorizontalAlignment="Left" Margin="0,10,0,0" Click="OnRefreshHistory" />
                     </Grid>
                 </TabItem>
+
+                <TabItem x:Name="SettingsTab" Header="Settings">
+                    <Grid Margin="10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="28" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="36" />
+                        </Grid.RowDefinitions>
+                        <TextBlock x:Name="SettingsSummaryText" Text="설정을 읽기 전입니다." Foreground="#475569" />
+                        <DataGrid x:Name="SettingsGrid"
+                                  Grid.Row="1"
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True"
+                                  CanUserAddRows="False"
+                                  CanUserDeleteRows="False"
+                                  HeadersVisibility="Column"
+                                  Margin="0,8,0,0"
+                                  HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Auto">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Section" Binding="{Binding Section}" Width="120" />
+                                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="190" />
+                                <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="110" />
+                                <DataGridTextColumn Header="Meaning" Binding="{Binding Meaning}" Width="260" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <Button Grid.Row="2" Content="설정 새로고침" Width="110" HorizontalAlignment="Left" Margin="0,10,0,0" Click="OnRefreshSettings" />
+                    </Grid>
+                </TabItem>
             </TabControl>
 
             <Grid Grid.Row="1" Margin="0,16,0,0">
