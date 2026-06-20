@@ -5,6 +5,7 @@ obj/
 artifacts/
 publish/
 release/
+*.zip
 
 # User/local IDE
 .vscode/settings.json

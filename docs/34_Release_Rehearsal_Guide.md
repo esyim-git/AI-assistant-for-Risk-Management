@@ -18,6 +18,7 @@ MVP-1이 `main`에 병합되었으므로, **운영환경 반입용 portable Rele
 ## 1. 사전 준비
 
 - Windows 11 + .NET 8 SDK + PowerShell. (Prod 아님 — Dev/Test에서만 빌드)
+  - `dotnet` 런타임만 있는 상태는 불충분하다. `build/00_check-prereqs.ps1`가 .NET 8 SDK 존재를 확인하지 못하면 중단한다.
 - 작업 브랜치: `release/v0.3.0` (`main`에서 분기; docs/32 모델).
 - **버전 정합**: `VERSION` 파일을 `0.3.0`으로 갱신(현재 `0.2.0-envsplit`). 스크립트는 `-Version 0.3.0`로 호출.
 
@@ -29,7 +30,7 @@ git switch -c release/v0.3.0 origin/main
 ## 2. 빌드 → 패키징 → 검증 (build/*)
 
 ```powershell
-./build/00_check-prereqs.ps1
+./build/00_check-prereqs.ps1                  # .NET 8 SDK 필수. runtime-only dotnet은 실패해야 정상.
 ./build/01_publish-win-x64.ps1   -Version 0.3.0      # self-contained win-x64 publish + 오프라인 자산 복사 + 금지파일 가드
 ./build/02_package-release.ps1   -Version 0.3.0      # portable ZIP + .sha256 + ReleaseNote + DependencyList
 ./build/03_verify-package.ps1    -Version 0.3.0      # SHA256 무결성 + 필수자산 존재 + 금지파일 부재

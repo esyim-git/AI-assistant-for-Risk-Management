@@ -1,7 +1,12 @@
+using System.IO.Compression;
 using RiskManagementAI.Core.Data;
 using RiskManagementAI.Core.Config;
 using RiskManagementAI.Core.Excel;
+using RiskManagementAI.Core.Feedback;
+using RiskManagementAI.Core.Generation;
+using RiskManagementAI.Core.Kb;
 using RiskManagementAI.Core.Logging;
+using RiskManagementAI.Core.Report;
 using RiskManagementAI.Core.Safety;
 
 var failed = 0;
@@ -209,6 +214,162 @@ var nullSectionPolicyResult = PolicyLoader.LoadFromFile(nullSectionPolicyPath);
 File.Delete(nullSectionPolicyPath);
 AssertTrue(nullSectionPolicyResult.UsedFallback && !nullSectionPolicyResult.Policy.Network.AllowExternalApi, "PolicyLoader should safe-fallback on null policy sections");
 
+var noModelDraftService = new NoModelDraftService(policyLoadResult.Policy);
+var noModelDraftResponse = noModelDraftService.GenerateDraft(new DraftRequest(
+    DraftRequestKind.Sql,
+    "SELECT draft request for review-only output",
+    "dummy context"));
+AssertTrue(!noModelDraftResponse.IsAvailable, "NoModelDraftService should keep generation unavailable");
+AssertTrue(noModelDraftResponse.Mode == NoModelDraftService.ModeName, "NoModelDraftService should report NoModelMode");
+AssertTrue(noModelDraftResponse.DraftText is null, "NoModelDraftService should not return generated draft text");
+AssertTrue(noModelDraftResponse.Findings.Any(f => f.Code == "DRAFT_NO_MODEL_MODE" && f.Severity == SafetySeverity.Info), "NoModelDraftService should return safe no-model guidance");
+AssertTrue(noModelDraftResponse.Findings.Any(f => f.Code == "DRAFT_EXTERNAL_COMM_BLOCKED"), "NoModelDraftService should confirm external communications are blocked");
+AssertTrue(noModelDraftResponse.Findings.Any(f => f.Code == "DRAFT_AUTO_EXECUTE_BLOCKED"), "NoModelDraftService should confirm auto execution is blocked");
+AssertTrue(noModelDraftService.GenerateDraft(null).Findings.Any(f => f.Code == "DRAFT_PROMPT_EMPTY"), "NoModelDraftService should not throw for an empty request");
+
+var unsafeDraftPolicy = policyLoadResult.Policy with
+{
+    Network = policyLoadResult.Policy.Network with
+    {
+        AllowExternalApi = true
+    }
+};
+var unsafeDraftResponse = new NoModelDraftService(unsafeDraftPolicy).GenerateDraft(new DraftRequest(DraftRequestKind.General, "policy check"));
+AssertTrue(unsafeDraftResponse.Findings.Any(f => f.Code == "DRAFT_POLICY_UNSAFE_NETWORK" && f.Severity == SafetySeverity.High), "NoModelDraftService should flag unsafe network policy");
+
+var draftPipelineLogPath = Path.Combine("logs", "smoke_draft_pipeline_log.jsonl");
+if (File.Exists(draftPipelineLogPath))
+{
+    File.Delete(draftPipelineLogPath);
+}
+
+var safeSqlPipeline = new DraftPipeline(
+    new StubDraftService(new DraftResponse(
+        true,
+        "StubMode",
+        "draft generated",
+        "SELECT TRADE_ID FROM TRADE_SAMPLE WHERE BASE_DT = :BASE_DT",
+        Array.Empty<SafetyFinding>())),
+    loadedRuleSet,
+    new TaskLogWriter("logs", "smoke_draft_pipeline_log.jsonl"));
+var safeSqlPipelineResult = safeSqlPipeline.Generate(new DraftPipelineRequest(
+    DraftRequestKind.Sql,
+    "make select draft",
+    "user-smoke"));
+AssertTrue(safeSqlPipelineResult.IsAcceptedForReview, "DraftPipeline should accept safe SQL draft for review");
+AssertTrue(safeSqlPipelineResult.SafetyResult == "PASS", "DraftPipeline safe SQL result should pass");
+AssertTrue(safeSqlPipelineResult.AuditLogWritten, "DraftPipeline should audit safe SQL result");
+AssertTrue(safeSqlPipelineResult.DraftText is not null && safeSqlPipelineResult.DraftText.Contains("SELECT", StringComparison.OrdinalIgnoreCase), "DraftPipeline should return accepted safe SQL draft");
+
+var blockedSqlPipeline = new DraftPipeline(
+    new StubDraftService(new DraftResponse(
+        true,
+        "StubMode",
+        "draft generated",
+        "DELETE FROM TRADE_SAMPLE",
+        Array.Empty<SafetyFinding>())),
+    loadedRuleSet,
+    new TaskLogWriter("logs", "smoke_draft_pipeline_log.jsonl"));
+var blockedSqlPipelineResult = blockedSqlPipeline.Generate(new DraftPipelineRequest(
+    DraftRequestKind.Sql,
+    "make delete draft",
+    "user-smoke"));
+AssertTrue(!blockedSqlPipelineResult.IsAcceptedForReview, "DraftPipeline should reject blocker SQL draft");
+AssertTrue(blockedSqlPipelineResult.SafetyResult == "BLOCKED", "DraftPipeline blocker SQL result should be blocked");
+AssertTrue(blockedSqlPipelineResult.DraftText is null, "DraftPipeline should suppress blocked draft text");
+AssertTrue(blockedSqlPipelineResult.Findings.Any(f => f.Code == "SQL_DML_DELETE"), "DraftPipeline should include SQL checker blocker finding");
+
+var noModelPipeline = new DraftPipeline(noModelDraftService, loadedRuleSet, new TaskLogWriter("logs", "smoke_draft_pipeline_log.jsonl"));
+var noModelPipelineResult = noModelPipeline.Generate(new DraftPipelineRequest(
+    DraftRequestKind.Vba,
+    "make vba draft",
+    "user-smoke"));
+AssertTrue(!noModelPipelineResult.IsAcceptedForReview, "DraftPipeline should keep NoModel result unavailable");
+AssertTrue(noModelPipelineResult.SafetyResult == "NO_MODEL", "DraftPipeline NoModel result should report NO_MODEL");
+AssertTrue(noModelPipelineResult.AuditLogWritten, "DraftPipeline should audit NoModel result");
+
+var draftPipelineLogText = File.ReadAllText(draftPipelineLogPath);
+AssertTrue(!draftPipelineLogText.Contains("make select draft", StringComparison.Ordinal), "DraftPipeline audit should not store raw prompt text");
+AssertTrue(!draftPipelineLogText.Contains("SELECT TRADE_ID", StringComparison.Ordinal), "DraftPipeline audit should not store raw draft text");
+AssertTrue(!draftPipelineLogText.Contains("user-smoke", StringComparison.Ordinal), "DraftPipeline audit should not store raw user id");
+
+var kbSearchLogPath = Path.Combine("logs", "smoke_kb_search_log.jsonl");
+if (File.Exists(kbSearchLogPath))
+{
+    File.Delete(kbSearchLogPath);
+}
+
+var regulationCatalog = RegulationCatalog.LoadDefault();
+AssertTrue(regulationCatalog.Entries.Count >= 5, "RegulationCatalog should load public catalog entries");
+var kbSearch = new KbSearch(
+    regulationCatalog,
+    new TaskLogWriter("logs", "smoke_kb_search_log.jsonl"),
+    loadedRuleSet.RuleVersion);
+var ncrSearchResponse = kbSearch.Search("NCR", "user-smoke");
+AssertTrue(ncrSearchResponse.Results.Any(result => result.SourceId == "NCR_GUIDE"), "KbSearch should find NCR catalog entry");
+AssertTrue(ncrSearchResponse.DraftAnswer.Contains("검토용 초안", StringComparison.Ordinal), "KbSearch answer should mark review draft");
+AssertTrue(ncrSearchResponse.DraftAnswer.Contains("출처", StringComparison.Ordinal), "KbSearch answer should always include sources");
+AssertTrue(ncrSearchResponse.DraftAnswer.Contains("원문은 포함하지 않습니다", StringComparison.Ordinal), "KbSearch answer should state internal originals are excluded");
+AssertTrue(ncrSearchResponse.AuditLogWritten, "KbSearch should write audit log when configured");
+
+var publicRegSearchResponse = kbSearch.Search("금융투자업규정", "user-smoke");
+AssertTrue(publicRegSearchResponse.Results.Any(result => result.SourceId == "FIA_REG"), "KbSearch should find public regulation catalog entry");
+var emptyKbSearchResponse = kbSearch.Search("없는검색어", "user-smoke");
+AssertTrue(emptyKbSearchResponse.Results.Count == 0, "KbSearch should return zero results for unmatched query");
+AssertTrue(emptyKbSearchResponse.DraftAnswer.Contains("검토용 초안", StringComparison.Ordinal) && emptyKbSearchResponse.DraftAnswer.Contains("출처", StringComparison.Ordinal), "KbSearch no-result answer should still include review draft and source");
+var kbSearchLogText = File.ReadAllText(kbSearchLogPath);
+AssertTrue(!kbSearchLogText.Contains("NCR", StringComparison.Ordinal), "KbSearch audit should not store raw query text");
+AssertTrue(!kbSearchLogText.Contains("user-smoke", StringComparison.Ordinal), "KbSearch audit should not store raw user id");
+
+var approvedFeedback = new FeedbackLogEntry(
+    "feedback-approved-001",
+    "task-smoke-approved-001",
+    DateTime.UtcNow,
+    LogHash.Sha256Hex("reviewer-one"),
+    "APPROVED",
+    "ReviewerApproved");
+var rejectedFeedback = approvedFeedback with
+{
+    FeedbackId = "feedback-rejected-001",
+    TaskId = "task-smoke-rejected-001",
+    FeedbackCode = "REJECTED",
+    ReviewStatus = "ReviewerRejected"
+};
+var pendingFeedback = approvedFeedback with
+{
+    FeedbackId = "feedback-pending-001",
+    TaskId = "task-smoke-pending-001",
+    FeedbackCode = "PENDING",
+    ReviewStatus = "ReviewerPending"
+};
+var promotionResult = new ExamplePromotion().PromoteApproved(
+    [approvedFeedback, rejectedFeedback, pendingFeedback, approvedFeedback],
+    new DateTime(2026, 06, 19, 0, 0, 0, DateTimeKind.Utc));
+AssertTrue(promotionResult.PromotedExamples.Count == 1, "ExamplePromotion should promote only approved feedback once");
+AssertTrue(promotionResult.PromotedExamples[0].PromotionMode == ExamplePromotion.PromotionModeName, "ExamplePromotion should use curation-only mode");
+AssertTrue(promotionResult.PromotedExamples[0].UserIdHash == approvedFeedback.UserId, "ExamplePromotion should preserve hashed user id");
+AssertTrue(promotionResult.SkippedEntries.Any(entry => entry.FeedbackId == rejectedFeedback.FeedbackId), "ExamplePromotion should skip rejected feedback");
+AssertTrue(promotionResult.SkippedEntries.Any(entry => entry.FeedbackId == pendingFeedback.FeedbackId), "ExamplePromotion should skip pending feedback");
+AssertTrue(promotionResult.Warnings.Any(warning => warning.Contains("Duplicate", StringComparison.OrdinalIgnoreCase)), "ExamplePromotion should warn on duplicate approved feedback");
+
+var uiIntegrationLogPath = Path.Combine("logs", "smoke_ui_integration_log.jsonl");
+if (File.Exists(uiIntegrationLogPath))
+{
+    File.Delete(uiIntegrationLogPath);
+}
+
+var uiIntegrationLogWriter = new TaskLogWriter("logs", "smoke_ui_integration_log.jsonl");
+var uiDraftPipeline = new DraftPipeline(new NoModelDraftService(policyLoadResult.Policy), loadedRuleSet, uiIntegrationLogWriter);
+var uiDraftResult = uiDraftPipeline.Generate(new DraftPipelineRequest(DraftRequestKind.Sql, "ui draft smoke", "user-smoke"));
+var uiKbSearch = new KbSearch(regulationCatalog, uiIntegrationLogWriter, loadedRuleSet.RuleVersion);
+var uiKbResponse = uiKbSearch.Search("NCR", "user-smoke");
+var uiPromotionResult = new ExamplePromotion().PromoteApproved([approvedFeedback]);
+AssertTrue(uiDraftResult.SafetyResult == "NO_MODEL" && uiDraftResult.AuditLogWritten, "UI integration smoke should run NoModel draft pipeline with audit");
+AssertTrue(uiKbResponse.Results.Count > 0 && uiKbResponse.AuditLogWritten, "UI integration smoke should run catalog search with audit");
+AssertTrue(uiPromotionResult.PromotedExamples.Count == 1, "UI integration smoke should run feedback promotion");
+var uiIntegrationLogText = File.ReadAllText(uiIntegrationLogPath);
+AssertTrue(!uiIntegrationLogText.Contains("ui draft smoke", StringComparison.Ordinal) && !uiIntegrationLogText.Contains("user-smoke", StringComparison.Ordinal), "UI integration audit should not store raw prompt or user id");
+
 var profiler = new DataProfiler();
 var exposureProfile = profiler.ProfileCsv(Path.Combine("samples", "dummy_data", "risk_exposure_sample.csv"));
 AssertTrue(exposureProfile.SourceName == "risk_exposure_sample.csv", "DataProfiler should preserve source file name");
@@ -220,6 +381,70 @@ AssertTrue(exposureProfile.BaseDateDistribution["20260617"] == 5 && exposureProf
 AssertTrue(exposureProfile.NumericColumns["EXPOSURE_AMT"].Sum == 3830000000m, "Risk exposure sample should compute numeric sum");
 AssertTrue(exposureProfile.NumericColumns["EXPOSURE_AMT"].Min == -420000000m, "Risk exposure sample should compute numeric min");
 AssertTrue(exposureProfile.NumericColumns["EXPOSURE_AMT"].Max == 1250000000m, "Risk exposure sample should compute numeric max");
+
+var excelReportLogPath = Path.Combine("logs", "smoke_excel_report_log.jsonl");
+var excelReportPath = Path.Combine("reports", "smoke_m2_04_report.xlsx");
+if (File.Exists(excelReportLogPath))
+{
+    File.Delete(excelReportLogPath);
+}
+
+if (File.Exists(excelReportPath))
+{
+    File.Delete(excelReportPath);
+}
+
+var reportSql = "SELECT TRADE_ID FROM TRADE_SAMPLE WHERE BASE_DT = :BASE_DT";
+var reportBuilder = new ExcelReportBuilder(
+    loadedRuleSet,
+    new TaskLogWriter("logs", "smoke_excel_report_log.jsonl"));
+var reportResult = reportBuilder.BuildReport(new ExcelReportRequest(
+    "smoke_m2_04_report",
+    exposureProfile,
+    [
+        new ExcelReportLimitRow("PF_EQ_001", "KOSPI200", 1250000000m, 1500000000m, "dummy limit row"),
+        new ExcelReportLimitRow("PF_CR_001", "KR_CREDIT_A", 310000000m, 300000000m, "dummy breach row")
+    ],
+    sqlChecker.Check(reportSql).ToList(),
+    reportSql,
+    "NoModelMode report commentary",
+    "user-smoke"));
+AssertTrue(File.Exists(reportResult.ReportPath), "ExcelReportBuilder should create xlsx report");
+AssertTrue(
+    Path.GetFullPath(reportResult.ReportPath).StartsWith(Path.GetFullPath("reports") + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase),
+    "ExcelReportBuilder should write only under reports");
+AssertTrue(reportResult.SheetNames.SequenceEqual(ExcelReportBuilder.ExpectedSheetNames), "ExcelReportBuilder should create the required MVP-2 sheets");
+AssertTrue(reportResult.CheckedFormulas.Count >= 3, "ExcelReportBuilder should report checked formulas");
+AssertTrue(reportResult.CheckedFormulas.SelectMany(formula => excelChecker.CheckFormula(formula)).All(f => f.Code != "EXCEL_365_FUNCTION"), "ExcelReportBuilder formulas should pass Excel 2021 checker");
+AssertTrue(reportResult.AuditLogWritten, "ExcelReportBuilder should write audit log");
+
+using (var reportArchive = ZipFile.OpenRead(reportResult.ReportPath))
+{
+    AssertTrue(reportArchive.GetEntry("[Content_Types].xml") is not null, "Excel report xlsx should include content types");
+    AssertTrue(reportArchive.GetEntry("_rels/.rels") is not null, "Excel report xlsx should include root relationships");
+    AssertTrue(reportArchive.GetEntry("xl/workbook.xml") is not null, "Excel report xlsx should include workbook part");
+    AssertTrue(reportArchive.GetEntry("xl/_rels/workbook.xml.rels") is not null, "Excel report xlsx should include workbook relationships");
+    AssertTrue(reportArchive.GetEntry("xl/styles.xml") is not null, "Excel report xlsx should include styles part");
+    AssertTrue(reportArchive.GetEntry("xl/worksheets/sheet10.xml") is not null, "Excel report xlsx should include tenth worksheet");
+}
+
+var excelReportLogText = File.ReadAllText(excelReportLogPath);
+AssertTrue(!excelReportLogText.Contains(reportSql, StringComparison.Ordinal), "ExcelReportBuilder audit should not store raw SQL text");
+AssertTrue(!excelReportLogText.Contains("user-smoke", StringComparison.Ordinal), "ExcelReportBuilder audit should not store raw user id");
+AssertTrue(Throws<ArgumentException>(() => new ExcelReportBuilder(loadedRuleSet, reportsDirectory: "reports/../logs")), "ExcelReportBuilder should reject report paths outside reports");
+AssertTrue(Throws<ArgumentException>(() => reportBuilder.BuildReport(new ExcelReportRequest(
+    "../bad",
+    exposureProfile,
+    [],
+    [],
+    reportSql,
+    "commentary",
+    "user-smoke"))), "ExcelReportBuilder should reject report file path traversal");
+AssertTrue(Directory.Exists(Path.Combine("templates", "report")), "ExcelReportBuilder should use templates/report assets");
+AssertTrue(
+    !File.ReadAllText(Path.Combine("src", "RiskManagementAI.Core", "RiskManagementAI.Core.csproj")).Contains("PackageReference", StringComparison.OrdinalIgnoreCase)
+    && !File.ReadAllText(Path.Combine("src", "RiskManagementAI.App", "RiskManagementAI.App.csproj")).Contains("PackageReference", StringComparison.OrdinalIgnoreCase),
+    "ExcelReportBuilder should not add NuGet PackageReference");
 
 var profileSmokeDirectory = Path.Combine("artifacts", "smoke-profile-b05");
 Directory.CreateDirectory(profileSmokeDirectory);
@@ -297,3 +522,18 @@ if (failed > 0)
 }
 
 Console.WriteLine("All SmokeTests passed.");
+
+sealed class StubDraftService : ILocalDraftService
+{
+    private readonly DraftResponse response;
+
+    public StubDraftService(DraftResponse response)
+    {
+        this.response = response;
+    }
+
+    public DraftResponse GenerateDraft(DraftRequest? request)
+    {
+        return response;
+    }
+}
