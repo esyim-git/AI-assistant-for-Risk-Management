@@ -67,6 +67,7 @@ hotfix/<name>             : 긴급 수정
 
 - 기본 **Squash merge**(잘게 나뉜 커밋을 한 줄로) — MVP-1 PR #1과 동일.
 - private Free soft guard 상태에서는 repository 설정으로 merge commit/rebase merge를 비활성화하고 squash merge만 허용한다. `--force`/`reset --hard`는 금지(docs/29).
+- private Free soft guard는 main push head commit message의 GitHub PR 표식(`(#<PR번호>)` 또는 `Merge pull request #...`)을 확인한다. 따라서 `gh pr merge --squash` 사용 시 기본 subject를 유지하거나, custom subject를 쓰더라도 반드시 `(#<PR번호>)`를 포함한다.
 - 병합 후 feature 브랜치 삭제 권장.
 
 ## 5. 적용 절차 (한 번)
