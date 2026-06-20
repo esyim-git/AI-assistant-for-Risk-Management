@@ -26,6 +26,7 @@ public partial class MainWindow : Window
     private readonly ExcelReportBuilder _excelReportBuilder;
     private readonly DataProfiler _dataProfiler = new();
     private readonly LimitMonitor _limitMonitor = new();
+    private readonly AuditLogReader _auditLogReader = new();
     private readonly TaskLogWriter _taskLogWriter = new();
     private readonly PolicyLoadResult _policyLoadResult = App.SecurityPolicyLoadResult;
     private readonly ILocalDraftService _draftService;
@@ -64,7 +65,8 @@ public partial class MainWindow : Window
             [MainTabKey.RiskDashboard] = RiskDashboardTab,
             [MainTabKey.Report] = ReportTab,
             [MainTabKey.Regulation] = RegulationTab,
-            [MainTabKey.Feedback] = FeedbackTab
+            [MainTabKey.Feedback] = FeedbackTab,
+            [MainTabKey.History] = HistoryTab
         };
         EnvironmentText.Text = $"{BuildEnvironmentText(_policyLoadResult)} / {NoModelDraftService.ModeName}";
         SafetyStatusText.Text = _policyLoadResult.UsedFallback
@@ -178,9 +180,12 @@ public partial class MainWindow : Window
 
     private void OnShowHistory(object sender, RoutedEventArgs e)
     {
-        ShowFindings("History", [
-            new SafetyFinding("HISTORY_NOT_IMPLEMENTED", SafetySeverity.Low, "History 화면은 아직 MVP 범위 밖입니다. 현재 감사 로그는 logs/task_log.jsonl에 해시 전용으로 저장됩니다.")
-        ]);
+        SelectMainTab(
+            MainTabKey.History,
+            "History",
+            "NAVIGATION_HISTORY",
+            "History 탭으로 이동했습니다. 감사 로그는 read-only로 조회합니다.");
+        RefreshHistory();
     }
 
     private void OnShowSettings(object sender, RoutedEventArgs e)
@@ -303,6 +308,35 @@ public partial class MainWindow : Window
             SafetySeverity.Info,
             $"Promoted={result.PromotedExamples.Count:N0}, Skipped={result.SkippedEntries.Count:N0}, Mode={ExamplePromotion.PromotionModeName}"));
         ShowFindings("Feedback Promotion", findings);
+    }
+
+    private void OnRefreshHistory(object sender, RoutedEventArgs e)
+    {
+        RefreshHistory();
+    }
+
+    private void RefreshHistory()
+    {
+        try
+        {
+            var result = _auditLogReader.Read("logs");
+            HistoryGrid.ItemsSource = result.Records.Select(AuditHistoryRowDisplay.FromRecord).ToList();
+            HistorySummaryText.Text = BuildHistorySummary(result);
+
+            var findings = result.Findings.ToList();
+            findings.Add(new SafetyFinding(
+                "AUDIT_HISTORY_LOADED",
+                SafetySeverity.Info,
+                $"History 조회 완료: records={result.Records.Count:N0}, warnings={result.Findings.Count:N0}."));
+            ShowFindings("History", findings);
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException or UnauthorizedAccessException)
+        {
+            HistorySummaryText.Text = ex.Message;
+            HistoryGrid.ItemsSource = Array.Empty<AuditHistoryRowDisplay>();
+            var error = new SafetyFinding("AUDIT_HISTORY_ERROR", SafetySeverity.High, ex.Message);
+            ShowFindings("History", [error]);
+        }
     }
 
     private void OnProfileData(object sender, RoutedEventArgs e)
@@ -488,6 +522,13 @@ public partial class MainWindow : Window
     private static string BuildRiskDashboardSummary(LimitMonitorResult result)
     {
         return $"BASE_DT={result.BaseDate} / Rows={result.Rows.Count:N0} / NORMAL={result.NormalCount:N0} / WARNING={result.WarningCount:N0} / BREACH={result.BreachCount:N0}";
+    }
+
+    private static string BuildHistorySummary(AuditLogReadResult result)
+    {
+        var taskCount = result.Records.Count(record => string.Equals(record.Source, "TaskLog", StringComparison.Ordinal));
+        var feedbackCount = result.Records.Count(record => string.Equals(record.Source, "FeedbackLog", StringComparison.Ordinal));
+        return $"Records={result.Records.Count:N0} / TaskLog={taskCount:N0} / FeedbackLog={feedbackCount:N0} / Warnings={result.Findings.Count:N0}";
     }
 
     private static IReadOnlyList<ExcelReportLimitRow> BuildUiLimitRows(DataProfileResult profile)
@@ -684,6 +725,36 @@ public partial class MainWindow : Window
         }
     }
 
+    private sealed record AuditHistoryRowDisplay(
+        string Source,
+        string CreatedAtText,
+        string EntryId,
+        string TaskId,
+        string ActivityType,
+        string Detail,
+        string Result,
+        string RuleVersion,
+        string UserHashPrefix,
+        string RequestHashPrefix,
+        string OutputHashPrefix)
+    {
+        public static AuditHistoryRowDisplay FromRecord(AuditLogRecord record)
+        {
+            return new AuditHistoryRowDisplay(
+                record.Source,
+                record.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"),
+                record.EntryId,
+                record.TaskId,
+                record.ActivityType,
+                record.Detail,
+                record.Result,
+                record.RuleVersion,
+                record.UserHashPrefix,
+                record.RequestHashPrefix,
+                record.OutputHashPrefix);
+        }
+    }
+
     private enum MainTabKey
     {
         Sql,
@@ -694,6 +765,7 @@ public partial class MainWindow : Window
         RiskDashboard,
         Report,
         Regulation,
-        Feedback
+        Feedback,
+        History
     }
 }

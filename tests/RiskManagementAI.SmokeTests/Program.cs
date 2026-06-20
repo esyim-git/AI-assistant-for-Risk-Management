@@ -427,7 +427,8 @@ var expectedTabNames = new Dictionary<string, string>
     ["Risk"] = "RiskDashboardTab",
     ["Report"] = "ReportTab",
     ["Regulation"] = "RegulationTab",
-    ["Feedback"] = "FeedbackTab"
+    ["Feedback"] = "FeedbackTab",
+    ["History"] = "HistoryTab"
 };
 var tabNamesByHeader = mainWindowXaml
     .Descendants(wpf + "TabItem")
@@ -448,6 +449,11 @@ AssertTrue(
         string.Equals((string?)button.Attribute("Content"), "한도 점검", StringComparison.Ordinal)
         && string.Equals((string?)button.Attribute("Click"), "OnRunLimitMonitor", StringComparison.Ordinal)),
     "Risk Dashboard should expose a limit monitoring action");
+AssertTrue(
+    mainWindowXaml.Descendants(wpf + "Button").Any(button =>
+        string.Equals((string?)button.Attribute("Content"), "로그 새로고침", StringComparison.Ordinal)
+        && string.Equals((string?)button.Attribute("Click"), "OnRefreshHistory", StringComparison.Ordinal)),
+    "History should expose a read-only refresh action");
 
 var expectedTabKeyMappings = new Dictionary<string, string>
 {
@@ -459,7 +465,8 @@ var expectedTabKeyMappings = new Dictionary<string, string>
     ["RiskDashboard"] = "RiskDashboardTab",
     ["Report"] = "ReportTab",
     ["Regulation"] = "RegulationTab",
-    ["Feedback"] = "FeedbackTab"
+    ["Feedback"] = "FeedbackTab",
+    ["History"] = "HistoryTab"
 };
 
 foreach (var (tabKey, tabName) in expectedTabKeyMappings)
@@ -475,7 +482,8 @@ var expectedNavigationTargets = new Dictionary<string, string>
     ["OnNavigateRiskDashboard"] = "MainTabKey.RiskDashboard",
     ["OnNavigateReport"] = "MainTabKey.Report",
     ["OnNavigateRegulation"] = "MainTabKey.Regulation",
-    ["OnNavigateFeedback"] = "MainTabKey.Feedback"
+    ["OnNavigateFeedback"] = "MainTabKey.Feedback",
+    ["OnShowHistory"] = "MainTabKey.History"
 };
 
 foreach (var (handler, tabKey) in expectedNavigationTargets)
@@ -650,6 +658,31 @@ AssertTrue(File.Exists(feedbackLogWriter.LogFilePath), "FeedbackLogWriter should
 AssertTrue(feedbackLogText.Contains(feedbackEntry.FeedbackId, StringComparison.Ordinal), "FeedbackLogWriter should store feedback id");
 AssertTrue(!feedbackLogText.Contains(rawRequest, StringComparison.Ordinal), "FeedbackLogWriter should not store raw request text");
 AssertTrue(Throws<ArgumentException>(() => feedbackLogWriter.Append(feedbackEntry with { UserId = "plain-user" })), "FeedbackLogWriter should reject non-hash UserId");
+
+var historyLogDirectory = Path.Combine("logs", "smoke_history_reader");
+if (Directory.Exists(historyLogDirectory))
+{
+    Directory.Delete(historyLogDirectory, recursive: true);
+}
+
+var historyTaskWriter = new TaskLogWriter(historyLogDirectory, "task_log.jsonl");
+historyTaskWriter.Append(taskEntry);
+File.AppendAllText(historyTaskWriter.LogFilePath, "{ broken json" + Environment.NewLine);
+var historyFeedbackWriter = new FeedbackLogWriter(historyLogDirectory, "feedback_log.jsonl");
+historyFeedbackWriter.Append(feedbackEntry);
+var auditLogReader = new AuditLogReader();
+var auditReadResult = auditLogReader.Read(historyLogDirectory, maxRows: 10);
+AssertTrue(auditReadResult.Records.Count == 2, "AuditLogReader should read TaskLog and FeedbackLog records");
+AssertTrue(auditReadResult.Findings.Any(f => f.Code == "AUDIT_LOG_LINE_INVALID"), "AuditLogReader should warn on invalid JSONL lines");
+var taskAuditRecord = auditReadResult.Records.Single(record => record.Source == "TaskLog");
+AssertTrue(taskAuditRecord.EntryId == taskEntry.TaskId && taskAuditRecord.ActivityType == taskEntry.TaskType, "AuditLogReader should project TaskLog schema");
+AssertTrue(taskAuditRecord.RequestHashPrefix.Length == 12 && taskAuditRecord.RequestHashPrefix != taskEntry.RequestHash, "AuditLogReader should expose only request hash prefix");
+var feedbackAuditRecord = auditReadResult.Records.Single(record => record.Source == "FeedbackLog");
+AssertTrue(feedbackAuditRecord.EntryId == feedbackEntry.FeedbackId && feedbackAuditRecord.Result == feedbackEntry.ReviewStatus, "AuditLogReader should project FeedbackLog schema");
+AssertTrue(auditReadResult.Records.All(record => record.UserHashPrefix.Length == 12 && record.UserHashPrefix != taskEntry.UserId), "AuditLogReader should expose only user hash prefixes");
+var missingAuditResult = auditLogReader.Read(Path.Combine("logs", "smoke_history_missing"), maxRows: 10);
+AssertTrue(missingAuditResult.Records.Count == 0 && missingAuditResult.Findings.Any(f => f.Code == "AUDIT_LOG_FILE_MISSING"), "AuditLogReader should gracefully report missing log files");
+AssertTrue(Throws<ArgumentException>(() => auditLogReader.Read("logs/../reports")), "AuditLogReader should reject paths outside logs");
 
 if (failed > 0)
 {
