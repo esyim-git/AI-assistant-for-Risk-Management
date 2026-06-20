@@ -29,6 +29,7 @@
                 <Button Content="VBA Assistant" Margin="0,4" />
                 <Button Content="Data Analyzer" Margin="0,4" />
                 <Button Content="Risk Dashboard" Margin="0,4" />
+                <Button Content="Excel Report" Margin="0,4" />
                 <Button Content="Regulation / NCR" Margin="0,4" />
                 <Button Content="Feedback Center" Margin="0,4" />
                 <Button Content="History" Margin="0,4" />
@@ -108,6 +109,20 @@
                         <TextBox x:Name="DataPreviewBox" Grid.Row="1" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" Margin="0,8,0,0"
                                  Text="CSV 프로파일 결과가 여기에 표시됩니다." IsReadOnly="True" />
                         <Button Grid.Row="2" Content="CSV 분석" Width="110" HorizontalAlignment="Left" Margin="0,10,0,0" Click="OnProfileData" />
+                    </Grid>
+                </TabItem>
+
+                <TabItem Header="Report">
+                    <Grid Margin="10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="34" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="36" />
+                        </Grid.RowDefinitions>
+                        <TextBox x:Name="ReportNameBox" Text="risk_report_smoke" />
+                        <TextBox x:Name="ReportResultBox" Grid.Row="1" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" Margin="0,8,0,0"
+                                 Text="Excel 리포트 생성 결과가 여기에 표시됩니다." IsReadOnly="True" />
+                        <Button Grid.Row="2" Content="리포트 생성" Width="110" HorizontalAlignment="Left" Margin="0,10,0,0" Click="OnGenerateExcelReport" />
                     </Grid>
                 </TabItem>
 

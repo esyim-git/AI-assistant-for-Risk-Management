@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using RiskManagementAI.Core.Data;
 using RiskManagementAI.Core.Config;
 using RiskManagementAI.Core.Excel;
@@ -5,6 +6,7 @@ using RiskManagementAI.Core.Feedback;
 using RiskManagementAI.Core.Generation;
 using RiskManagementAI.Core.Kb;
 using RiskManagementAI.Core.Logging;
+using RiskManagementAI.Core.Report;
 using RiskManagementAI.Core.Safety;
 
 var failed = 0;
@@ -379,6 +381,70 @@ AssertTrue(exposureProfile.BaseDateDistribution["20260617"] == 5 && exposureProf
 AssertTrue(exposureProfile.NumericColumns["EXPOSURE_AMT"].Sum == 3830000000m, "Risk exposure sample should compute numeric sum");
 AssertTrue(exposureProfile.NumericColumns["EXPOSURE_AMT"].Min == -420000000m, "Risk exposure sample should compute numeric min");
 AssertTrue(exposureProfile.NumericColumns["EXPOSURE_AMT"].Max == 1250000000m, "Risk exposure sample should compute numeric max");
+
+var excelReportLogPath = Path.Combine("logs", "smoke_excel_report_log.jsonl");
+var excelReportPath = Path.Combine("reports", "smoke_m2_04_report.xlsx");
+if (File.Exists(excelReportLogPath))
+{
+    File.Delete(excelReportLogPath);
+}
+
+if (File.Exists(excelReportPath))
+{
+    File.Delete(excelReportPath);
+}
+
+var reportSql = "SELECT TRADE_ID FROM TRADE_SAMPLE WHERE BASE_DT = :BASE_DT";
+var reportBuilder = new ExcelReportBuilder(
+    loadedRuleSet,
+    new TaskLogWriter("logs", "smoke_excel_report_log.jsonl"));
+var reportResult = reportBuilder.BuildReport(new ExcelReportRequest(
+    "smoke_m2_04_report",
+    exposureProfile,
+    [
+        new ExcelReportLimitRow("PF_EQ_001", "KOSPI200", 1250000000m, 1500000000m, "dummy limit row"),
+        new ExcelReportLimitRow("PF_CR_001", "KR_CREDIT_A", 310000000m, 300000000m, "dummy breach row")
+    ],
+    sqlChecker.Check(reportSql).ToList(),
+    reportSql,
+    "NoModelMode report commentary",
+    "user-smoke"));
+AssertTrue(File.Exists(reportResult.ReportPath), "ExcelReportBuilder should create xlsx report");
+AssertTrue(
+    Path.GetFullPath(reportResult.ReportPath).StartsWith(Path.GetFullPath("reports") + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase),
+    "ExcelReportBuilder should write only under reports");
+AssertTrue(reportResult.SheetNames.SequenceEqual(ExcelReportBuilder.ExpectedSheetNames), "ExcelReportBuilder should create the required MVP-2 sheets");
+AssertTrue(reportResult.CheckedFormulas.Count >= 3, "ExcelReportBuilder should report checked formulas");
+AssertTrue(reportResult.CheckedFormulas.SelectMany(formula => excelChecker.CheckFormula(formula)).All(f => f.Code != "EXCEL_365_FUNCTION"), "ExcelReportBuilder formulas should pass Excel 2021 checker");
+AssertTrue(reportResult.AuditLogWritten, "ExcelReportBuilder should write audit log");
+
+using (var reportArchive = ZipFile.OpenRead(reportResult.ReportPath))
+{
+    AssertTrue(reportArchive.GetEntry("[Content_Types].xml") is not null, "Excel report xlsx should include content types");
+    AssertTrue(reportArchive.GetEntry("_rels/.rels") is not null, "Excel report xlsx should include root relationships");
+    AssertTrue(reportArchive.GetEntry("xl/workbook.xml") is not null, "Excel report xlsx should include workbook part");
+    AssertTrue(reportArchive.GetEntry("xl/_rels/workbook.xml.rels") is not null, "Excel report xlsx should include workbook relationships");
+    AssertTrue(reportArchive.GetEntry("xl/styles.xml") is not null, "Excel report xlsx should include styles part");
+    AssertTrue(reportArchive.GetEntry("xl/worksheets/sheet10.xml") is not null, "Excel report xlsx should include tenth worksheet");
+}
+
+var excelReportLogText = File.ReadAllText(excelReportLogPath);
+AssertTrue(!excelReportLogText.Contains(reportSql, StringComparison.Ordinal), "ExcelReportBuilder audit should not store raw SQL text");
+AssertTrue(!excelReportLogText.Contains("user-smoke", StringComparison.Ordinal), "ExcelReportBuilder audit should not store raw user id");
+AssertTrue(Throws<ArgumentException>(() => new ExcelReportBuilder(loadedRuleSet, reportsDirectory: "reports/../logs")), "ExcelReportBuilder should reject report paths outside reports");
+AssertTrue(Throws<ArgumentException>(() => reportBuilder.BuildReport(new ExcelReportRequest(
+    "../bad",
+    exposureProfile,
+    [],
+    [],
+    reportSql,
+    "commentary",
+    "user-smoke"))), "ExcelReportBuilder should reject report file path traversal");
+AssertTrue(Directory.Exists(Path.Combine("templates", "report")), "ExcelReportBuilder should use templates/report assets");
+AssertTrue(
+    !File.ReadAllText(Path.Combine("src", "RiskManagementAI.Core", "RiskManagementAI.Core.csproj")).Contains("PackageReference", StringComparison.OrdinalIgnoreCase)
+    && !File.ReadAllText(Path.Combine("src", "RiskManagementAI.App", "RiskManagementAI.App.csproj")).Contains("PackageReference", StringComparison.OrdinalIgnoreCase),
+    "ExcelReportBuilder should not add NuGet PackageReference");
 
 var profileSmokeDirectory = Path.Combine("artifacts", "smoke-profile-b05");
 Directory.CreateDirectory(profileSmokeDirectory);

@@ -10,6 +10,7 @@ using RiskManagementAI.Core.Feedback;
 using RiskManagementAI.Core.Generation;
 using RiskManagementAI.Core.Kb;
 using RiskManagementAI.Core.Logging;
+using RiskManagementAI.Core.Report;
 using RiskManagementAI.Core.Safety;
 
 namespace RiskManagementAI.App;
@@ -20,6 +21,7 @@ public partial class MainWindow : Window
     private readonly SqlSafetyChecker _sqlChecker;
     private readonly VbaSafetyChecker _vbaChecker;
     private readonly Excel2021FunctionChecker _excelChecker;
+    private readonly ExcelReportBuilder _excelReportBuilder;
     private readonly DataProfiler _dataProfiler = new();
     private readonly TaskLogWriter _taskLogWriter = new();
     private readonly PolicyLoadResult _policyLoadResult = App.SecurityPolicyLoadResult;
@@ -35,6 +37,7 @@ public partial class MainWindow : Window
         _sqlChecker = new SqlSafetyChecker(_ruleSet);
         _vbaChecker = new VbaSafetyChecker(_ruleSet);
         _excelChecker = new Excel2021FunctionChecker(_ruleSet);
+        _excelReportBuilder = new ExcelReportBuilder(_ruleSet, _taskLogWriter);
         _draftService = new NoModelDraftService(_policyLoadResult.Policy);
         _draftPipeline = new DraftPipeline(_draftService, _ruleSet, _taskLogWriter);
         try
@@ -210,6 +213,31 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnGenerateExcelReport(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var profile = _dataProfiler.ProfileCsv(ResolveInputPath(DataPathBox.Text));
+            var validationFindings = _sqlChecker.Check(SqlRequestBox.Text).ToList();
+            var reportResult = _excelReportBuilder.BuildReport(new ExcelReportRequest(
+                ReportNameBox.Text,
+                profile,
+                BuildUiLimitRows(profile),
+                validationFindings,
+                SqlRequestBox.Text,
+                "NoModelMode: 로컬 검토용 리포트입니다. 산출물은 사용자가 확인한 뒤 업무 문서로 활용해야 합니다.",
+                Environment.UserName));
+            ReportResultBox.Text = BuildReportSummary(reportResult);
+            ShowFindings("Excel Report", reportResult.Findings);
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException or InvalidDataException or UnauthorizedAccessException)
+        {
+            ReportResultBox.Text = ex.Message;
+            var error = new SafetyFinding("EXCEL_REPORT_ERROR", SafetySeverity.High, ex.Message);
+            ShowFindings("Excel Report", [error]);
+        }
+    }
+
     private SafetyFinding? AppendAuditLog(string taskType, string toolType, string inputText, IReadOnlyList<SafetyFinding> findings)
     {
         try
@@ -278,6 +306,38 @@ public partial class MainWindow : Window
         }
 
         return sb.ToString();
+    }
+
+    private static string BuildReportSummary(ExcelReportResult result)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"ReportPath: {result.ReportPath}");
+        sb.AppendLine($"Sheets: {result.SheetNames.Count:N0}");
+        sb.AppendLine($"CheckedFormulas: {result.CheckedFormulas.Count:N0}");
+        sb.AppendLine($"AuditLogWritten: {result.AuditLogWritten}");
+        foreach (var sheetName in result.SheetNames)
+        {
+            sb.AppendLine($"- {sheetName}");
+        }
+
+        return sb.ToString();
+    }
+
+    private static IReadOnlyList<ExcelReportLimitRow> BuildUiLimitRows(DataProfileResult profile)
+    {
+        var exposureAmount = profile.NumericColumns.TryGetValue("EXPOSURE_AMT", out var exposureProfile)
+            ? exposureProfile.Sum
+            : 0m;
+        var limitAmount = Math.Max(Math.Abs(exposureAmount) * 1.1m, 1m);
+        return
+        [
+            new ExcelReportLimitRow(
+                "PROFILE_TOTAL",
+                "ALL",
+                exposureAmount,
+                limitAmount,
+                "UI aggregate from DataProfiler; review-only")
+        ];
     }
 
     private void ShowFindings(string title, System.Collections.Generic.IReadOnlyList<SafetyFinding> findings)

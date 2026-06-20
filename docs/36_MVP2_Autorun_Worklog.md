@@ -9,12 +9,12 @@
 
 > Claude는 복귀 시 **이 블록만으로** 현재 상태·다음 작업을 파악할 수 있어야 한다.
 
-- **현재 상태(1줄)**: M2-01/02/03/05/06 구현 완료. M2-04 Excel 2021 리포트는 생성 방식 결정 필요로 BLOCKED.
-- **develop 최신 commit**: `7b52aa29d3999a4295ac6189c4ea6cae3cb87c13` + M2-04 BLOCKED record commit(본 커밋; push 후 `origin/develop` 확인)
+- **현재 상태(1줄)**: M2-01/02/03/05/06 구현 완료. M2-04 Excel 2021 리포트는 DM-03 확정으로 unblock되어 `feature/mvp2-m2-04-excel-report`에서 구현 중.
+- **develop 최신 commit**: `c4c76cb48bad054d42b4ad2ef448be6827f948fc`
 - **DONE (검증됨)**: P0-1 develop/main fast-forward sync; P0-2 release/v0.3.0 변경 반영; P0-3 `.gitignore` `*.zip` 추가; M2-01 NoModelMode; M2-02 DraftPipeline; M2-03 KbSearch; M2-05 ExamplePromotion; M2-06 UI 연동
-- **진행 중이던 항목 / 중단 지점**: M2-04 시작 전 STOP. `docs/33` DM-03/M2-04가 Excel report 생성 방식 결정을 선행 요구.
-- **NEXT UP (Claude가 바로 집을 작업)**: M2-04 생성 방식 결정(OpenXML NuGet 승인 vs Interop vs CSV+템플릿) 후 재개
-- **BLOCKED 개수 / 핵심**: _1_ — M2-04 생성 방식/NuGet 결정 필요
+- **진행 중이던 항목 / 중단 지점**: M2-04 구현 중. 방식은 `System.IO.Compression` + `templates/report` XML 템플릿 치환, NuGet 0, Interop/OpenXML SDK 금지.
+- **NEXT UP (Claude가 바로 집을 작업)**: M2-04 xlsx report builder 구현 + SmokeTest + Gate A + CI 확인
+- **BLOCKED 개수 / 핵심**: _0_
 - **재현 검증**: `git fetch origin develop && git switch develop && dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI.SmokeTests`
 - **⚠️ Claude 확인 요망(자동결정/승격대기)**: _-_
 
@@ -49,7 +49,7 @@
 | M2-03 | 규정/NCR catalog 검색 | DONE | `803b5e049da45d3710da2e3b96bd4f73fae0bbf6` | 152 PASS | 공개 catalog만 |
 | M2-05 | 승인형 피드백 예제 승격 | DONE | `d651d8b048765de02ff7d5c9d2b51d7dd78491d0` | 158 PASS | 재학습 아님 |
 | M2-06 | UI 연동 + SmokeTest 확장 | DONE | `7b52aa29d3999a4295ac6189c4ea6cae3cb87c13` | 162 PASS | |
-| M2-04 | Excel 2021 리포트 | BLOCKED | M2-04 BLOCKED record commit | - | 생성 방식/NuGet 결정 필요 |
+| M2-04 | Excel 2021 리포트 | WIP | `feature/mvp2-m2-04-excel-report` | - | DM-03 확정: 인박스 xlsx, `System.IO.Compression`, `templates/report`, NuGet 0 |
 
 ### Phase 2 — 스트레치 (시간 여유 시)
 | ID | 항목 | 상태 | 커밋 | 비고 |
@@ -68,7 +68,7 @@ _(아직 없음)_
 > Hard-block 항목. 각: 무엇을 / 왜 막혔는지 / 제안 해결책 / 필요한 결정.
 
 <!-- [UTC] 항목 | 사유 | 제안 | 필요한 결정 -->
-- [2026-06-19T17:05:09Z] M2-04 Excel 2021 리포트 | `docs/33` DM-03/M2-04가 생성 방식 결정을 선행 요구. OpenXML은 NuGet 추가라 STOP 대상이고, Interop/CSV+템플릿도 산출물 형식·Prod 오프라인 호환성 결정 필요. | 권장: (A) CSV+템플릿 우선으로 NuGet 없이 진행, 또는 (B) OpenXML SDK NuGet 승인 후 xlsx 생성, 또는 (C) Interop 금지/허용 명시. | M2-04 생성 방식과 NuGet 추가 승인 여부 |
+- [RESOLVED 2026-06-20T03:20:10Z] M2-04 Excel 2021 리포트 | 사용자 DM-03 확정: 인박스 xlsx(`System.IO.Compression` + `templates/report` 템플릿 치환), NuGet 0, Interop 금지, OpenXML SDK 미도입. 산출 수식은 `Excel2021FunctionChecker` 통과, 쓰기 경로는 `reports/`만, 생성 시 audit log 기록. | `feature/mvp2-m2-04-excel-report`에서 구현 재개. 풍부한 서식이 꼭 필요하면 다시 BLOCKED로 둔다. | 해소됨 |
 
 ## 5. 완료 보고 누적 (append-only)
 
@@ -170,6 +170,7 @@ _(아직 없음)_
 - [2026-06-19T16:32:08Z] M2-05 develop CI `build` success, SmokeTest 158 PASS / 현재 항목: M2-06 WPF 탭 연동 / 다음 항목: M2-06 feature 검증
 - [2026-06-19T17:02:29Z] M2-06 feature CI `build` success, SmokeTest 162 PASS / 현재 항목: develop squash commit 작성 / 다음 항목: M2-04 결정 확인
 - [2026-06-19T17:05:09Z] M2-06 develop CI `build` success, SmokeTest 162 PASS / 현재 항목: M2-04 결정 확인 / 다음 항목: BLOCKED 보고
+- [2026-06-20T03:20:10Z] DM-03 사용자 확정으로 M2-04 unblock / 현재 항목: ExcelReportBuilder 구현 / 다음 항목: SmokeTest + Gate A + CI
 
 ## 7. Claude 재개 체크리스트
 
