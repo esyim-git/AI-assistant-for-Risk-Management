@@ -489,6 +489,14 @@ foreach (var (header, tabName) in expectedTabNames)
 
 AssertTrue(!mainWindowCode.Contains("MainTabs.SelectedIndex", StringComparison.Ordinal), "UI navigation should not depend on TabControl indexes");
 AssertTrue(mainWindowCode.Contains("MainTabs.SelectedItem = tab;", StringComparison.Ordinal), "UI navigation should select stable TabItem instances");
+var retiredStubCodes = new[]
+{
+    "DASHBOARD_MVP_STATUS",
+    "RISK_DASHBOARD_MVP_STATUS",
+    "HISTORY_NOT_IMPLEMENTED",
+    "SETTINGS_NOT_IMPLEMENTED"
+};
+AssertTrue(retiredStubCodes.All(code => !mainWindowCode.Contains(code, StringComparison.Ordinal)), "MVP-3 target screens should not use retired stub findings");
 AssertTrue(
     mainWindowXaml.Descendants(wpf + "Button").Any(button =>
         string.Equals((string?)button.Attribute("Content"), "한도 점검", StringComparison.Ordinal)
