@@ -233,12 +233,12 @@ _(아직 없음)_
 
 ## 7. Claude 재개 체크리스트
 
-1. `git fetch origin develop` → `git switch develop`
+1. `git fetch origin main` → `git switch main`
 2. 본 문서 **§Resume Brief** 확인 → DONE/진행/NEXT/BLOCKED 파악
 3. 재현 검증: `dotnet build RiskManagementAI.sln` + `dotnet run --project tests/RiskManagementAI.SmokeTests` (전부 PASS 확인)
 4. 보안 게이트 A(docs/28) 재확인, 절대원칙 위반 0 확인
 5. §3 자동 결정 로그(⚠️) 검토 → 승인/수정
 6. §4 BLOCKED 큐의 각 항목에 대해 결정 → 진행 또는 사용자 확인(AskUserQuestion)
-7. **NEXT UP**부터 이어서 진행. 충분히 안정되면 `develop → main` 승격 PR(검토 후 squash) 준비.
+7. **NEXT UP**부터 이어서 진행. 새 작업은 `feature/*` 브랜치 → PR → `main` 병합(검토 후 squash). (`develop`은 MVP-2 승격 후 삭제 — `main`이 정본)
 
 > 관련: `prompts/codex_mvp2_24h_autorun_prompt.md`, `docs/33_MVP2_Backlog.md`, `docs/31`(MVP-1 원장 패턴), `docs/28`, `docs/32`, `docs/35`.
