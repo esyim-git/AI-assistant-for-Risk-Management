@@ -10,7 +10,7 @@
 > Claude는 복귀 시 **이 블록만으로** 현재 상태·다음 작업을 파악할 수 있어야 한다.
 
 - **현재 상태(1줄)**: MVP-2 24h autorun 목표 추진 종료 기준 충족. MVP-2 코어 M2-01~M2-06 main 승격 완료, Release ZIP v0.3.0 rehearsal(build/00~03) 완료, SHA256 검증 완료.
-- **main 최신 commit**: `origin/main` 확인 명령 `git rev-parse origin/main` (최신 main CI/soft guard green; worklog-only PR merge 후 hash는 GitHub에서 최종 확인)
+- **main 최신 commit**: `main`이 정본. 최신 해시는 `git fetch origin main && git rev-parse origin/main`으로 확인한다.
 - **develop 최신 상태**: MVP-2 main 승격 완료 후 `develop` 원격 브랜치는 삭제됨(불필요). 이후 통합/정본 기준은 `main`.
 - **DONE (검증됨)**: P0-1 develop/main fast-forward sync; P0-2 release/v0.3.0 변경 반영; P0-3 `.gitignore` `*.zip` 추가; P0-5 branch protection availability check; M2-01 NoModelMode; M2-02 DraftPipeline; M2-03 KbSearch; M2-04 Excel report; M2-05 ExamplePromotion; M2-06 UI 연동; PR #5 MVP-2 main 승격; PR #6 soft guard subject 보강
 - **진행 중이던 항목 / 중단 지점**: _없음_
@@ -233,12 +233,12 @@ _(아직 없음)_
 
 ## 7. Claude 재개 체크리스트
 
-1. `git fetch origin develop` → `git switch develop`
+1. `git fetch origin main` → `git switch main`
 2. 본 문서 **§Resume Brief** 확인 → DONE/진행/NEXT/BLOCKED 파악
 3. 재현 검증: `dotnet build RiskManagementAI.sln` + `dotnet run --project tests/RiskManagementAI.SmokeTests` (전부 PASS 확인)
 4. 보안 게이트 A(docs/28) 재확인, 절대원칙 위반 0 확인
 5. §3 자동 결정 로그(⚠️) 검토 → 승인/수정
 6. §4 BLOCKED 큐의 각 항목에 대해 결정 → 진행 또는 사용자 확인(AskUserQuestion)
-7. **NEXT UP**부터 이어서 진행. 충분히 안정되면 `develop → main` 승격 PR(검토 후 squash) 준비.
+7. **NEXT UP**부터 이어서 진행. 신규 구현은 main에서 작업 브랜치를 만들고 PR(검토 후 squash)로 반영한다.
 
 > 관련: `prompts/codex_mvp2_24h_autorun_prompt.md`, `docs/33_MVP2_Backlog.md`, `docs/31`(MVP-1 원장 패턴), `docs/28`, `docs/32`, `docs/35`.
