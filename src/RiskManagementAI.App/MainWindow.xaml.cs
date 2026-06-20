@@ -2,6 +2,7 @@ using System.Linq;
 using System.IO;
 using System.Text;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using RiskManagementAI.Core.Config;
 using RiskManagementAI.Core.Data;
@@ -30,6 +31,7 @@ public partial class MainWindow : Window
     private readonly KbSearch? _kbSearch;
     private readonly SafetyFinding? _kbLoadFinding;
     private readonly ExamplePromotion _examplePromotion = new();
+    private IReadOnlyDictionary<MainTabKey, TabItem> _tabsByKey = new Dictionary<MainTabKey, TabItem>();
 
     public MainWindow()
     {
@@ -50,6 +52,17 @@ public partial class MainWindow : Window
         }
 
         InitializeComponent();
+        _tabsByKey = new Dictionary<MainTabKey, TabItem>
+        {
+            [MainTabKey.Sql] = SqlTab,
+            [MainTabKey.Draft] = DraftTab,
+            [MainTabKey.Vba] = VbaTab,
+            [MainTabKey.Excel] = ExcelTab,
+            [MainTabKey.Data] = DataTab,
+            [MainTabKey.Report] = ReportTab,
+            [MainTabKey.Regulation] = RegulationTab,
+            [MainTabKey.Feedback] = FeedbackTab
+        };
         EnvironmentText.Text = $"{BuildEnvironmentText(_policyLoadResult)} / {NoModelDraftService.ModeName}";
         SafetyStatusText.Text = _policyLoadResult.UsedFallback
             ? "Security policy fallback active"
@@ -89,7 +102,6 @@ public partial class MainWindow : Window
 
     private void OnShowDashboard(object sender, RoutedEventArgs e)
     {
-        MainTabs.SelectedIndex = 0;
         ShowFindings("Dashboard", [
             new SafetyFinding(
                 "DASHBOARD_MVP_STATUS",
@@ -100,58 +112,65 @@ public partial class MainWindow : Window
 
     private void OnNavigateSql(object sender, RoutedEventArgs e)
     {
-        MainTabs.SelectedIndex = 0;
-        ShowFindings("SQL Assistant", [
-            new SafetyFinding("NAVIGATION_SQL", SafetySeverity.Info, "SQL 탭으로 이동했습니다. SQL 검사 버튼으로 안전 검사를 실행하세요.")
-        ]);
+        SelectMainTab(
+            MainTabKey.Sql,
+            "SQL Assistant",
+            "NAVIGATION_SQL",
+            "SQL 탭으로 이동했습니다. SQL 검사 버튼으로 안전 검사를 실행하세요.");
     }
 
     private void OnNavigateVba(object sender, RoutedEventArgs e)
     {
-        MainTabs.SelectedIndex = 2;
-        ShowFindings("VBA Assistant", [
-            new SafetyFinding("NAVIGATION_VBA", SafetySeverity.Info, "VBA 탭으로 이동했습니다. VBA 검사 버튼으로 안전 검사를 실행하세요.")
-        ]);
+        SelectMainTab(
+            MainTabKey.Vba,
+            "VBA Assistant",
+            "NAVIGATION_VBA",
+            "VBA 탭으로 이동했습니다. VBA 검사 버튼으로 안전 검사를 실행하세요.");
     }
 
     private void OnNavigateData(object sender, RoutedEventArgs e)
     {
-        MainTabs.SelectedIndex = 4;
-        ShowFindings("Data Analyzer", [
-            new SafetyFinding("NAVIGATION_DATA", SafetySeverity.Info, "Data 탭으로 이동했습니다. CSV 분석 버튼으로 샘플 프로파일링을 실행하세요.")
-        ]);
+        SelectMainTab(
+            MainTabKey.Data,
+            "Data Analyzer",
+            "NAVIGATION_DATA",
+            "Data 탭으로 이동했습니다. CSV 분석 버튼으로 샘플 프로파일링을 실행하세요.");
     }
 
     private void OnNavigateRiskDashboard(object sender, RoutedEventArgs e)
     {
-        MainTabs.SelectedIndex = 5;
-        ShowFindings("Risk Dashboard", [
-            new SafetyFinding("RISK_DASHBOARD_MVP_STATUS", SafetySeverity.Info, "MVP-2에서는 Excel Report 탭에서 review-only 리스크 리포트를 생성합니다.")
-        ]);
+        SelectMainTab(
+            MainTabKey.Report,
+            "Risk Dashboard",
+            "RISK_DASHBOARD_MVP_STATUS",
+            "MVP-2에서는 Excel Report 탭에서 review-only 리스크 리포트를 생성합니다.");
     }
 
     private void OnNavigateReport(object sender, RoutedEventArgs e)
     {
-        MainTabs.SelectedIndex = 5;
-        ShowFindings("Excel Report", [
-            new SafetyFinding("NAVIGATION_REPORT", SafetySeverity.Info, "Report 탭으로 이동했습니다. 리포트 생성 버튼으로 reports/ 아래 xlsx를 생성하세요.")
-        ]);
+        SelectMainTab(
+            MainTabKey.Report,
+            "Excel Report",
+            "NAVIGATION_REPORT",
+            "Report 탭으로 이동했습니다. 리포트 생성 버튼으로 reports/ 아래 xlsx를 생성하세요.");
     }
 
     private void OnNavigateRegulation(object sender, RoutedEventArgs e)
     {
-        MainTabs.SelectedIndex = 6;
-        ShowFindings("Regulation / NCR", [
-            new SafetyFinding("NAVIGATION_REGULATION", SafetySeverity.Info, "Regulation 탭으로 이동했습니다. 공개 catalog 검색을 실행하세요.")
-        ]);
+        SelectMainTab(
+            MainTabKey.Regulation,
+            "Regulation / NCR",
+            "NAVIGATION_REGULATION",
+            "Regulation 탭으로 이동했습니다. 공개 catalog 검색을 실행하세요.");
     }
 
     private void OnNavigateFeedback(object sender, RoutedEventArgs e)
     {
-        MainTabs.SelectedIndex = 7;
-        ShowFindings("Feedback Center", [
-            new SafetyFinding("NAVIGATION_FEEDBACK", SafetySeverity.Info, "Feedback 탭으로 이동했습니다. 승인형 예제 승격을 확인하세요.")
-        ]);
+        SelectMainTab(
+            MainTabKey.Feedback,
+            "Feedback Center",
+            "NAVIGATION_FEEDBACK",
+            "Feedback 탭으로 이동했습니다. 승인형 예제 승격을 확인하세요.");
     }
 
     private void OnShowHistory(object sender, RoutedEventArgs e)
@@ -165,6 +184,22 @@ public partial class MainWindow : Window
     {
         ShowFindings("Settings", [
             new SafetyFinding("SETTINGS_NOT_IMPLEMENTED", SafetySeverity.Low, "Settings 화면은 아직 MVP 범위 밖입니다. 현재 보안 정책은 config/security_policy.json과 safe fallback으로 고정됩니다.")
+        ]);
+    }
+
+    private void SelectMainTab(MainTabKey key, string title, string code, string message)
+    {
+        if (!_tabsByKey.TryGetValue(key, out var tab))
+        {
+            ShowFindings(title, [
+                new SafetyFinding("NAVIGATION_TARGET_MISSING", SafetySeverity.High, $"내비게이션 대상 탭을 찾을 수 없습니다. Target={key}")
+            ]);
+            return;
+        }
+
+        MainTabs.SelectedItem = tab;
+        ShowFindings(title, [
+            new SafetyFinding(code, SafetySeverity.Info, message)
         ]);
     }
 
@@ -564,5 +599,17 @@ public partial class MainWindow : Window
                 (Brush)new BrushConverter().ConvertFromString(border)!,
                 (Brush)new BrushConverter().ConvertFromString(foreground)!);
         }
+    }
+
+    private enum MainTabKey
+    {
+        Sql,
+        Draft,
+        Vba,
+        Excel,
+        Data,
+        Report,
+        Regulation,
+        Feedback
     }
 }
