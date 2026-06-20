@@ -16,7 +16,9 @@ dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI
 - PR→main(squash, `(#PR)`), 게이트 A, NuGet 0.
 
 ## 작업 범위 / 제외
-- `Core/Data/XlsxReader.cs`: `ZipArchive`로 `xl/worksheets/sheetN.xml` + `xl/sharedStrings.xml` 파싱 → 행/열 복원. 첫 시트 또는 지정 시트.
+- `Core/Data/XlsxReader.cs`: `ZipArchive`로 OOXML 파싱 → 행/열 복원. 첫 시트 또는 지정 시트.
+- ⚠️ **시트 해석은 순번이 아니라 관계로**: `xl/workbook.xml`의 `<sheet name= r:id=>` → `xl/_rels/workbook.xml.rels`의 `r:id → Target`으로 실제 worksheet part 경로를 찾는다. **`xl/worksheets/sheetN.xml`의 파일명 순번 ≠ 시트 표시명/순서** — 리네임/재정렬된 통합문서에서 잘못된 시트를 읽지 않도록 한다. (기존 writer `ExcelReportBuilder.cs` L183-196이 동일 매핑 생성 — 참고.)
+- `xl/sharedStrings.xml` + inline string + 숫자 처리.
 - 제외: 수식 평가, 스타일, 다중시트 병합.
 
 ## Public Interface
@@ -27,7 +29,7 @@ dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI
 - **zip 안전**: 엔트리 수·압축해제 크기 상한(zip bomb 방지). 외부 호출 0. 경로 가드.
 
 ## 테스트(필수)
-정상 xlsx(헤더/값/한글) 파싱 · 손상 xlsx → graceful 예외 · 큰 시트 상한 동작 · CSV와 동일 파이프라인 투입.
+정상 xlsx(헤더/값/한글) 파싱 · **이름지정 비-첫시트(리네임/재정렬된 통합문서에서 `sheetN` 순번≠표시명) 정확 선택** · 손상 xlsx → graceful 예외 · 큰 시트 상한 동작 · CSV와 동일 파이프라인 투입.
 
 ## 완료/보고
 build 0/0 · SmokeTest PASS · NuGet 0 확인 · 게이트 A 0건 · `docs/39` 원장 갱신.

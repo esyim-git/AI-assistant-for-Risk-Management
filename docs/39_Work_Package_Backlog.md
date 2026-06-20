@@ -55,15 +55,16 @@
 - **Public Interface**: `CsvTable CsvReader.Read(string path, CsvEncoding encoding = CsvEncoding.Auto)`; `enum CsvEncoding { Auto, Utf8, Cp949 }`.
 - **구현세부**:
   - **WP-02a (UTF-8 공통 리더, READY)**: `CsvReader`/`CsvTable` 신설 + UTF-8(BOM/무BOM) + 3개 파서 수렴. 인코딩 판별 결과를 finding/메타로 노출.
-  - **WP-02b (CP949, 결정 게이트 = DATA_SPEC_REQUIRED)**: ⚠️ **정정** — net8.0에서 `Encoding.GetEncoding(949)`는 **인박스 아님**. CP949는 `CodePagesEncodingProvider`가 필요하고 이는 **`System.Text.Encoding.CodePages` NuGet 패키지**(MS 1st-party)다 → "NuGet 0" 불변식과 충돌. **두 경로 중 승인 결정 필요**:
-    - (A·권장) **repo 내장 CP949/EUC-KR 디코더** — 공개 표준 매핑표(KS X 1001/EUC-KR)를 리소스로 내장한 자체 디코더. NuGet 0 유지(불변식 보존). 비용↑(매핑표 데이터·검증).
-    - (B) **`System.Text.Encoding.CodePages`(MS 1st-party) 승인** — 구현 쉬움. 단 "External NuGet: None" 깨짐 + 패키지 소스 재도입/벤더링 필요(오프라인 restore 영향). **사용자 승인 필요**(docs/41 Data Gate).
-  - **CP949 경로 미확정 시 구현 STOP**(WP-02a만 진행, WP-02b는 BLOCKED).
-- **보안조건**: 외부 라이브러리 0. 경로 가드(기존 readers 패턴). 외부 호출 0.
-- **테스트**: CP949로 저장한 한글 컬럼/값 라운드트립, UTF-8(BOM/무BOM) 라운드트립, 인코딩 자동감지 결과 검증.
-- **완료조건**: 3 리더가 공통 CsvReader 사용, CP949 한글 정상.
+  - **WP-02b (CP949) — 결정 완료: 경로 A 채택(repo 내장 디코더, NuGet 0 유지)** ✅ (2026-06-20 사용자 승인). net8.0에서 `Encoding.GetEncoding(949)`는 **인박스 아님**(`CodePagesEncodingProvider`=`System.Text.Encoding.CodePages` 패키지 필요) → **패키지 추가 금지**.
+    - 구현: **repo 내장 자체 디코더 + 공개 표준 Windows-949(UHC/CP949) *전체* 매핑표 리소스**. 매핑표 출처는 공개 표준(예: Unicode Consortium `CP949.TXT`, 또는 WHATWG Encoding 'euc-kr' 통합 인덱스 = 전체 Windows-949/UHC).
+    - ⚠️ **EUC-KR/KS X 1001 부분집합만으로는 불충분**: Golden6 export는 **Windows-949(UHC)** 다수 → KS X 1001 밖 확장 한글 음절(현대 한글 11,172자 전체) 미수록 시 정상 CP949 파일을 오디코드/실패. 따라서 path A는 **UHC 전체 매핑표**를 사용한다.
+    - 매핑표 무결성: 리소스 파일 **Hash 검증**(로드 시) + 라운드트립 테스트.
+  - (기각) **경로 B `System.Text.Encoding.CodePages`(MS 1st-party)** — "External NuGet: None" 불변식 깨짐(오프라인 restore·벤더링 영향) → 미채택.
+- **보안조건**: 외부 라이브러리 0(NuGet 0 유지). 경로 가드(기존 readers 패턴). 외부 호출 0. 매핑표 리소스 해시 검증.
+- **테스트**: CP949 한글 컬럼/값 라운드트립(**EUC-KR 범위 밖 UHC 확장 음절 포함 필수**), UTF-8(BOM/무BOM) 라운드트립, 인코딩 자동감지 결과 검증, 매핑표 해시 검증.
+- **완료조건**: 3 리더가 공통 CsvReader 사용, CP949(UHC 전체) 한글 정상, NuGet 0 유지.
 - **Branch**: `feature/wp-02-csv-encoding` · **Commit**: `feat: add encoding-aware CSV reader CP949/UTF-8 (WP-02)`
-- **Claude Review Checklist**: WP-02a UTF-8 공통 리더 NuGet 0 / 자동감지 결정성 / 3 파서 수렴 / 라운드트립 테스트 / Gate A. **WP-02b CP949는 (A) 내장 디코더 또는 (B) 패키지 승인 결정 전까지 BLOCKED**(`Encoding.GetEncoding(949)`를 NuGet 없이 호출 시 런타임 예외 — 임의 패키지 추가 금지).
+- **Claude Review Checklist**: WP-02a UTF-8 공통 리더 NuGet 0 / 자동감지 결정성 / 3 파서 수렴. **WP-02b**: NuGet 0 유지(패키지 미추가) / **Windows-949 UHC 전체 매핑표**(EUC-KR 부분집합 아님) / 매핑표 Hash / **확장 음절 라운드트립** / Gate A.
 
 ## WP-03. XLSX 입력 Reader (인박스, NuGet 0) (RR-08)
 
