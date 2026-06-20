@@ -16,7 +16,7 @@
 
 - 좌측 메뉴(10) → 가운데 `TabControl x:Name="MainTabs"`: `SQL / Draft / VBA / Excel / Data / Risk / Report / Regulation / Feedback`.
 - PR #12: 메뉴 버튼에 Click 핸들러 배선. U3-00에서 `SelectedIndex` 하드코딩을 제거하고 `TabItem x:Name` + `MainTabKey` 매핑으로 견고화.
-- U3-01에서 Risk Dashboard는 동일 기준일 한도 모니터링 화면으로 실구현. U3-02에서 History는 read-only 감사로그 뷰어로 실구현. U3-03에서 Settings는 view-only 정책 뷰어로 실구현. U3-04에서 Feedback Center는 승인형 승격 + `config/promoted_examples.jsonl` 저장으로 실구현. 아직 Dashboard는 안내 finding 중심(=stub)이며 U3-05에서 실제 화면으로 대체한다.
+- U3-01에서 Risk Dashboard는 동일 기준일 한도 모니터링 화면으로 실구현. U3-02에서 History는 read-only 감사로그 뷰어로 실구현. U3-03에서 Settings는 view-only 정책 뷰어로 실구현. U3-04에서 Feedback Center는 승인형 승격 + `config/promoted_examples.jsonl` 저장으로 실구현. U3-05에서 Dashboard는 앱 상태 요약 화면으로 실구현.
 
 ---
 
@@ -99,12 +99,12 @@
 > Codex는 항목 완료 시 상태/커밋/SmokeTest를 갱신하고, 아래 Resume Brief를 최신으로 유지한다.
 
 ### ★ Claude Resume Brief
-- **현재 상태(1줄)**: U3-04 Feedback Center 완료(로컬 검증 257 PASS), 다음은 U3-05 Dashboard home.
-- **main 최신 commit**: `072038c8013d0295da24c41be6405f44ea03cd93`
-- **DONE(검증됨)**: U3-00 — `TabItem x:Name` + `MainTabKey` 매핑, `MainTabs.SelectedIndex` 제거, 메뉴→탭 정확성 SmokeTest 추가. U3-01 — 동일 BASE_DT 한도 모니터링, ABS 사용률, NORMAL/WARNING/BREACH 분류, Risk Dashboard 전용 탭/그리드. U3-02 — TaskLog/FeedbackLog 별도 projection, 해시 prefix만 표시, 손상/누락 로그 graceful. U3-03 — SecurityPolicy/RuleVersion/NoModelMode view-only snapshot, 런타임 정책 쓰기 없음. U3-04 — 승인형 예제 승격, `config/promoted_examples.jsonl` append-only 저장, 해시/메타만 유지.
-- **NEXT UP**: U3-05 Dashboard home
+- **현재 상태(1줄)**: U3-05 Dashboard home 완료(로컬 검증 267 PASS), 다음은 U3-06 SmokeTest/DoD 최종 정리.
+- **main 최신 commit**: `0e1cab4f15f286a3f96f0041f3ddc8295b41866e`
+- **DONE(검증됨)**: U3-00 — `TabItem x:Name` + `MainTabKey` 매핑, `MainTabs.SelectedIndex` 제거, 메뉴→탭 정확성 SmokeTest 추가. U3-01 — 동일 BASE_DT 한도 모니터링, ABS 사용률, NORMAL/WARNING/BREACH 분류, Risk Dashboard 전용 탭/그리드. U3-02 — TaskLog/FeedbackLog 별도 projection, 해시 prefix만 표시, 손상/누락 로그 graceful. U3-03 — SecurityPolicy/RuleVersion/NoModelMode view-only snapshot, 런타임 정책 쓰기 없음. U3-04 — 승인형 예제 승격, `config/promoted_examples.jsonl` append-only 저장, 해시/메타만 유지. U3-05 — Offline/NoModel/Policy/RuleVersion/로그·리포트·승격 수 Dashboard snapshot.
+- **NEXT UP**: U3-06 SmokeTest/DoD 최종 정리
 - **BLOCKED**: _0_
-- **재현 검증**: `dotnet build RiskManagementAI.sln` → 0 warning/0 error, `dotnet run --project tests/RiskManagementAI.SmokeTests` → 257 PASS / 0 FAIL.
+- **재현 검증**: `dotnet build RiskManagementAI.sln` → 0 warning/0 error, `dotnet run --project tests/RiskManagementAI.SmokeTests` → 267 PASS / 0 FAIL.
 - **⚠️ Claude 확인 요망**: _-_
 
 ### 진행 원장
@@ -114,8 +114,8 @@
 | U3-01 | Risk Dashboard/한도모니터링 | DONE | `c299932` (#15) | 228 PASS / 0 FAIL | BASE_DT 필터 + ABS 사용률 + Risk 전용 탭 |
 | U3-02 | History 감사로그 뷰어 | DONE | `1e35f69` (#16) | 240 PASS / 0 FAIL | read-only, hash prefix only |
 | U3-03 | Settings 정책 뷰어 | DONE | `072038c` (#17) | 251 PASS / 0 FAIL | view-only, no runtime writes |
-| U3-04 | Feedback Center | DONE | `feature/mvp3-u3-04-feedback-center` | 257 PASS / 0 FAIL | append-only config store, 재학습X |
-| U3-05 | Dashboard home | TODO | - | - | 상태 요약 |
+| U3-04 | Feedback Center | DONE | `0e1cab4` (#18) | 257 PASS / 0 FAIL | append-only config store, 재학습X |
+| U3-05 | Dashboard home | DONE | `feature/mvp3-u3-05-dashboard` | 267 PASS / 0 FAIL | 상태 요약, read-only |
 | U3-06 | SmokeTest 확장 | TODO | - | - | 회귀 |
 
 ### BLOCKED 큐 / 자동 결정 로그

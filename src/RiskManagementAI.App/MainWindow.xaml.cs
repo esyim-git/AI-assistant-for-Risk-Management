@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using RiskManagementAI.Core.Config;
+using RiskManagementAI.Core.Dashboard;
 using RiskManagementAI.Core.Data;
 using RiskManagementAI.Core.Excel;
 using RiskManagementAI.Core.Feedback;
@@ -29,6 +30,7 @@ public partial class MainWindow : Window
     private readonly LimitMonitor _limitMonitor = new();
     private readonly AuditLogReader _auditLogReader = new();
     private readonly SecuritySettingsSnapshotBuilder _settingsSnapshotBuilder = new();
+    private readonly DashboardSnapshotBuilder _dashboardSnapshotBuilder = new();
     private readonly TaskLogWriter _taskLogWriter = new();
     private readonly PolicyLoadResult _policyLoadResult = App.SecurityPolicyLoadResult;
     private readonly ILocalDraftService _draftService;
@@ -60,6 +62,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         _tabsByKey = new Dictionary<MainTabKey, TabItem>
         {
+            [MainTabKey.Dashboard] = DashboardTab,
             [MainTabKey.Sql] = SqlTab,
             [MainTabKey.Draft] = DraftTab,
             [MainTabKey.Vba] = VbaTab,
@@ -111,12 +114,12 @@ public partial class MainWindow : Window
 
     private void OnShowDashboard(object sender, RoutedEventArgs e)
     {
-        ShowFindings("Dashboard", [
-            new SafetyFinding(
-                "DASHBOARD_MVP_STATUS",
-                SafetySeverity.Info,
-                "MVP-2에서는 가운데 탭의 SQL/Draft/VBA/Excel/Data/Report/Regulation/Feedback 기능을 사용합니다.")
-        ]);
+        SelectMainTab(
+            MainTabKey.Dashboard,
+            "Dashboard",
+            "NAVIGATION_DASHBOARD",
+            "Dashboard 탭으로 이동했습니다. 앱 상태를 read-only로 표시합니다.");
+        RefreshDashboard();
     }
 
     private void OnNavigateSql(object sender, RoutedEventArgs e)
@@ -378,6 +381,36 @@ public partial class MainWindow : Window
         RefreshSettings();
     }
 
+    private void OnRefreshDashboard(object sender, RoutedEventArgs e)
+    {
+        RefreshDashboard();
+    }
+
+    private void RefreshDashboard()
+    {
+        try
+        {
+            var auditLog = _auditLogReader.Read("logs");
+            var snapshot = _dashboardSnapshotBuilder.Build(new DashboardSnapshotRequest(
+                _policyLoadResult,
+                _ruleSet.RuleVersion,
+                NoModelDraftService.ModeName,
+                auditLog,
+                _promotedExampleStore.ReadAll().Count,
+                CountReports()));
+            DashboardGrid.ItemsSource = snapshot.Rows.Select(DashboardMetricDisplay.FromRow).ToList();
+            DashboardSummaryText.Text = BuildDashboardSummary(snapshot);
+            ShowFindings("Dashboard", snapshot.Findings);
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException or UnauthorizedAccessException or JsonException)
+        {
+            DashboardSummaryText.Text = ex.Message;
+            DashboardGrid.ItemsSource = Array.Empty<DashboardMetricDisplay>();
+            var error = new SafetyFinding("DASHBOARD_ERROR", SafetySeverity.High, ex.Message);
+            ShowFindings("Dashboard", [error]);
+        }
+    }
+
     private void RefreshPromotedExamples()
     {
         try
@@ -611,6 +644,19 @@ public partial class MainWindow : Window
     {
         var fallback = snapshot.UsedFallback ? "Fallback active" : "Config loaded";
         return $"{fallback} / RuleVersion={snapshot.RuleVersion} / ModelMode={snapshot.ModelMode} / Rows={snapshot.Rows.Count:N0}";
+    }
+
+    private static string BuildDashboardSummary(DashboardSnapshot snapshot)
+    {
+        return $"Metrics={snapshot.Rows.Count:N0} / Findings={snapshot.Findings.Count:N0}";
+    }
+
+    private static int CountReports()
+    {
+        var reportsDirectory = Path.Combine(Environment.CurrentDirectory, "reports");
+        return Directory.Exists(reportsDirectory)
+            ? Directory.EnumerateFiles(reportsDirectory, "*.xlsx", SearchOption.TopDirectoryOnly).Count()
+            : 0;
     }
 
     private static IReadOnlyList<ExcelReportLimitRow> BuildUiLimitRows(DataProfileResult profile)
@@ -869,8 +915,20 @@ public partial class MainWindow : Window
         }
     }
 
+    private sealed record DashboardMetricDisplay(
+        string Metric,
+        string Value,
+        string Detail)
+    {
+        public static DashboardMetricDisplay FromRow(DashboardMetricRow row)
+        {
+            return new DashboardMetricDisplay(row.Metric, row.Value, row.Detail);
+        }
+    }
+
     private enum MainTabKey
     {
+        Dashboard,
         Sql,
         Draft,
         Vba,
