@@ -11,7 +11,7 @@
 
 - **현재 상태(1줄)**: MVP-2 24h autorun 목표 추진 종료 기준 충족. MVP-2 코어 M2-01~M2-06 main 승격 완료, Release ZIP v0.3.0 rehearsal(build/00~03) 완료, SHA256 검증 완료.
 - **main 최신 commit**: `origin/main` 확인 명령 `git rev-parse origin/main` (최신 main CI/soft guard green; worklog-only PR merge 후 hash는 GitHub에서 최종 확인)
-- **develop 최신 상태**: merge conflict 해소 후 push/CI 확인 예정
+- **develop 최신 상태**: `947b2d6` 기준 main sync 충돌 해소 완료, push/CI 확인 예정
 - **DONE (검증됨)**: P0-1 develop/main fast-forward sync; P0-2 release/v0.3.0 변경 반영; P0-3 `.gitignore` `*.zip` 추가; P0-5 branch protection availability check; M2-01 NoModelMode; M2-02 DraftPipeline; M2-03 KbSearch; M2-04 Excel report; M2-05 ExamplePromotion; M2-06 UI 연동; PR #5 MVP-2 main 승격; PR #6 soft guard subject 보강
 - **진행 중이던 항목 / 중단 지점**: _없음_
 - **NEXT UP (Claude가 바로 집을 작업)**: 선택/수동 후속 — 별도 Test PC에서 인터넷 차단 후 ZIP 실행 확인(게이트 B 수동 항목) 또는 GitHub Release v0.3.0 준비
