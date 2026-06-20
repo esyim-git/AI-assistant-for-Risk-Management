@@ -9,12 +9,13 @@
 
 > Claude는 복귀 시 **이 블록만으로** 현재 상태·다음 작업을 파악할 수 있어야 한다.
 
-- **현재 상태(1줄)**: MVP-2 코어 M2-01~M2-06 구현 완료. Release ZIP rehearsal은 로컬 .NET 8 SDK 부재로 BLOCKED(build/00 preflight 보강 완료).
-- **develop 최신 code commit**: `46108dc1e3a6f7f0ea3c6fc7e5a2a8e3959498c7`
-- **DONE (검증됨)**: P0-1 develop/main fast-forward sync; P0-2 release/v0.3.0 변경 반영; P0-3 `.gitignore` `*.zip` 추가; M2-01 NoModelMode; M2-02 DraftPipeline; M2-03 KbSearch; M2-04 Excel report; M2-05 ExamplePromotion; M2-06 UI 연동
+- **현재 상태(1줄)**: MVP-2 코어 M2-01~M2-06는 PR #5/#6으로 main까지 승격 완료. Release ZIP v0.3.0 rehearsal(build/00~03) 완료, SHA256 검증 완료.
+- **main 최신 commit**: `4edffbe42e07c96eeefc59903e528cac79583f46` (PR #6, soft guard/build green)
+- **develop 최신 상태**: `c28006ce48920effa619847e7dba8478c98d7f69` (`origin/main` 병합 정합 완료, CI green)
+- **DONE (검증됨)**: P0-1 develop/main fast-forward sync; P0-2 release/v0.3.0 변경 반영; P0-3 `.gitignore` `*.zip` 추가; P0-5 branch protection availability check; M2-01 NoModelMode; M2-02 DraftPipeline; M2-03 KbSearch; M2-04 Excel report; M2-05 ExamplePromotion; M2-06 UI 연동; PR #5 MVP-2 main 승격; PR #6 soft guard subject 보강
 - **진행 중이던 항목 / 중단 지점**: _없음_
-- **NEXT UP (Claude가 바로 집을 작업)**: main 승격 PR, 또는 .NET 8 SDK가 있는 Dev/Test PC에서 release packaging rehearsal 재개
-- **BLOCKED 개수 / 핵심**: _1_ — release ZIP rehearsal은 현재 PC에 .NET SDK가 없어 실행 불가(runtime-only dotnet)
+- **NEXT UP (Claude가 바로 집을 작업)**: 별도 Test PC에서 인터넷 차단 후 ZIP 실행 확인(게이트 B 수동 항목) 또는 GitHub Release v0.3.0 준비
+- **BLOCKED 개수 / 핵심**: _0_
 - **재현 검증**: `git fetch origin develop && git switch develop && dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI.SmokeTests`
 - **⚠️ Claude 확인 요망(자동결정/승격대기)**: _-_
 
@@ -40,6 +41,8 @@
 | P0-1 | develop를 main까지 ff 동기화 | DONE | `571c576708a483a742bd3b30cad19e9e07c52bd7` | origin/develop push 완료 |
 | P0-2 | release/v0.3.0 변경 develop 반영(VERSION 0.3.0 + build/01 fail-fast/.keep) | DONE | `b04ab2ea1a5e1d822edc1758ad9a0b4c3c1e499a` | main 승격 안 함 |
 | P0-3 | `.gitignore`에 `*.zip` 추가 | DONE | `25c58aa2846127daa7b393ba9c9066892d569c8e` | 루트 잔류 zip 차단 |
+| P0-4 | MVP-2 main 승격 후 develop/main ancestry 정합 | DONE | `c28006ce48920effa619847e7dba8478c98d7f69` | PR #5/#6 main 병합 후 `origin/main`을 develop에 merge, CI 180 PASS |
+| P0-5 | main branch protection availability check | DONE | no code commit | repo private Free 상태로 API 403, soft guard 유지 |
 
 ### Phase 1 — MVP-2 코어 (docs/33)
 | ID | 항목 | 상태 | 커밋 | SmokeTest | 비고 |
@@ -55,7 +58,8 @@
 | ID | 항목 | 상태 | 커밋 | 비고 |
 |---|---|---|---|---|
 | S2-* | 룰/테스트/문서/데모 하드닝 | TODO | - | docs/10 로드맵 |
-| S2-REL-00 | Release rehearsal prereq gate | DONE | `77527485eb627f0e5c9db6019e8f03941faf7840` | `build/00` SDK 부재 감지 보강. ZIP 생성은 SDK 부재로 BLOCKED |
+| S2-REL-00 | Release rehearsal prereq gate | DONE | `77527485eb627f0e5c9db6019e8f03941faf7840` | `build/00` SDK 부재 감지 보강. repo-local SDK로 blocker 해소 |
+| S2-REL-01 | Release ZIP v0.3.0 rehearsal | DONE | 산출물 gitignored | `build/00~03` PASS, SHA256 `0578D2D4B0B6A0635ED2A373130269FBC8A67C7B14A09436707C70C0DB5F1D27` |
 
 ## 3. 자동 결정 로그 (⚠️ Claude 검토용)
 
@@ -70,7 +74,7 @@ _(아직 없음)_
 
 <!-- [UTC] 항목 | 사유 | 제안 | 필요한 결정 -->
 - [RESOLVED 2026-06-20T03:20:10Z] M2-04 Excel 2021 리포트 | 사용자 DM-03 확정: 인박스 xlsx(`System.IO.Compression` + `templates/report` 템플릿 치환), NuGet 0, Interop 금지, OpenXML SDK 미도입. 산출 수식은 `Excel2021FunctionChecker` 통과, 쓰기 경로는 `reports/`만, 생성 시 audit log 기록. | `feature/mvp2-m2-04-excel-report`에서 구현 재개. 풍부한 서식이 꼭 필요하면 다시 BLOCKED로 둔다. | 해소됨 |
-- [2026-06-20T03:37:22Z] Release ZIP rehearsal | 현재 PC는 `dotnet` 런타임만 있고 .NET SDK가 없다(`dotnet --info`: "No SDKs were found."). `build/00_check-prereqs.ps1`가 기존에는 이를 성공으로 처리했으므로 preflight를 보강했다. | .NET 8 SDK가 설치된 Dev/Test PC에서 `build/00~03 -Version 0.3.0` 재실행. 이 PC에서 계속하려면 .NET 8 SDK 설치가 필요. | .NET 8 SDK availability |
+- [RESOLVED 2026-06-20T04:04:49Z] Release ZIP rehearsal | 현재 PC는 `dotnet` 런타임만 있고 .NET SDK가 없어 최초 `build/00`에서 차단. 이후 repo-local `artifacts/tools/dotnet`에 .NET SDK 8.0.422를 설치하고 PATH 우선순위로 사용해 `build/00~03 -Version 0.3.0` 완료. | 산출물은 `artifacts/` gitignored 유지. 별도 Test PC 오프라인 실행은 수동 항목으로 남김. | 해소됨 |
 
 ## 5. 완료 보고 누적 (append-only)
 
@@ -167,8 +171,33 @@ _(아직 없음)_
 - 변경 파일: `build/00_check-prereqs.ps1`, `docs/34_Release_Rehearsal_Guide.md`, `docs/36_MVP2_Autorun_Worklog.md`
 - 검증: 현재 PC에서 `build/00_check-prereqs.ps1` 재실행 시 runtime-only dotnet을 감지하고 `.NET SDK not found... release publishing requires .NET 8 SDK`로 실패(정상 차단). feature CI `build` success (`27859065259`, 180 PASS / 0 FAIL, 0 warnings / 0 errors).
 - 보안 게이트 A: 0건 / NuGet: 없음
-- 결정/가정: 릴리스 ZIP 생성은 SDK 없는 현재 PC에서 강행하지 않는다. .NET 8 SDK가 있는 Dev/Test PC에서 `build/00~03 -Version 0.3.0`을 재개한다.
+- 결정/가정: SDK 없는 상태에서는 ZIP 생성을 강행하지 않는다. 이후 repo-local .NET SDK 8.0.422로 blocker를 해소하고 S2-REL-01에서 `build/00~03 -Version 0.3.0`을 완료했다.
 - develop 반영 커밋: `77527485eb627f0e5c9db6019e8f03941faf7840`
+
+#### [S2-REL-01] Release ZIP v0.3.0 rehearsal — DONE (2026-06-20T04:04:49Z)
+- 구현 요약: repo-local .NET SDK 8.0.422(`artifacts/tools/dotnet`, gitignored)를 사용해 `build/00~03 -Version 0.3.0`을 실행했다. self-contained win-x64 publish, portable ZIP 생성, SHA256 생성, package content verifier를 통과했다.
+- 산출물(gitignored): `artifacts/release/RiskManagementAI-v0.3.0-win-x64-portable.zip`, `.zip.sha256`, `ReleaseNote-v0.3.0.md`, `DependencyList-v0.3.0.csv`
+- 검증: `build/00_check-prereqs.ps1` PASS(.NET SDK 8.0.422), `build/01_publish-win-x64.ps1 -Version 0.3.0` PASS, `build/02_package-release.ps1 -Version 0.3.0` PASS, `build/03_verify-package.ps1 -Version 0.3.0` PASS.
+- SHA256: `0578D2D4B0B6A0635ED2A373130269FBC8A67C7B14A09436707C70C0DB5F1D27`
+- 실행 smoke: publish 산출물 `RiskManagementAI.exe`를 숨김 기동 8초 유지 후 종료, `STARTUP_SMOKE_OK`.
+- 보안 게이트 B 자동항목: ZIP 필수 자산 존재, `logs/`/`reports/` 존재, 모델/credential/real-data 파일 없음 확인. 산출물은 git 추적 0건.
+- 남은 수동 항목: 별도 Test PC에서 인터넷 차단 후 ZIP 압축해제/실행 확인은 이 세션에서 수행하지 않음.
+- develop 반영 커밋: 산출물은 커밋하지 않음. 본 원장만 후속 커밋.
+
+#### [P0-4] MVP-2 main promotion and develop/main sync — DONE (2026-06-20T03:56:57Z)
+- 구현 요약: PR #5(`develop` → `main`)로 MVP-2 core + release prereq hardening을 squash merge했고, PR #6으로 soft guard squash subject 규칙을 문서화해 최신 main soft guard를 green으로 복구했다. 이후 `origin/main`을 `develop`에 merge commit으로 반영해 force-push 없이 ancestry를 연결했다.
+- 변경 파일: `docs/36_MVP2_Autorun_Worklog.md`(본 기록), `docs/32_Branch_Governance.md`는 PR #6에서 main 반영 후 develop sync로 유입
+- 검증: main 최신 `4edffbe42e07c96eeefc59903e528cac79583f46`; main CI `27859320450` success(180 PASS / 0 FAIL, 0 warnings / 0 errors); main soft guard `27859320438` success. develop sync CI `27859431999` success(180 PASS / 0 FAIL, 0 warnings / 0 errors).
+- 보안 게이트 A: 문서/merge 정합 변경, 신규 민감파일 없음 / NuGet: 없음
+- 결정/가정: squash merge로 main에 들어간 MVP-2 내용과 develop 개별 커밋은 트리상 동일하므로, develop 히스토리를 rewrite하지 않고 merge commit으로 정합한다.
+- develop 반영 커밋: `c28006ce48920effa619847e7dba8478c98d7f69`
+
+#### [P0-5] main branch protection availability check — DONE (2026-06-20T04:08:56Z)
+- 구현 요약: GitHub API로 repo visibility와 main branch protection endpoint를 확인했다.
+- 검증: `gh repo view ... --json visibility` → `PRIVATE`; `gh api repos/.../branches/main/protection` → `403 Upgrade to GitHub Pro or make this repository public to enable this feature.`
+- 결론: 현재 상태에서는 강제 branch protection 설정 불가. docs/32/35의 private Free soft guard 운영을 유지한다.
+- 보강 확인: 최신 main soft guard run `27859320438` success. PR #6에서 squash subject에 `(#PR)` 표식을 유지해야 함을 docs/32에 명시했다.
+- develop 반영 커밋: 코드 변경 없음. 본 원장만 후속 커밋.
 
 ## 6. 하트비트 로그 (≈1h 또는 항목 전환마다)
 
@@ -196,6 +225,10 @@ _(아직 없음)_
 - [2026-06-20T03:33:17Z] M2-04 develop CI `build` success, SmokeTest 180 PASS / 현재 항목: MVP-2 코어 완료 / 다음 항목: main 승격 PR 또는 release packaging rehearsal
 - [2026-06-20T03:37:22Z] Release rehearsal 시도: `build/00`가 runtime-only dotnet을 성공 처리하는 gap 확인 후 SDK 부재 시 fail-fast로 보강 / 현재 항목: S2-REL-00 prereq gate / 다음 항목: feature CI + develop 반영
 - [2026-06-20T03:40:42Z] S2-REL-00 feature CI success, develop squash commit 작성(`7752748`) / 현재 항목: docs/36 DONE 갱신 / 다음 항목: develop push + CI 확인
+- [2026-06-20T03:53:48Z] PR #5/#6 main 병합 및 latest main green 확인 후 `origin/main`을 develop에 merge / 현재 항목: P0-4 docs/36 갱신 / 다음 항목: develop push + CI 확인
+- [2026-06-20T03:56:57Z] P0-4 develop sync CI `build` success, SmokeTest 180 PASS / 현재 항목: docs/36 DONE 갱신 / 다음 항목: release ZIP blocker 유지 또는 SDK 있는 PC에서 재개
+- [2026-06-20T04:04:49Z] Release ZIP v0.3.0 rehearsal 완료: build/00~03 PASS, SHA256 `0578D2D4...1D27`, publish exe startup smoke OK / 현재 항목: docs/36 갱신 / 다음 항목: 별도 Test PC 오프라인 실행 또는 GitHub Release 준비
+- [2026-06-20T04:08:56Z] main branch protection API 재확인: repo private, protection endpoint 403 / 현재 항목: docs/36 갱신 / 다음 항목: develop CI 후 main PR로 원장 최신화
 
 ## 7. Claude 재개 체크리스트
 
