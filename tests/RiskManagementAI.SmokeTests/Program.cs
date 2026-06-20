@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Text;
 using System.Xml.Linq;
 using RiskManagementAI.Core.Data;
 using RiskManagementAI.Core.Config;
@@ -732,6 +733,48 @@ var noBaseDateCsv = Path.Combine(profileSmokeDirectory, "profile_no_base_dt.csv"
 File.WriteAllText(noBaseDateCsv, "DESK_CD,AMT\nEQD,10\nFIC,20\n");
 var noBaseDateProfile = profiler.ProfileCsv(noBaseDateCsv);
 AssertTrue(noBaseDateProfile.Warnings.Any(w => w.Contains("BASE_DT", StringComparison.OrdinalIgnoreCase)), "DataProfiler should warn when BASE_DT is missing");
+
+Cp949Decoder.VerifyMapping();
+AssertTrue(Cp949Decoder.MappingSha256 == Cp949Decoder.ExpectedMappingSha256, "CsvReader CP949 mapping hash should match pinned SHA256");
+AssertTrue(Cp949Decoder.MappingEntryCount == Cp949Decoder.ExpectedMappingEntryCount, "CsvReader CP949 mapping should include full Windows-949/UHC entries");
+
+var encodingSmokeDirectory = Path.Combine("artifacts", "smoke-csv-encoding-wp02");
+Directory.CreateDirectory(encodingSmokeDirectory);
+var utf8NoBomCsv = Path.Combine(encodingSmokeDirectory, "utf8_no_bom.csv");
+File.WriteAllText(utf8NoBomCsv, "BASE_DT,DESK_CD,확장힣,AMT\n20260617,EQD,힣값,10\n", new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+var utf8NoBomTable = CsvReader.Read(utf8NoBomCsv);
+AssertTrue(utf8NoBomTable.Metadata.DetectedEncoding == CsvEncoding.Utf8 && !utf8NoBomTable.Metadata.HadUtf8Bom, "CsvReader should auto-detect UTF-8 without BOM");
+AssertTrue(utf8NoBomTable.Rows.Single().GetValue("확장힣") == "힣값", "CsvReader should roundtrip UTF-8 UHC syllable text");
+
+var utf8BomCsv = Path.Combine(encodingSmokeDirectory, "utf8_bom.csv");
+File.WriteAllText(utf8BomCsv, "BASE_DT,DESK_CD,AMT\n20260617,EQD,10\n", new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+var utf8BomTable = CsvReader.Read(utf8BomCsv);
+AssertTrue(utf8BomTable.Metadata.DetectedEncoding == CsvEncoding.Utf8 && utf8BomTable.Metadata.HadUtf8Bom, "CsvReader should honor UTF-8 BOM");
+
+var cp949UhcCsv = Path.Combine("samples", "dummy_data", "cp949_uhc_sample_cp949.csv");
+var cp949UhcTable = CsvReader.Read(cp949UhcCsv);
+AssertTrue(cp949UhcTable.Metadata.DetectedEncoding == CsvEncoding.Cp949, "CsvReader should auto-detect CP949 when UTF-8 decoding fails");
+AssertTrue(cp949UhcTable.Columns.Contains("확장힣", StringComparer.Ordinal), "CsvReader CP949 should decode UHC extension syllable in header");
+AssertTrue(cp949UhcTable.Rows.Single().GetValue("확장힣") == "힣값", "CsvReader CP949 should decode UHC extension syllable in value");
+AssertTrue(cp949UhcTable.Metadata.Cp949MappingSha256 == Cp949Decoder.ExpectedMappingSha256, "CsvReader CP949 metadata should expose mapping SHA256");
+AssertTrue(cp949UhcTable.Metadata.Cp949MappingEntryCount == Cp949Decoder.ExpectedMappingEntryCount, "CsvReader CP949 metadata should expose mapping entry count");
+AssertTrue(CsvReader.Read(cp949UhcCsv, CsvEncoding.Cp949).Rows.Single().GetValue("확장힣") == "힣값", "CsvReader should support explicit CP949");
+AssertTrue(Throws<InvalidDataException>(() => CsvReader.Read(cp949UhcCsv, CsvEncoding.Utf8)), "CsvReader explicit UTF-8 should reject CP949 bytes");
+
+var cp949Profile = profiler.ProfileCsv(cp949UhcCsv);
+AssertTrue(cp949Profile.SourceName == "cp949_uhc_sample_cp949.csv" && cp949Profile.RowCount == 1, "DataProfiler should use common CsvReader for CP949 files");
+AssertTrue(cp949Profile.NumericColumns["AMT"].Sum == 10m, "DataProfiler should preserve numeric profiling through common CsvReader");
+
+var cp949LimitMonitorResult = limitMonitor.Analyze(
+    Path.Combine("samples", "dummy_data", "risk_exposure_sample_cp949.csv"),
+    Path.Combine("samples", "dummy_data", "risk_limit_sample_cp949.csv"),
+    "20260617");
+AssertTrue(cp949LimitMonitorResult.Rows.Count == 1, "LimitMonitor should use common CsvReader for CP949 files");
+AssertTrue(cp949LimitMonitorResult.Rows.Single().RiskFactor == "KOSPI200힣", "LimitMonitor should preserve CP949 UHC join key text");
+AssertTrue(cp949LimitMonitorResult.Rows.Single().Status == LimitMonitorStatus.Warning, "LimitMonitor should classify CP949 sample after common CsvReader join");
+
+var cp949Catalog = RegulationCatalog.LoadFromFile(Path.Combine("samples", "dummy_data", "regulation_catalog_cp949.csv"));
+AssertTrue(cp949Catalog.Entries.Single().Title == "힣 규정", "RegulationCatalog should use common CsvReader for CP949 catalog files");
 
 var taskLogPath = Path.Combine("logs", "smoke_task_log.jsonl");
 var feedbackLogPath = Path.Combine("logs", "smoke_feedback_log.jsonl");

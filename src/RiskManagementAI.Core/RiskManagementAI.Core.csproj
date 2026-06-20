@@ -4,4 +4,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Data\Resources\cp949-uhc-map.txt" LogicalName="RiskManagementAI.Core.Data.Resources.cp949-uhc-map.txt" />
+  </ItemGroup>
 </Project>

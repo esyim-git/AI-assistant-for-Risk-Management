@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text;
 
 namespace RiskManagementAI.Core.Data;
 
@@ -24,16 +23,8 @@ public sealed class DataProfiler
             throw new FileNotFoundException("CSV 파일을 찾을 수 없습니다.", csvPath);
         }
 
-        using var reader = new StreamReader(csvPath, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-        var headerLine = reader.ReadLine();
-        if (headerLine is null)
-        {
-            throw new InvalidDataException("CSV 파일에 헤더가 없습니다.");
-        }
-
-        var columns = ParseCsvLine(headerLine)
-            .Select((column, index) => index == 0 ? column.TrimStart('\uFEFF').Trim() : column.Trim())
-            .ToArray();
+        var table = CsvReader.Read(csvPath);
+        var columns = table.Columns.ToArray();
 
         if (columns.Length == 0 || columns.Any(string.IsNullOrWhiteSpace))
         {
@@ -48,23 +39,14 @@ public sealed class DataProfiler
         var numericCandidates = columns.ToDictionary(column => column, column => new NumericAccumulator(column), StringComparer.OrdinalIgnoreCase);
         var baseDateIndex = Array.FindIndex(columns, column => string.Equals(column, BaseDateColumnName, StringComparison.OrdinalIgnoreCase));
         var rowCount = 0;
-        var lineNumber = 1;
-
-        while (reader.ReadLine() is { } line)
+        foreach (var row in table.Rows)
         {
-            lineNumber++;
-            if (string.IsNullOrWhiteSpace(line))
+            if (row.RawFieldCount != columns.Length)
             {
-                continue;
+                warnings.Add($"Line {row.LineNumber}: 컬럼 수가 헤더와 다릅니다. expected={columns.Length}, actual={row.RawFieldCount}");
             }
 
-            var values = ParseCsvLine(line);
-            if (values.Count != columns.Length)
-            {
-                warnings.Add($"Line {lineNumber}: 컬럼 수가 헤더와 다릅니다. expected={columns.Length}, actual={values.Count}");
-            }
-
-            var normalizedValues = NormalizeValues(values, columns.Length);
+            var normalizedValues = NormalizeValues(row.Values, columns.Length);
             rowCount++;
 
             var rowKey = string.Join('\u001F', normalizedValues);
@@ -107,7 +89,7 @@ public sealed class DataProfiler
         }
 
         return new DataProfileResult(
-            Path.GetFileName(csvPath),
+            table.SourceName,
             rowCount,
             columns.Length,
             columns,
@@ -135,44 +117,6 @@ public sealed class DataProfiler
             || string.Equals(value, "NULL", StringComparison.OrdinalIgnoreCase)
             || string.Equals(value, "N/A", StringComparison.OrdinalIgnoreCase)
             || string.Equals(value, "NA", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static IReadOnlyList<string> ParseCsvLine(string line)
-    {
-        var values = new List<string>();
-        var current = new StringBuilder();
-        var inQuotes = false;
-
-        for (var index = 0; index < line.Length; index++)
-        {
-            var ch = line[index];
-            if (ch == '"')
-            {
-                if (inQuotes && index + 1 < line.Length && line[index + 1] == '"')
-                {
-                    current.Append('"');
-                    index++;
-                }
-                else
-                {
-                    inQuotes = !inQuotes;
-                }
-
-                continue;
-            }
-
-            if (ch == ',' && !inQuotes)
-            {
-                values.Add(current.ToString());
-                current.Clear();
-                continue;
-            }
-
-            current.Append(ch);
-        }
-
-        values.Add(current.ToString());
-        return values;
     }
 
     private sealed class NumericAccumulator
