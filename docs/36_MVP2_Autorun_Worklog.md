@@ -9,12 +9,12 @@
 
 > Claude는 복귀 시 **이 블록만으로** 현재 상태·다음 작업을 파악할 수 있어야 한다.
 
-- **현재 상태(1줄)**: MVP-2 코어 M2-01~M2-06는 PR #5/#6으로 main까지 승격 완료. Release ZIP v0.3.0 rehearsal(build/00~03) 완료, SHA256 검증 완료.
-- **main 최신 commit**: `4edffbe42e07c96eeefc59903e528cac79583f46` (PR #6, soft guard/build green)
-- **develop 최신 상태**: `c28006ce48920effa619847e7dba8478c98d7f69` (`origin/main` 병합 정합 완료, CI green)
+- **현재 상태(1줄)**: MVP-2 24h autorun 목표 추진 종료 기준 충족. MVP-2 코어 M2-01~M2-06 main 승격 완료, Release ZIP v0.3.0 rehearsal(build/00~03) 완료, SHA256 검증 완료.
+- **main 최신 commit**: `origin/main` 확인 명령 `git rev-parse origin/main` (최신 main CI/soft guard green; worklog-only PR merge 후 hash는 GitHub에서 최종 확인)
+- **develop 최신 상태**: `624621f075766a936f3321f470507e10f6a71843` (release rehearsal/branch protection 원장 갱신, CI green)
 - **DONE (검증됨)**: P0-1 develop/main fast-forward sync; P0-2 release/v0.3.0 변경 반영; P0-3 `.gitignore` `*.zip` 추가; P0-5 branch protection availability check; M2-01 NoModelMode; M2-02 DraftPipeline; M2-03 KbSearch; M2-04 Excel report; M2-05 ExamplePromotion; M2-06 UI 연동; PR #5 MVP-2 main 승격; PR #6 soft guard subject 보강
 - **진행 중이던 항목 / 중단 지점**: _없음_
-- **NEXT UP (Claude가 바로 집을 작업)**: 별도 Test PC에서 인터넷 차단 후 ZIP 실행 확인(게이트 B 수동 항목) 또는 GitHub Release v0.3.0 준비
+- **NEXT UP (Claude가 바로 집을 작업)**: 선택/수동 후속 — 별도 Test PC에서 인터넷 차단 후 ZIP 실행 확인(게이트 B 수동 항목) 또는 GitHub Release v0.3.0 준비
 - **BLOCKED 개수 / 핵심**: _0_
 - **재현 검증**: `git fetch origin develop && git switch develop && dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI.SmokeTests`
 - **⚠️ Claude 확인 요망(자동결정/승격대기)**: _-_
@@ -26,7 +26,7 @@
 | 항목 | 값 |
 |---|---|
 | 시작(UTC) | 2026-06-19T15:46:24Z |
-| 종료/한도(UTC) | _-_ |
+| 종료/한도(UTC) | 2026-06-20T04:15:18Z |
 | 통합 브랜치 | `develop` (main은 미변경; 승격은 Claude/사람 전용) |
 | 작업 브랜치 규칙 | `feature/mvp2-<item>` → CI green → develop squash-merge → 삭제 |
 | 시작 시 develop | `64ac34b941a415374d752fe329b456c73fdd77e8` / main | `571c576708a483a742bd3b30cad19e9e07c52bd7` |
@@ -229,6 +229,7 @@ _(아직 없음)_
 - [2026-06-20T03:56:57Z] P0-4 develop sync CI `build` success, SmokeTest 180 PASS / 현재 항목: docs/36 DONE 갱신 / 다음 항목: release ZIP blocker 유지 또는 SDK 있는 PC에서 재개
 - [2026-06-20T04:04:49Z] Release ZIP v0.3.0 rehearsal 완료: build/00~03 PASS, SHA256 `0578D2D4...1D27`, publish exe startup smoke OK / 현재 항목: docs/36 갱신 / 다음 항목: 별도 Test PC 오프라인 실행 또는 GitHub Release 준비
 - [2026-06-20T04:08:56Z] main branch protection API 재확인: repo private, protection endpoint 403 / 현재 항목: docs/36 갱신 / 다음 항목: develop CI 후 main PR로 원장 최신화
+- [2026-06-20T04:15:18Z] Goal 종료 기준 충족: MVP-2 core main 승격, develop/main 정합, release build/00~03 완료, branch protection 불가/soft guard 확인 / 현재 항목: final worklog sync / 다음 항목: 선택 수동 후속(Test PC offline 또는 GitHub Release)
 
 ## 7. Claude 재개 체크리스트
 
