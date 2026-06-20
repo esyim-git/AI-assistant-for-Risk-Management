@@ -99,8 +99,8 @@
 > Codex는 항목 완료 시 상태/커밋/SmokeTest를 갱신하고, 아래 Resume Brief를 최신으로 유지한다.
 
 ### ★ Claude Resume Brief
-- **현재 상태(1줄)**: MVP-3 U3-00~U3-06 완료(로컬 검증 268 PASS), PR/CI/main 반영 대기.
-- **main 최신 commit**: `dbd0ba044a48bb9342f27df7e574cb4987125a91`
+- **현재 상태(1줄)**: MVP-3 U3-00~U3-06 완료, PR #14~#20 main 반영 및 CI green 확인.
+- **main 최신 commit**: `git fetch origin main && git rev-parse origin/main`
 - **DONE(검증됨)**: U3-00 — `TabItem x:Name` + `MainTabKey` 매핑, `MainTabs.SelectedIndex` 제거, 메뉴→탭 정확성 SmokeTest 추가. U3-01 — 동일 BASE_DT 한도 모니터링, ABS 사용률, NORMAL/WARNING/BREACH 분류, Risk Dashboard 전용 탭/그리드. U3-02 — TaskLog/FeedbackLog 별도 projection, 해시 prefix만 표시, 손상/누락 로그 graceful. U3-03 — SecurityPolicy/RuleVersion/NoModelMode view-only snapshot, 런타임 정책 쓰기 없음. U3-04 — 승인형 예제 승격, `config/promoted_examples.jsonl` append-only 저장, 해시/메타만 유지. U3-05 — Offline/NoModel/Policy/RuleVersion/로그·리포트·승격 수 Dashboard snapshot. U3-06 — retired stub finding 회귀 테스트 + DoD 체크 완료.
 - **NEXT UP**: Claude/사용자 재검증 후 release rehearsal 또는 v0.4.0 패키징 결정
 - **BLOCKED**: _0_
@@ -116,7 +116,7 @@
 | U3-03 | Settings 정책 뷰어 | DONE | `072038c` (#17) | 251 PASS / 0 FAIL | view-only, no runtime writes |
 | U3-04 | Feedback Center | DONE | `0e1cab4` (#18) | 257 PASS / 0 FAIL | append-only config store, 재학습X |
 | U3-05 | Dashboard home | DONE | `dbd0ba0` (#19) | 267 PASS / 0 FAIL | 상태 요약, read-only |
-| U3-06 | SmokeTest 확장 | DONE | `feature/mvp3-u3-06-final-smoke` | 268 PASS / 0 FAIL | retired stub 회귀 + DoD 완료 |
+| U3-06 | SmokeTest 확장 | DONE | `d5d41a3` (#20) | 268 PASS / 0 FAIL | retired stub 회귀 + DoD 완료 |
 
 ### BLOCKED 큐 / 자동 결정 로그
 ⚠️ AD-U3-01-01: Risk Dashboard는 Report 탭 안내가 아니라 전용 `RiskDashboardTab`으로 구현. 좌측 메뉴가 실제 한도 모니터링 화면을 가리키도록 한 가역적 UI 결정이며 외부 의존성/쓰기 경로 변화 없음.
