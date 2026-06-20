@@ -16,7 +16,7 @@
 
 - 좌측 메뉴(10) → 가운데 `TabControl x:Name="MainTabs"`: `SQL / Draft / VBA / Excel / Data / Risk / Report / Regulation / Feedback`.
 - PR #12: 메뉴 버튼에 Click 핸들러 배선. U3-00에서 `SelectedIndex` 하드코딩을 제거하고 `TabItem x:Name` + `MainTabKey` 매핑으로 견고화.
-- U3-01에서 Risk Dashboard는 동일 기준일 한도 모니터링 화면으로 실구현. 아직 Dashboard/History/Settings는 안내 finding 중심(=stub)이며 U3-02~U3-05에서 실제 화면으로 대체한다.
+- U3-01에서 Risk Dashboard는 동일 기준일 한도 모니터링 화면으로 실구현. U3-02에서 History는 read-only 감사로그 뷰어로 실구현. 아직 Dashboard/Settings는 안내 finding 중심(=stub)이며 U3-03~U3-05에서 실제 화면으로 대체한다.
 
 ---
 
@@ -99,20 +99,20 @@
 > Codex는 항목 완료 시 상태/커밋/SmokeTest를 갱신하고, 아래 Resume Brief를 최신으로 유지한다.
 
 ### ★ Claude Resume Brief
-- **현재 상태(1줄)**: U3-01 Risk Dashboard/한도모니터링 완료(로컬 검증 228 PASS), 다음은 U3-02 History 감사로그 뷰어.
-- **main 최신 commit**: `e046fa3a87364ad3a0b57a9833058ebf58a466f2`
-- **DONE(검증됨)**: U3-00 — `TabItem x:Name` + `MainTabKey` 매핑, `MainTabs.SelectedIndex` 제거, 메뉴→탭 정확성 SmokeTest 추가. U3-01 — 동일 BASE_DT 한도 모니터링, ABS 사용률, NORMAL/WARNING/BREACH 분류, Risk Dashboard 전용 탭/그리드.
-- **NEXT UP**: U3-02 History 감사로그 뷰어
+- **현재 상태(1줄)**: U3-02 History 감사로그 뷰어 완료(로컬 검증 240 PASS), 다음은 U3-03 Settings 정책 뷰어.
+- **main 최신 commit**: `c299932eb5a56ac163d2cd96d456e73c29097d15`
+- **DONE(검증됨)**: U3-00 — `TabItem x:Name` + `MainTabKey` 매핑, `MainTabs.SelectedIndex` 제거, 메뉴→탭 정확성 SmokeTest 추가. U3-01 — 동일 BASE_DT 한도 모니터링, ABS 사용률, NORMAL/WARNING/BREACH 분류, Risk Dashboard 전용 탭/그리드. U3-02 — TaskLog/FeedbackLog 별도 projection, 해시 prefix만 표시, 손상/누락 로그 graceful.
+- **NEXT UP**: U3-03 Settings 정책 뷰어
 - **BLOCKED**: _0_
-- **재현 검증**: `dotnet build RiskManagementAI.sln` → 0 warning/0 error, `dotnet run --project tests/RiskManagementAI.SmokeTests` → 228 PASS / 0 FAIL.
+- **재현 검증**: `dotnet build RiskManagementAI.sln` → 0 warning/0 error, `dotnet run --project tests/RiskManagementAI.SmokeTests` → 240 PASS / 0 FAIL.
 - **⚠️ Claude 확인 요망**: _-_
 
 ### 진행 원장
 | ID | 항목 | 상태 | 커밋 | SmokeTest | 비고 |
 |---|---|---|---|---|---|
 | U3-00 | 내비게이션 견고화+테스트 | DONE | `e046fa3` (#14) | 218 PASS / 0 FAIL | PR #12 nit 해소: 인덱스 의존 제거 |
-| U3-01 | Risk Dashboard/한도모니터링 | DONE | `feature/mvp3-u3-01-risk-dashboard` | 228 PASS / 0 FAIL | BASE_DT 필터 + ABS 사용률 + Risk 전용 탭 |
-| U3-02 | History 감사로그 뷰어 | TODO | - | - | read-only |
+| U3-01 | Risk Dashboard/한도모니터링 | DONE | `c299932` (#15) | 228 PASS / 0 FAIL | BASE_DT 필터 + ABS 사용률 + Risk 전용 탭 |
+| U3-02 | History 감사로그 뷰어 | DONE | `feature/mvp3-u3-02-history` | 240 PASS / 0 FAIL | read-only, hash prefix only |
 | U3-03 | Settings 정책 뷰어 | TODO | - | - | view-only |
 | U3-04 | Feedback Center | TODO | - | - | 승격(재학습X) |
 | U3-05 | Dashboard home | TODO | - | - | 상태 요약 |
