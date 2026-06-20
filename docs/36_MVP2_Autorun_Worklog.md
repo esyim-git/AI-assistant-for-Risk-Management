@@ -9,9 +9,10 @@
 
 > Claude는 복귀 시 **이 블록만으로** 현재 상태·다음 작업을 파악할 수 있어야 한다.
 
-- **현재 상태(1줄)**: MVP-2 코어 M2-01~M2-06 구현 완료. Release ZIP rehearsal은 로컬 .NET 8 SDK 부재로 BLOCKED(build/00 preflight 보강 완료).
-- **develop 최신 code commit**: `46108dc1e3a6f7f0ea3c6fc7e5a2a8e3959498c7`
-- **DONE (검증됨)**: P0-1 develop/main fast-forward sync; P0-2 release/v0.3.0 변경 반영; P0-3 `.gitignore` `*.zip` 추가; M2-01 NoModelMode; M2-02 DraftPipeline; M2-03 KbSearch; M2-04 Excel report; M2-05 ExamplePromotion; M2-06 UI 연동
+- **현재 상태(1줄)**: MVP-2 코어 M2-01~M2-06는 PR #5/#6으로 main까지 승격 완료. Release ZIP rehearsal은 로컬 .NET 8 SDK 부재로 BLOCKED(build/00 preflight 보강 완료).
+- **main 최신 commit**: `4edffbe42e07c96eeefc59903e528cac79583f46` (PR #6, soft guard/build green)
+- **develop 최신 상태**: `origin/main` 병합 정합 완료(merge commit 작성 후 push/CI 확인 예정)
+- **DONE (검증됨)**: P0-1 develop/main fast-forward sync; P0-2 release/v0.3.0 변경 반영; P0-3 `.gitignore` `*.zip` 추가; M2-01 NoModelMode; M2-02 DraftPipeline; M2-03 KbSearch; M2-04 Excel report; M2-05 ExamplePromotion; M2-06 UI 연동; PR #5 MVP-2 main 승격; PR #6 soft guard subject 보강
 - **진행 중이던 항목 / 중단 지점**: _없음_
 - **NEXT UP (Claude가 바로 집을 작업)**: main 승격 PR, 또는 .NET 8 SDK가 있는 Dev/Test PC에서 release packaging rehearsal 재개
 - **BLOCKED 개수 / 핵심**: _1_ — release ZIP rehearsal은 현재 PC에 .NET SDK가 없어 실행 불가(runtime-only dotnet)
@@ -40,6 +41,7 @@
 | P0-1 | develop를 main까지 ff 동기화 | DONE | `571c576708a483a742bd3b30cad19e9e07c52bd7` | origin/develop push 완료 |
 | P0-2 | release/v0.3.0 변경 develop 반영(VERSION 0.3.0 + build/01 fail-fast/.keep) | DONE | `b04ab2ea1a5e1d822edc1758ad9a0b4c3c1e499a` | main 승격 안 함 |
 | P0-3 | `.gitignore`에 `*.zip` 추가 | DONE | `25c58aa2846127daa7b393ba9c9066892d569c8e` | 루트 잔류 zip 차단 |
+| P0-4 | MVP-2 main 승격 후 develop/main ancestry 정합 | WIP | local merge commit | PR #5/#6 main 병합 후 `origin/main`을 develop에 merge |
 
 ### Phase 1 — MVP-2 코어 (docs/33)
 | ID | 항목 | 상태 | 커밋 | SmokeTest | 비고 |
@@ -170,6 +172,14 @@ _(아직 없음)_
 - 결정/가정: 릴리스 ZIP 생성은 SDK 없는 현재 PC에서 강행하지 않는다. .NET 8 SDK가 있는 Dev/Test PC에서 `build/00~03 -Version 0.3.0`을 재개한다.
 - develop 반영 커밋: `77527485eb627f0e5c9db6019e8f03941faf7840`
 
+#### [P0-4] MVP-2 main promotion and develop/main sync — WIP (2026-06-20T03:53:48Z)
+- 구현 요약: PR #5(`develop` → `main`)로 MVP-2 core + release prereq hardening을 squash merge했고, PR #6으로 soft guard squash subject 규칙을 문서화해 최신 main soft guard를 green으로 복구했다. 이후 `origin/main`을 `develop`에 merge commit으로 반영해 force-push 없이 ancestry를 연결했다.
+- 변경 파일: `docs/36_MVP2_Autorun_Worklog.md`(본 기록), `docs/32_Branch_Governance.md`는 PR #6에서 main 반영 후 develop sync로 유입
+- 검증: main 최신 `4edffbe42e07c96eeefc59903e528cac79583f46`; main CI `27859320450` success(180 PASS / 0 FAIL, 0 warnings / 0 errors); main soft guard `27859320438` success. develop merge commit은 push/CI 확인 예정.
+- 보안 게이트 A: 문서/merge 정합 변경, 신규 민감파일 없음 / NuGet: 없음
+- 결정/가정: squash merge로 main에 들어간 MVP-2 내용과 develop 개별 커밋은 트리상 동일하므로, develop 히스토리를 rewrite하지 않고 merge commit으로 정합한다.
+- develop 반영 커밋: _push 후 갱신_
+
 ## 6. 하트비트 로그 (≈1h 또는 항목 전환마다)
 
 <!-- [UTC] 진행 요약 / 현재 항목 / 다음 항목 -->
@@ -196,6 +206,7 @@ _(아직 없음)_
 - [2026-06-20T03:33:17Z] M2-04 develop CI `build` success, SmokeTest 180 PASS / 현재 항목: MVP-2 코어 완료 / 다음 항목: main 승격 PR 또는 release packaging rehearsal
 - [2026-06-20T03:37:22Z] Release rehearsal 시도: `build/00`가 runtime-only dotnet을 성공 처리하는 gap 확인 후 SDK 부재 시 fail-fast로 보강 / 현재 항목: S2-REL-00 prereq gate / 다음 항목: feature CI + develop 반영
 - [2026-06-20T03:40:42Z] S2-REL-00 feature CI success, develop squash commit 작성(`7752748`) / 현재 항목: docs/36 DONE 갱신 / 다음 항목: develop push + CI 확인
+- [2026-06-20T03:53:48Z] PR #5/#6 main 병합 및 latest main green 확인 후 `origin/main`을 develop에 merge / 현재 항목: P0-4 docs/36 갱신 / 다음 항목: develop push + CI 확인
 
 ## 7. Claude 재개 체크리스트
 
