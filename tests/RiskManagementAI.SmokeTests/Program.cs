@@ -216,6 +216,16 @@ var nullSectionPolicyResult = PolicyLoader.LoadFromFile(nullSectionPolicyPath);
 File.Delete(nullSectionPolicyPath);
 AssertTrue(nullSectionPolicyResult.UsedFallback && !nullSectionPolicyResult.Policy.Network.AllowExternalApi, "PolicyLoader should safe-fallback on null policy sections");
 
+var settingsSnapshot = new SecuritySettingsSnapshotBuilder().Build(policyLoadResult, loadedRuleSet.RuleVersion, NoModelDraftService.ModeName);
+AssertTrue(!settingsSnapshot.UsedFallback, "SecuritySettingsSnapshot should preserve policy load state");
+AssertTrue(settingsSnapshot.Rows.Any(row => row.Section == "Environment" && row.Name == "RuleVersion" && row.Value == loadedRuleSet.RuleVersion), "SecuritySettingsSnapshot should include rule version");
+AssertTrue(settingsSnapshot.Rows.Any(row => row.Section == "Environment" && row.Name == "LocalModelMode" && row.Value == NoModelDraftService.ModeName), "SecuritySettingsSnapshot should include local model mode");
+AssertTrue(settingsSnapshot.Rows.Any(row => row.Section == "Network" && row.Name == "AllowExternalApi" && row.Value == "False" && row.Meaning == "Blocked"), "SecuritySettingsSnapshot should show external API blocked");
+AssertTrue(settingsSnapshot.Rows.Any(row => row.Section == "Sql" && row.Name == "AllowAutoExecute" && row.Value == "False"), "SecuritySettingsSnapshot should show SQL auto execution blocked");
+AssertTrue(settingsSnapshot.Findings.Any(f => f.Code == "SETTINGS_POLICY_LOADED" && f.Severity == SafetySeverity.Info), "SecuritySettingsSnapshot should emit loaded finding");
+var fallbackSettingsSnapshot = new SecuritySettingsSnapshotBuilder().Build(missingPolicyResult, loadedRuleSet.RuleVersion, NoModelDraftService.ModeName);
+AssertTrue(fallbackSettingsSnapshot.UsedFallback && fallbackSettingsSnapshot.Findings.Any(f => f.Code == "SETTINGS_POLICY_FALLBACK"), "SecuritySettingsSnapshot should report fallback state");
+
 var noModelDraftService = new NoModelDraftService(policyLoadResult.Policy);
 var noModelDraftResponse = noModelDraftService.GenerateDraft(new DraftRequest(
     DraftRequestKind.Sql,
@@ -428,7 +438,8 @@ var expectedTabNames = new Dictionary<string, string>
     ["Report"] = "ReportTab",
     ["Regulation"] = "RegulationTab",
     ["Feedback"] = "FeedbackTab",
-    ["History"] = "HistoryTab"
+    ["History"] = "HistoryTab",
+    ["Settings"] = "SettingsTab"
 };
 var tabNamesByHeader = mainWindowXaml
     .Descendants(wpf + "TabItem")
@@ -454,6 +465,11 @@ AssertTrue(
         string.Equals((string?)button.Attribute("Content"), "로그 새로고침", StringComparison.Ordinal)
         && string.Equals((string?)button.Attribute("Click"), "OnRefreshHistory", StringComparison.Ordinal)),
     "History should expose a read-only refresh action");
+AssertTrue(
+    mainWindowXaml.Descendants(wpf + "Button").Any(button =>
+        string.Equals((string?)button.Attribute("Content"), "설정 새로고침", StringComparison.Ordinal)
+        && string.Equals((string?)button.Attribute("Click"), "OnRefreshSettings", StringComparison.Ordinal)),
+    "Settings should expose a view-only refresh action");
 
 var expectedTabKeyMappings = new Dictionary<string, string>
 {
@@ -466,7 +482,8 @@ var expectedTabKeyMappings = new Dictionary<string, string>
     ["Report"] = "ReportTab",
     ["Regulation"] = "RegulationTab",
     ["Feedback"] = "FeedbackTab",
-    ["History"] = "HistoryTab"
+    ["History"] = "HistoryTab",
+    ["Settings"] = "SettingsTab"
 };
 
 foreach (var (tabKey, tabName) in expectedTabKeyMappings)
@@ -483,7 +500,8 @@ var expectedNavigationTargets = new Dictionary<string, string>
     ["OnNavigateReport"] = "MainTabKey.Report",
     ["OnNavigateRegulation"] = "MainTabKey.Regulation",
     ["OnNavigateFeedback"] = "MainTabKey.Feedback",
-    ["OnShowHistory"] = "MainTabKey.History"
+    ["OnShowHistory"] = "MainTabKey.History",
+    ["OnShowSettings"] = "MainTabKey.Settings"
 };
 
 foreach (var (handler, tabKey) in expectedNavigationTargets)
