@@ -364,6 +364,24 @@ AssertTrue(promotionResult.SkippedEntries.Any(entry => entry.FeedbackId == rejec
 AssertTrue(promotionResult.SkippedEntries.Any(entry => entry.FeedbackId == pendingFeedback.FeedbackId), "ExamplePromotion should skip pending feedback");
 AssertTrue(promotionResult.Warnings.Any(warning => warning.Contains("Duplicate", StringComparison.OrdinalIgnoreCase)), "ExamplePromotion should warn on duplicate approved feedback");
 
+var promotedExampleStorePath = Path.Combine("config", "smoke_promoted_examples.jsonl");
+if (File.Exists(promotedExampleStorePath))
+{
+    File.Delete(promotedExampleStorePath);
+}
+
+var promotedExampleStore = new PromotedExampleStore("config", "smoke_promoted_examples.jsonl");
+promotedExampleStore.Append(promotionResult.PromotedExamples);
+promotedExampleStore.Append(promotionResult.PromotedExamples);
+var storedPromotedExamples = promotedExampleStore.ReadAll();
+var promotedExampleStoreText = File.ReadAllText(promotedExampleStore.FilePath);
+AssertTrue(storedPromotedExamples.Count == 2, "PromotedExampleStore should append promoted examples");
+AssertTrue(storedPromotedExamples.All(example => example.UserIdHash == approvedFeedback.UserId), "PromotedExampleStore should persist hashed user ids");
+AssertTrue(!promotedExampleStoreText.Contains("user-smoke", StringComparison.Ordinal), "PromotedExampleStore should not store raw user id");
+AssertTrue(Throws<ArgumentException>(() => promotedExampleStore.Append([promotionResult.PromotedExamples[0] with { UserIdHash = "plain-user" }])), "PromotedExampleStore should reject non-hash UserIdHash");
+AssertTrue(Throws<ArgumentException>(() => new PromotedExampleStore("config/../logs", "bad.jsonl")), "PromotedExampleStore should reject paths outside config");
+File.Delete(promotedExampleStore.FilePath);
+
 var uiIntegrationLogPath = Path.Combine("logs", "smoke_ui_integration_log.jsonl");
 if (File.Exists(uiIntegrationLogPath))
 {
@@ -470,6 +488,11 @@ AssertTrue(
         string.Equals((string?)button.Attribute("Content"), "설정 새로고침", StringComparison.Ordinal)
         && string.Equals((string?)button.Attribute("Click"), "OnRefreshSettings", StringComparison.Ordinal)),
     "Settings should expose a view-only refresh action");
+AssertTrue(
+    mainWindowXaml.Descendants(wpf + "Button").Any(button =>
+        string.Equals((string?)button.Attribute("Content"), "승인 승격", StringComparison.Ordinal)
+        && string.Equals((string?)button.Attribute("Click"), "OnPromoteFeedbackExample", StringComparison.Ordinal)),
+    "Feedback Center should expose an approval promotion action");
 
 var expectedTabKeyMappings = new Dictionary<string, string>
 {

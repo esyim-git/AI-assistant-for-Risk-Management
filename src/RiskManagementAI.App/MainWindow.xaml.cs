@@ -1,6 +1,7 @@
 using System.Linq;
 using System.IO;
 using System.Text;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -35,6 +36,7 @@ public partial class MainWindow : Window
     private readonly KbSearch? _kbSearch;
     private readonly SafetyFinding? _kbLoadFinding;
     private readonly ExamplePromotion _examplePromotion = new();
+    private readonly PromotedExampleStore _promotedExampleStore = new();
     private IReadOnlyDictionary<MainTabKey, TabItem> _tabsByKey = new Dictionary<MainTabKey, TabItem>();
 
     public MainWindow()
@@ -178,6 +180,7 @@ public partial class MainWindow : Window
             "Feedback Center",
             "NAVIGATION_FEEDBACK",
             "Feedback 탭으로 이동했습니다. 승인형 예제 승격을 확인하세요.");
+        RefreshPromotedExamples();
     }
 
     private void OnShowHistory(object sender, RoutedEventArgs e)
@@ -296,23 +299,49 @@ public partial class MainWindow : Window
 
     private void OnPromoteFeedbackExample(object sender, RoutedEventArgs e)
     {
-        var entry = new FeedbackLogEntry(
-            FeedbackIdBox.Text.Trim(),
-            FeedbackTaskIdBox.Text.Trim(),
-            DateTime.UtcNow,
-            LogHash.Sha256Hex(Environment.UserName),
-            FeedbackCodeBox.Text.Trim(),
-            FeedbackReviewStatusBox.Text.Trim());
-        var result = _examplePromotion.PromoteApproved([entry]);
-        FeedbackPromotionBox.Text = BuildPromotionSummary(result);
-        var findings = result.Warnings
-            .Select(warning => new SafetyFinding("FEEDBACK_PROMOTION_WARNING", SafetySeverity.Low, warning))
-            .ToList();
-        findings.Add(new SafetyFinding(
-            "FEEDBACK_PROMOTION_RESULT",
-            SafetySeverity.Info,
-            $"Promoted={result.PromotedExamples.Count:N0}, Skipped={result.SkippedEntries.Count:N0}, Mode={ExamplePromotion.PromotionModeName}"));
-        ShowFindings("Feedback Promotion", findings);
+        try
+        {
+            var entry = new FeedbackLogEntry(
+                FeedbackIdBox.Text.Trim(),
+                FeedbackTaskIdBox.Text.Trim(),
+                DateTime.UtcNow,
+                LogHash.Sha256Hex(Environment.UserName),
+                FeedbackCodeBox.Text.Trim(),
+                FeedbackReviewStatusBox.Text.Trim());
+            var result = _examplePromotion.PromoteApproved([entry]);
+            _promotedExampleStore.Append(result.PromotedExamples);
+            var storedExamples = _promotedExampleStore.ReadAll();
+            FeedbackPromotionGrid.ItemsSource = storedExamples
+                .OrderByDescending(example => example.PromotedAt)
+                .Select(PromotedExampleDisplay.FromExample)
+                .ToList();
+            FeedbackPromotionSummaryText.Text = BuildPromotionSummary(result, storedExamples.Count);
+
+            var findings = result.Warnings
+                .Select(warning => new SafetyFinding("FEEDBACK_PROMOTION_WARNING", SafetySeverity.Low, warning))
+                .ToList();
+            findings.Add(new SafetyFinding(
+                "FEEDBACK_PROMOTION_RESULT",
+                SafetySeverity.Info,
+                $"Promoted={result.PromotedExamples.Count:N0}, Skipped={result.SkippedEntries.Count:N0}, Stored={storedExamples.Count:N0}, Mode={ExamplePromotion.PromotionModeName}"));
+            var auditFinding = AppendAuditLog(
+                "FeedbackPromotion",
+                nameof(ExamplePromotion),
+                $"{entry.FeedbackId}|{entry.TaskId}|{entry.FeedbackCode}|{entry.ReviewStatus}",
+                findings);
+            if (auditFinding is not null)
+            {
+                findings.Add(auditFinding);
+            }
+
+            ShowFindings("Feedback Promotion", findings);
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException or UnauthorizedAccessException or JsonException)
+        {
+            FeedbackPromotionSummaryText.Text = ex.Message;
+            var error = new SafetyFinding("FEEDBACK_PROMOTION_ERROR", SafetySeverity.High, ex.Message);
+            ShowFindings("Feedback Promotion", [error]);
+        }
     }
 
     private void OnRefreshHistory(object sender, RoutedEventArgs e)
@@ -347,6 +376,23 @@ public partial class MainWindow : Window
     private void OnRefreshSettings(object sender, RoutedEventArgs e)
     {
         RefreshSettings();
+    }
+
+    private void RefreshPromotedExamples()
+    {
+        try
+        {
+            var storedExamples = _promotedExampleStore.ReadAll();
+            FeedbackPromotionGrid.ItemsSource = storedExamples
+                .OrderByDescending(example => example.PromotedAt)
+                .Select(PromotedExampleDisplay.FromExample)
+                .ToList();
+            FeedbackPromotionSummaryText.Text = $"Stored examples: {storedExamples.Count:N0} / Store: config/promoted_examples.jsonl";
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+        {
+            FeedbackPromotionSummaryText.Text = ex.Message;
+        }
     }
 
     private void RefreshSettings()
@@ -514,11 +560,13 @@ public partial class MainWindow : Window
         return sb.ToString();
     }
 
-    private static string BuildPromotionSummary(ExamplePromotionResult result)
+    private static string BuildPromotionSummary(ExamplePromotionResult result, int storedCount)
     {
         var sb = new StringBuilder();
         sb.AppendLine($"Promoted examples: {result.PromotedExamples.Count:N0}");
         sb.AppendLine($"Skipped entries: {result.SkippedEntries.Count:N0}");
+        sb.AppendLine($"Stored examples: {storedCount:N0}");
+        sb.AppendLine("Store: config/promoted_examples.jsonl");
         foreach (var example in result.PromotedExamples)
         {
             sb.AppendLine($"- {example.ExampleId} / {example.PromotionMode} / {example.ReviewStatus}");
@@ -798,6 +846,26 @@ public partial class MainWindow : Window
         public static SettingsRowDisplay FromRow(SecuritySettingRow row)
         {
             return new SettingsRowDisplay(row.Section, row.Name, row.Value, row.Meaning);
+        }
+    }
+
+    private sealed record PromotedExampleDisplay(
+        string ExampleId,
+        string FeedbackId,
+        string TaskId,
+        string ReviewStatus,
+        string PromotionMode,
+        string PromotedAtText)
+    {
+        public static PromotedExampleDisplay FromExample(PromotedExample example)
+        {
+            return new PromotedExampleDisplay(
+                example.ExampleId,
+                example.FeedbackId,
+                example.TaskId,
+                example.ReviewStatus,
+                example.PromotionMode,
+                example.PromotedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"));
         }
     }
 
