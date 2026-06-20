@@ -41,6 +41,14 @@ bool Throws<TException>(Action action)
     }
 }
 
+string ReadZipEntryText(ZipArchive archive, string entryName)
+{
+    var entry = archive.GetEntry(entryName) ?? throw new InvalidDataException($"ZIP entry not found: {entryName}");
+    using var stream = entry.Open();
+    using var reader = new StreamReader(stream);
+    return reader.ReadToEnd();
+}
+
 var loadedRuleSet = RuleLoader.LoadDefault();
 AssertTrue(!loadedRuleSet.UsedFallback, "RuleLoader should load repo rules");
 AssertTrue(loadedRuleSet.RuleVersion.StartsWith("ruleset-", StringComparison.Ordinal) && loadedRuleSet.RuleVersion.Length == 20, "RuleLoader should produce deterministic ruleset version");
@@ -489,6 +497,20 @@ foreach (var (header, tabName) in expectedTabNames)
 
 AssertTrue(!mainWindowCode.Contains("MainTabs.SelectedIndex", StringComparison.Ordinal), "UI navigation should not depend on TabControl indexes");
 AssertTrue(mainWindowCode.Contains("MainTabs.SelectedItem = tab;", StringComparison.Ordinal), "UI navigation should select stable TabItem instances");
+AssertTrue(!mainWindowCode.Contains("1.1m", StringComparison.Ordinal), "WP-01 should remove synthetic 1.1x limit formula from UI code");
+AssertTrue(!mainWindowCode.Contains("PROFILE_TOTAL", StringComparison.Ordinal), "WP-01 should not emit aggregate synthetic limit rows");
+AssertTrue(mainWindowCode.Contains("LIMIT_DATA_REQUIRED", StringComparison.Ordinal), "WP-01 should emit LIMIT_DATA_REQUIRED when real limit data is missing");
+AssertTrue(mainWindowCode.Contains("DEMO_ONLY", StringComparison.Ordinal), "WP-01 should mark sample/demo report flows as DEMO_ONLY");
+var buildUiLimitRowsMarker = "private static IReadOnlyList<ExcelReportLimitRow> BuildUiLimitRows()";
+var buildUiLimitRowsStart = mainWindowCode.IndexOf(buildUiLimitRowsMarker, StringComparison.Ordinal);
+var buildUiLimitRowsEnd = buildUiLimitRowsStart < 0
+    ? -1
+    : mainWindowCode.IndexOf("\n    private static IReadOnlyList<SafetyFinding> BuildUiLimitFindings", buildUiLimitRowsStart + buildUiLimitRowsMarker.Length, StringComparison.Ordinal);
+var buildUiLimitRowsBody = buildUiLimitRowsStart < 0
+    ? string.Empty
+    : mainWindowCode[buildUiLimitRowsStart..(buildUiLimitRowsEnd < 0 ? mainWindowCode.Length : buildUiLimitRowsEnd)];
+AssertTrue(buildUiLimitRowsBody.Contains("Array.Empty<ExcelReportLimitRow>()", StringComparison.Ordinal), "WP-01 should return no limit rows when no real limit source is present");
+AssertTrue(!buildUiLimitRowsBody.Contains("new ExcelReportLimitRow", StringComparison.Ordinal), "WP-01 should not synthesize ExcelReportLimitRow values");
 var retiredStubCodes = new[]
 {
     "DASHBOARD_MVP_STATUS",
@@ -642,6 +664,39 @@ using (var reportArchive = ZipFile.OpenRead(reportResult.ReportPath))
     AssertTrue(reportArchive.GetEntry("xl/_rels/workbook.xml.rels") is not null, "Excel report xlsx should include workbook relationships");
     AssertTrue(reportArchive.GetEntry("xl/styles.xml") is not null, "Excel report xlsx should include styles part");
     AssertTrue(reportArchive.GetEntry("xl/worksheets/sheet10.xml") is not null, "Excel report xlsx should include tenth worksheet");
+}
+
+var limitRequiredFinding = new SafetyFinding(
+    "LIMIT_DATA_REQUIRED",
+    SafetySeverity.High,
+    "실제 한도 데이터가 필요합니다. 데모 합성 한도는 생성하거나 사용하지 않습니다.");
+var demoOnlyFinding = new SafetyFinding(
+    "DEMO_ONLY",
+    SafetySeverity.Medium,
+    "샘플/데모 데이터 기반 리포트입니다.");
+var noSyntheticLimitReportPath = Path.Combine("reports", "smoke_wp_01_no_synthetic_limit.xlsx");
+if (File.Exists(noSyntheticLimitReportPath))
+{
+    File.Delete(noSyntheticLimitReportPath);
+}
+
+var noSyntheticLimitReport = reportBuilder.BuildReport(new ExcelReportRequest(
+    "smoke_wp_01_no_synthetic_limit",
+    exposureProfile,
+    [],
+    [limitRequiredFinding, demoOnlyFinding],
+    reportSql,
+    "NoModelMode report commentary",
+    "user-smoke"));
+using (var noSyntheticArchive = ZipFile.OpenRead(noSyntheticLimitReport.ReportPath))
+{
+    var validationSheet = ReadZipEntryText(noSyntheticArchive, "xl/worksheets/sheet4.xml");
+    var limitSheet = ReadZipEntryText(noSyntheticArchive, "xl/worksheets/sheet6.xml");
+    var exceptionSheet = ReadZipEntryText(noSyntheticArchive, "xl/worksheets/sheet7.xml");
+    AssertTrue(validationSheet.Contains("LIMIT_DATA_REQUIRED", StringComparison.Ordinal), "WP-01 report validation should include LIMIT_DATA_REQUIRED finding");
+    AssertTrue(validationSheet.Contains("DEMO_ONLY", StringComparison.Ordinal), "WP-01 report validation should include DEMO_ONLY finding");
+    AssertTrue(limitSheet.Contains("NO_LIMIT_ROW", StringComparison.Ordinal) && limitSheet.Contains("NO_DATA", StringComparison.Ordinal), "WP-01 report should not create synthetic limit rows");
+    AssertTrue(exceptionSheet.Contains("LIMIT_DATA_REQUIRED", StringComparison.Ordinal), "WP-01 report exception list should surface missing real limit data");
 }
 
 var excelReportLogText = File.ReadAllText(excelReportLogPath);
