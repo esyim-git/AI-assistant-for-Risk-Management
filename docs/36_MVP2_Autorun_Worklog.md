@@ -9,11 +9,11 @@
 
 > Claude는 복귀 시 **이 블록만으로** 현재 상태·다음 작업을 파악할 수 있어야 한다.
 
-- **현재 상태(1줄)**: M2-01/02/03/05/06 구현 완료. M2-04 Excel 2021 리포트는 DM-03 확정으로 unblock되어 `feature/mvp2-m2-04-excel-report`에서 구현 중.
-- **develop 최신 commit**: `c4c76cb48bad054d42b4ad2ef448be6827f948fc`
-- **DONE (검증됨)**: P0-1 develop/main fast-forward sync; P0-2 release/v0.3.0 변경 반영; P0-3 `.gitignore` `*.zip` 추가; M2-01 NoModelMode; M2-02 DraftPipeline; M2-03 KbSearch; M2-05 ExamplePromotion; M2-06 UI 연동
-- **진행 중이던 항목 / 중단 지점**: M2-04 구현 중. 방식은 `System.IO.Compression` + `templates/report` XML 템플릿 치환, NuGet 0, Interop/OpenXML SDK 금지.
-- **NEXT UP (Claude가 바로 집을 작업)**: M2-04 xlsx report builder 구현 + SmokeTest + Gate A + CI 확인
+- **현재 상태(1줄)**: MVP-2 코어 M2-01~M2-06 구현 완료. M2-04 Excel 2021 리포트는 DM-03 확정 방식(인박스 xlsx, NuGet 0)으로 완료.
+- **develop 최신 code commit**: `46108dc1e3a6f7f0ea3c6fc7e5a2a8e3959498c7`
+- **DONE (검증됨)**: P0-1 develop/main fast-forward sync; P0-2 release/v0.3.0 변경 반영; P0-3 `.gitignore` `*.zip` 추가; M2-01 NoModelMode; M2-02 DraftPipeline; M2-03 KbSearch; M2-04 Excel report; M2-05 ExamplePromotion; M2-06 UI 연동
+- **진행 중이던 항목 / 중단 지점**: _없음_
+- **NEXT UP (Claude가 바로 집을 작업)**: develop CI 확인 후 main 승격 PR 또는 release packaging rehearsal
 - **BLOCKED 개수 / 핵심**: _0_
 - **재현 검증**: `git fetch origin develop && git switch develop && dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI.SmokeTests`
 - **⚠️ Claude 확인 요망(자동결정/승격대기)**: _-_
@@ -49,7 +49,7 @@
 | M2-03 | 규정/NCR catalog 검색 | DONE | `803b5e049da45d3710da2e3b96bd4f73fae0bbf6` | 152 PASS | 공개 catalog만 |
 | M2-05 | 승인형 피드백 예제 승격 | DONE | `d651d8b048765de02ff7d5c9d2b51d7dd78491d0` | 158 PASS | 재학습 아님 |
 | M2-06 | UI 연동 + SmokeTest 확장 | DONE | `7b52aa29d3999a4295ac6189c4ea6cae3cb87c13` | 162 PASS | |
-| M2-04 | Excel 2021 리포트 | WIP | `feature/mvp2-m2-04-excel-report` | - | DM-03 확정: 인박스 xlsx, `System.IO.Compression`, `templates/report`, NuGet 0 |
+| M2-04 | Excel 2021 리포트 | DONE | `46108dc1e3a6f7f0ea3c6fc7e5a2a8e3959498c7` | 180 PASS | DM-03 확정: 인박스 xlsx, `System.IO.Compression`, `templates/report`, NuGet 0 |
 
 ### Phase 2 — 스트레치 (시간 여유 시)
 | ID | 항목 | 상태 | 커밋 | 비고 |
@@ -150,6 +150,15 @@ _(아직 없음)_
 - feature 검증: `feature/mvp2-m2-06-ui-integration` CI `build` success (`27838739866`)
 - develop 반영 커밋: `7b52aa29d3999a4295ac6189c4ea6cae3cb87c13`
 
+#### [M2-04] Excel 2021 report builder — DONE (2026-06-20T03:30:03Z)
+- 구현 요약: `System.IO.Compression`으로 xlsx ZIP package를 직접 생성하는 `ExcelReportBuilder`를 추가했다. `templates/report` XML 템플릿을 치환해 README/RAW_DATA/DATA_PROFILE/VALIDATION/SUMMARY/LIMIT_MONITORING/EXCEPTION_LIST/SQL_USED/CHANGE_LOG/AI_COMMENTARY 10개 시트를 만들고, WPF Report 탭에서 `reports/` 산출을 호출할 수 있게 했다.
+- 변경 파일: `src/RiskManagementAI.Core/Report/ExcelReportBuilder.cs`, `templates/report/*`, `src/RiskManagementAI.App/MainWindow.xaml`, `src/RiskManagementAI.App/MainWindow.xaml.cs`, `tests/RiskManagementAI.SmokeTests/Program.cs`, `docs/33_MVP2_Backlog.md`, `docs/36_MVP2_Autorun_Worklog.md`
+- build: GitHub Actions 성공(0 warnings / 0 errors; 로컬 PC는 .NET SDK 미설치로 CI 검증 사용) / SmokeTest: 180 PASS
+- 보안 게이트 A: 0건(기존 CLAUDE/build 금지어 설명 문구 false positive만 확인) / NuGet: 없음
+- 결정/가정: 사용자 확정 DM-03 적용. NuGet 0, Interop 금지, OpenXML SDK 미도입. 산출 수식은 `Excel2021FunctionChecker`로 검사하고, 파일 쓰기는 `reports/` 하위만 허용하며, audit log는 hash-only로 기록한다. 풍부한 서식은 본 MVP 범위에 필요하지 않다고 판단.
+- feature 검증: `feature/mvp2-m2-04-excel-report` CI `build` success (`27858809259`)
+- develop 반영 커밋: `46108dc1e3a6f7f0ea3c6fc7e5a2a8e3959498c7`
+
 ## 6. 하트비트 로그 (≈1h 또는 항목 전환마다)
 
 <!-- [UTC] 진행 요약 / 현재 항목 / 다음 항목 -->
@@ -171,6 +180,8 @@ _(아직 없음)_
 - [2026-06-19T17:02:29Z] M2-06 feature CI `build` success, SmokeTest 162 PASS / 현재 항목: develop squash commit 작성 / 다음 항목: M2-04 결정 확인
 - [2026-06-19T17:05:09Z] M2-06 develop CI `build` success, SmokeTest 162 PASS / 현재 항목: M2-04 결정 확인 / 다음 항목: BLOCKED 보고
 - [2026-06-20T03:20:10Z] DM-03 사용자 확정으로 M2-04 unblock / 현재 항목: ExcelReportBuilder 구현 / 다음 항목: SmokeTest + Gate A + CI
+- [2026-06-20T03:28:14Z] M2-04 feature CI `build` success, SmokeTest 180 PASS / 현재 항목: develop squash commit 작성 / 다음 항목: docs/36 DONE 갱신 + develop CI
+- [2026-06-20T03:30:03Z] M2-04 develop squash commit 작성(`46108dc`) / 현재 항목: docs/36 DONE 갱신 / 다음 항목: develop push + CI 확인
 
 ## 7. Claude 재개 체크리스트
 
