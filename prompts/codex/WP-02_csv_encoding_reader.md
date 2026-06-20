@@ -20,6 +20,11 @@ dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI
 - 3개 기존 파서를 공통 리더로 위임(동작 동일성 유지).
 - 더미 CP949 샘플 추가(`samples/dummy_data/*_cp949.csv`).
 
+## 권장 순서 (a → b, 각각 독립 머지 가능)
+> docs/41 §1: WP PR은 **자기 DoD + 게이트 A + 자기 테스트**만 충족하면 머지. 한 번에 다 하지 말 것.
+1. **WP-02a (먼저)**: `CsvReader`/`CsvTable` 신설 + **UTF-8(BOM/무BOM)** + 3파서 수렴. **매핑표 불필요** → 즉시 가능·저위험. 여기서 일단 PR 가능.
+2. **WP-02b (다음)**: CP949(UHC) 디코더 추가. 아래 **매핑표 조달**이 선행.
+
 ## Public Interface
 `CsvTable CsvReader.Read(string path, CsvEncoding encoding = CsvEncoding.Auto)`
 
@@ -29,8 +34,16 @@ dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI
 - Auto: BOM이면 UTF-8, 아니면 결정적 규칙(예: CP949 디코딩 후 U+FFFD 발생 시 UTF-8 재시도)으로 선택하고 **선택 결과를 메타/finding으로 노출**.
 - 경로 가드 유지, 외부 호출 0.
 
+## 매핑표 조달 (WP-02b, dev-time 1회) — 손수 작성 금지
+- UHC 전체 매핑표(~17K double-byte 엔트리)는 **손으로 작성/추정하지 말 것**(오류·부분집합 위험). **공개 표준 원본을 dev-time에 1회 받아 repo에 vendoring**한다(런타임 의존성 아님 — 적재된 리소스만 사용, 오프라인 유지).
+  - 출처(택1): Unicode Consortium `CP949.TXT`, 또는 WHATWG Encoding `index-euc-kr.txt`(= 통합 Windows-949/UHC). **EUC-KR/KS X 1001 부분집합 금지**.
+  - 저장: 예) `src/RiskManagementAI.Core/Data/Resources/windows949.mapping`(또는 `.txt`). **출처 URL·표준명·취득일·SHA256**를 사이드카(`.provenance`/주석)로 기록. 디코더가 로드 시 **Hash 검증**.
+  - 빌드 포함: csproj `EmbeddedResource`/`Content`로 포함하되 **PackageReference 추가 금지**(인박스 IO만).
+- ⚠️ **Codex 환경에 네트워크가 없어 원본 표를 받을 수 없으면 STOP·BLOCKED 보고**(부분 표로 진행 금지). 이 경우 WP-02a만 머지하고 WP-02b는 매핑표 제공 후 재개.
+
 ## ⚠️ STOP 가능 지점
 - **패키지를 추가하려는 순간 STOP**. CP949는 인박스/패키지가 아니라 **내장 매핑표 디코더(경로 A)**로만 구현(docs/39 WP-02b · docs/40 ADR-004). 경로 B(`System.Text.Encoding.CodePages`)는 **기각**됨 — 도입 금지.
+- **부분/추정 매핑표로 진행 금지**(위 조달 규칙). UHC 전체 표 없이는 WP-02b STOP.
 
 ## 테스트(필수)
 CP949 한글 컬럼/값 라운드트립(**EUC-KR 범위 밖 UHC 확장 음절 포함 필수**) · UTF-8(BOM/무BOM) · Auto 감지 결과 검증 · **매핑표 Hash 검증** · 3 파서 수렴 후 기존 동작 유지.
