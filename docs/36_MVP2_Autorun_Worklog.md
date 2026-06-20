@@ -13,7 +13,7 @@
 - **develop 최신 code commit**: `46108dc1e3a6f7f0ea3c6fc7e5a2a8e3959498c7`
 - **DONE (검증됨)**: P0-1 develop/main fast-forward sync; P0-2 release/v0.3.0 변경 반영; P0-3 `.gitignore` `*.zip` 추가; M2-01 NoModelMode; M2-02 DraftPipeline; M2-03 KbSearch; M2-04 Excel report; M2-05 ExamplePromotion; M2-06 UI 연동
 - **진행 중이던 항목 / 중단 지점**: _없음_
-- **NEXT UP (Claude가 바로 집을 작업)**: develop CI 확인 후 main 승격 PR 또는 release packaging rehearsal
+- **NEXT UP (Claude가 바로 집을 작업)**: main 승격 PR 또는 release packaging rehearsal
 - **BLOCKED 개수 / 핵심**: _0_
 - **재현 검증**: `git fetch origin develop && git switch develop && dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI.SmokeTests`
 - **⚠️ Claude 확인 요망(자동결정/승격대기)**: _-_
@@ -157,6 +157,7 @@ _(아직 없음)_
 - 보안 게이트 A: 0건(기존 CLAUDE/build 금지어 설명 문구 false positive만 확인) / NuGet: 없음
 - 결정/가정: 사용자 확정 DM-03 적용. NuGet 0, Interop 금지, OpenXML SDK 미도입. 산출 수식은 `Excel2021FunctionChecker`로 검사하고, 파일 쓰기는 `reports/` 하위만 허용하며, audit log는 hash-only로 기록한다. 풍부한 서식은 본 MVP 범위에 필요하지 않다고 판단.
 - feature 검증: `feature/mvp2-m2-04-excel-report` CI `build` success (`27858809259`)
+- develop 검증: `develop` CI `build` success (`27858904182`, 180 PASS / 0 FAIL, 0 warnings / 0 errors)
 - develop 반영 커밋: `46108dc1e3a6f7f0ea3c6fc7e5a2a8e3959498c7`
 
 ## 6. 하트비트 로그 (≈1h 또는 항목 전환마다)
@@ -182,6 +183,7 @@ _(아직 없음)_
 - [2026-06-20T03:20:10Z] DM-03 사용자 확정으로 M2-04 unblock / 현재 항목: ExcelReportBuilder 구현 / 다음 항목: SmokeTest + Gate A + CI
 - [2026-06-20T03:28:14Z] M2-04 feature CI `build` success, SmokeTest 180 PASS / 현재 항목: develop squash commit 작성 / 다음 항목: docs/36 DONE 갱신 + develop CI
 - [2026-06-20T03:30:03Z] M2-04 develop squash commit 작성(`46108dc`) / 현재 항목: docs/36 DONE 갱신 / 다음 항목: develop push + CI 확인
+- [2026-06-20T03:33:17Z] M2-04 develop CI `build` success, SmokeTest 180 PASS / 현재 항목: MVP-2 코어 완료 / 다음 항목: main 승격 PR 또는 release packaging rehearsal
 
 ## 7. Claude 재개 체크리스트
 
