@@ -1,5 +1,5 @@
 using System.Globalization;
-using System.Text;
+using RiskManagementAI.Core.Data;
 using RiskManagementAI.Core.Safety;
 
 namespace RiskManagementAI.Core.Risk;
@@ -148,116 +148,16 @@ public sealed class LimitMonitor
 
     private static IReadOnlyList<CsvRow> ReadCsv(string csvPath)
     {
-        if (string.IsNullOrWhiteSpace(csvPath))
+        var table = CsvReader.Read(csvPath);
+        foreach (var row in table.Rows)
         {
-            throw new ArgumentException("CSV 파일 경로가 비어 있습니다.", nameof(csvPath));
-        }
-
-        if (!string.Equals(Path.GetExtension(csvPath), ".csv", StringComparison.OrdinalIgnoreCase))
-        {
-            throw new ArgumentException("한도 모니터링은 CSV 파일만 지원합니다.", nameof(csvPath));
-        }
-
-        if (!File.Exists(csvPath))
-        {
-            throw new FileNotFoundException("CSV 파일을 찾을 수 없습니다.", csvPath);
-        }
-
-        using var reader = new StreamReader(csvPath, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-        var headerLine = reader.ReadLine();
-        if (headerLine is null)
-        {
-            throw new InvalidDataException("CSV 파일에 헤더가 없습니다.");
-        }
-
-        var columns = ParseCsvLine(headerLine)
-            .Select((column, index) => index == 0 ? column.TrimStart('\uFEFF').Trim() : column.Trim())
-            .ToArray();
-        if (columns.Length == 0 || columns.Any(string.IsNullOrWhiteSpace))
-        {
-            throw new InvalidDataException("CSV 헤더에 빈 컬럼명이 있습니다.");
-        }
-
-        var rows = new List<CsvRow>();
-        var lineNumber = 1;
-        while (reader.ReadLine() is { } line)
-        {
-            lineNumber++;
-            if (string.IsNullOrWhiteSpace(line))
+            if (row.RawFieldCount != table.Columns.Count)
             {
-                continue;
+                throw new InvalidDataException($"Line {row.LineNumber}: 컬럼 수가 헤더와 다릅니다. expected={table.Columns.Count}, actual={row.RawFieldCount}");
             }
-
-            var values = ParseCsvLine(line);
-            if (values.Count != columns.Length)
-            {
-                throw new InvalidDataException($"Line {lineNumber}: 컬럼 수가 헤더와 다릅니다. expected={columns.Length}, actual={values.Count}");
-            }
-
-            rows.Add(new CsvRow(columns, values));
         }
 
-        return rows;
-    }
-
-    private static IReadOnlyList<string> ParseCsvLine(string line)
-    {
-        var values = new List<string>();
-        var current = new StringBuilder();
-        var inQuotes = false;
-
-        for (var index = 0; index < line.Length; index++)
-        {
-            var ch = line[index];
-            if (ch == '"')
-            {
-                if (inQuotes && index + 1 < line.Length && line[index + 1] == '"')
-                {
-                    current.Append('"');
-                    index++;
-                }
-                else
-                {
-                    inQuotes = !inQuotes;
-                }
-
-                continue;
-            }
-
-            if (ch == ',' && !inQuotes)
-            {
-                values.Add(current.ToString());
-                current.Clear();
-                continue;
-            }
-
-            current.Append(ch);
-        }
-
-        values.Add(current.ToString());
-        return values;
-    }
-
-    private sealed class CsvRow
-    {
-        private readonly Dictionary<string, string> values;
-
-        public CsvRow(IReadOnlyList<string> columns, IReadOnlyList<string> rowValues)
-        {
-            values = columns
-                .Select((column, index) => new { column, value = rowValues[index].Trim() })
-                .ToDictionary(item => item.column, item => item.value, StringComparer.OrdinalIgnoreCase);
-        }
-
-        public string GetValue(string columnName)
-        {
-            if (values.TryGetValue(columnName, out var value))
-            {
-                return value;
-            }
-
-            throw new InvalidDataException($"{columnName} 컬럼이 없습니다.");
-        }
+        return table.Rows;
     }
 }
 

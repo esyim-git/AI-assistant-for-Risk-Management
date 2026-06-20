@@ -1,4 +1,4 @@
-using System.Globalization;
+using RiskManagementAI.Core.Data;
 
 namespace RiskManagementAI.Core.Kb;
 
@@ -52,15 +52,8 @@ public sealed class RegulationCatalog
             throw new FileNotFoundException("Regulation catalog file was not found.", path);
         }
 
-        using var reader = new StreamReader(path);
-        var headerLine = reader.ReadLine();
-        if (string.IsNullOrWhiteSpace(headerLine))
-        {
-            throw new InvalidDataException("Regulation catalog header is empty.");
-        }
-
-        var headers = SplitCsvLine(headerLine);
-        var headerMap = headers
+        var table = CsvReader.Read(path);
+        var headerMap = table.Columns
             .Select((name, index) => new { Name = name.Trim(), Index = index })
             .ToDictionary(item => item.Name, item => item.Index, StringComparer.OrdinalIgnoreCase);
         foreach (var requiredColumn in RequiredColumns)
@@ -72,25 +65,24 @@ public sealed class RegulationCatalog
         }
 
         var entries = new List<RegulationCatalogEntry>();
-        while (reader.ReadLine() is { } line)
+        foreach (var row in table.Rows)
         {
-            if (string.IsNullOrWhiteSpace(line))
+            if (row.RawFieldCount != table.Columns.Count)
             {
-                continue;
+                throw new InvalidDataException($"Line {row.LineNumber}: Regulation catalog column count mismatch. expected={table.Columns.Count}, actual={row.RawFieldCount}");
             }
 
-            var fields = SplitCsvLine(line);
             entries.Add(new RegulationCatalogEntry(
-                GetField(fields, headerMap["source_id"]),
-                GetField(fields, headerMap["category"]),
-                GetField(fields, headerMap["title"]),
-                GetField(fields, headerMap["source_org"]),
-                GetField(fields, headerMap["source_type"]),
-                GetField(fields, headerMap["status"]),
-                GetField(fields, headerMap["note"])));
+                row.GetValue("source_id"),
+                row.GetValue("category"),
+                row.GetValue("title"),
+                row.GetValue("source_org"),
+                row.GetValue("source_type"),
+                row.GetValue("status"),
+                row.GetValue("note")));
         }
 
-        return new RegulationCatalog(Path.GetFullPath(path), entries);
+        return new RegulationCatalog(table.SourcePath, entries);
     }
 
     private static string ResolveDefaultPath()
@@ -116,44 +108,4 @@ public sealed class RegulationCatalog
         return DefaultRelativePath;
     }
 
-    private static string GetField(IReadOnlyList<string> fields, int index)
-    {
-        return index < fields.Count ? fields[index].Trim() : string.Empty;
-    }
-
-    private static IReadOnlyList<string> SplitCsvLine(string line)
-    {
-        var fields = new List<string>();
-        var current = new StringWriter(CultureInfo.InvariantCulture);
-        var inQuotes = false;
-
-        for (var index = 0; index < line.Length; index++)
-        {
-            var ch = line[index];
-            if (ch == '"')
-            {
-                if (inQuotes && index + 1 < line.Length && line[index + 1] == '"')
-                {
-                    current.Write('"');
-                    index++;
-                }
-                else
-                {
-                    inQuotes = !inQuotes;
-                }
-            }
-            else if (ch == ',' && !inQuotes)
-            {
-                fields.Add(current.ToString());
-                current.GetStringBuilder().Clear();
-            }
-            else
-            {
-                current.Write(ch);
-            }
-        }
-
-        fields.Add(current.ToString());
-        return fields;
-    }
 }

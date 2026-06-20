@@ -7,23 +7,23 @@
 ---
 
 ## ★ R1 Resume Brief (Codex 갱신 · Claude 인수)
-- **현재 상태**: WP-01 합성 한도 차단/DEMO_ONLY 구현 완료. v0.4.0 이후 R1 진행 중.
-- **NEXT UP**: **WP-02**(인코딩 인식 CSV Reader: CP949/UTF-8) → WP-03 → WP-04 → WP-05 → WP-06 → WP-07.
+- **현재 상태**: WP-01 합성 한도 차단/DEMO_ONLY 구현 완료. WP-02 인코딩 인식 CSV Reader(CP949/UTF-8) 구현 완료.
+- **NEXT UP**: **WP-03**(XLSX 입력 Reader, 인박스/NuGet 0) → WP-04 → WP-05 → WP-06 → WP-07.
 - **BLOCKED**: 0.
-- **재현 검증**: `git fetch origin main && git switch main && dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI.SmokeTests` (268+ PASS 유지).
+- **재현 검증**: `git fetch origin main && git switch main && dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI.SmokeTests` (296+ PASS 유지).
 - **⚠️ 확인 요망**: WP-04 컬럼 매핑 기본 키/규칙은 Data Spec Gate(docs/41) 검토 대상.
 
 ## R1 진행 원장 (Codex 갱신)
 | WP | 목표 | 상태 | PR/커밋 | SmokeTest | 비고 |
 |---|---|---|---|---|---|
 | WP-01 | 합성 한도 차단 / DEMO_ONLY | DONE | `feature/wp-01-demo-limit-guard` | 278 PASS / 0 FAIL | 합성 1.1x 산식 제거, `LIMIT_DATA_REQUIRED`/`DEMO_ONLY` 회귀 고정 |
-| WP-02 | 인코딩 인식 CSV Reader(CP949/UTF-8) | TODO | - | - | RR-02 |
+| WP-02 | 인코딩 인식 CSV Reader(CP949/UTF-8) | DONE | `feature/wp-02-csv-encoding` | 296 PASS / 0 FAIL | `CsvReader` 공통화, CP949 Path A(UHC 전체 매핑표·SHA256 검증), UTF-8 BOM/무BOM |
 | WP-03 | XLSX 입력 Reader(인박스, NuGet 0) | TODO | - | - | RR-08 |
 | WP-04 | Risk Column Mapping(설정·승인형) | TODO | - | - | Data Gate |
 | WP-05 | 실 Exposure-Limit Join + 공통 AnalysisResult | TODO | - | - | RR-03 |
 | WP-06 | 대사·예외검증 9종 | TODO | - | - | RR-04 |
 | WP-07 | Dashboard·Report 공통화 | TODO | - | - | RR-03 |
-| WP-08 | 공통 CSV 파서 통합(3중 중복 제거) | TODO | - | - | WP-02에 흡수 가능 |
+| WP-08 | 공통 CSV 파서 통합(3중 중복 제거) | DONE | `feature/wp-02-csv-encoding` | 296 PASS / 0 FAIL | WP-02에 흡수: DataProfiler/LimitMonitor/RegulationCatalog 공통 `CsvReader` 사용 |
 | WP-09 | 전일 대비 데이터모델(설계) | TODO | - | - | R2 구현 |
 
 ---
@@ -65,6 +65,7 @@
 - **완료조건**: 3 리더가 공통 CsvReader 사용, CP949(UHC 전체) 한글 정상, NuGet 0 유지.
 - **Branch**: `feature/wp-02-csv-encoding` · **Commit**: `feat: add encoding-aware CSV reader CP949/UTF-8 (WP-02)`
 - **Claude Review Checklist**: WP-02a UTF-8 공통 리더 NuGet 0 / 자동감지 결정성 / 3 파서 수렴. **WP-02b**: NuGet 0 유지(패키지 미추가) / **Windows-949 UHC 전체 매핑표**(EUC-KR 부분집합 아님) / 매핑표 Hash / **확장 음절 라운드트립** / Gate A.
+- **Codex 결과(2026-06-20)**: `Core/Data/CsvReader.cs`, `CsvTable`, `CsvRow`, `CsvReadMetadata`, `CsvEncoding`, `Cp949Decoder` 추가. `DataProfiler`/`LimitMonitor`/`RegulationCatalog`는 공통 reader로 수렴. CP949는 repo 내장 `Data/Resources/cp949-uhc-map.txt`(17,236 entries, SHA256 `7af60dbf6153362b4e7c65eaac24c233209fd1b854e182b09bc9601ec531851c`)를 런타임 검증 후 사용. 더미 CP949 샘플(`samples/dummy_data/*_cp949.csv`)과 UHC 확장 음절 `힣` 라운드트립 회귀 추가. build 0/0, SmokeTest 296 PASS / 0 FAIL, NuGet 0 유지.
 
 ## WP-03. XLSX 입력 Reader (인박스, NuGet 0) (RR-08)
 
