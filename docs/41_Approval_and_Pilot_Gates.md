@@ -6,7 +6,7 @@
 ---
 
 ## 1. Data Spec Gate (R1·R2)
-데이터 정확성 확보를 위한 게이트. **R1 WP-01~07 병합 전** 충족.
+**릴리스-완료(R1 전체 종료 / R2 진입 전) 게이트**다 — 개별 WP PR의 병합 조건이 아니다. **각 WP PR은 자기 DoD + 게이트 A + 자기 테스트만** 충족하면 머지한다(WP-01이 WP-02~07 항목까지 만족할 필요 없음; big-bang 금지). 아래는 **R1 마감 시** 전체 충족 항목.
 - [ ] 합성/Demo 한도 산식 0개 (WP-01) — 실 한도 없으면 `LIMIT_DATA_REQUIRED`/`DEMO_ONLY`
 - [ ] Join Key(BASE_DT·PORTFOLIO_ID·RISK_FACTOR) + **승인된 Column Mapping**(WP-04)
 - [ ] 상태셋 `NORMAL/WARNING/BREACH/NO_LIMIT/INVALID_LIMIT/MAPPING_ERROR` 정의·테스트

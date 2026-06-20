@@ -53,13 +53,17 @@
 - **읽을문서**: `docs/38`, `docs/03_DataCatalog.md`.
 - **수정예상파일**: `Core/Data/CsvReader.cs`(신규), `Core/Data/CsvEncoding.cs`(신규), `DataProfiler.cs`/`Risk/LimitMonitor.cs`/`Kb/RegulationCatalog.cs`(파서 위임), tests, 더미 CP949 샘플(`samples/dummy_data/*_cp949.csv`).
 - **Public Interface**: `CsvTable CsvReader.Read(string path, CsvEncoding encoding = CsvEncoding.Auto)`; `enum CsvEncoding { Auto, Utf8, Cp949 }`.
-- **구현세부**: .NET `System.Text.Encoding.GetEncoding(949)` 사용(코드페이지 949 = CP949, 인박스, NuGet 0). Auto: BOM 있으면 UTF-8, 없으면 CP949 시도 후 치환문자(U+FFFD) 발생 시 UTF-8 재시도(또는 반대) — 결정적 규칙으로 문서화. 인코딩 결정 결과를 finding/메타로 노출.
+- **구현세부**:
+  - **WP-02a (UTF-8 공통 리더, READY)**: `CsvReader`/`CsvTable` 신설 + UTF-8(BOM/무BOM) + 3개 파서 수렴. 인코딩 판별 결과를 finding/메타로 노출.
+  - **WP-02b (CP949, 결정 게이트 = DATA_SPEC_REQUIRED)**: ⚠️ **정정** — net8.0에서 `Encoding.GetEncoding(949)`는 **인박스 아님**. CP949는 `CodePagesEncodingProvider`가 필요하고 이는 **`System.Text.Encoding.CodePages` NuGet 패키지**(MS 1st-party)다 → "NuGet 0" 불변식과 충돌. **두 경로 중 승인 결정 필요**:
+    - (A·권장) **repo 내장 CP949/EUC-KR 디코더** — 공개 표준 매핑표(KS X 1001/EUC-KR)를 리소스로 내장한 자체 디코더. NuGet 0 유지(불변식 보존). 비용↑(매핑표 데이터·검증).
+    - (B) **`System.Text.Encoding.CodePages`(MS 1st-party) 승인** — 구현 쉬움. 단 "External NuGet: None" 깨짐 + 패키지 소스 재도입/벤더링 필요(오프라인 restore 영향). **사용자 승인 필요**(docs/41 Data Gate).
+  - **CP949 경로 미확정 시 구현 STOP**(WP-02a만 진행, WP-02b는 BLOCKED).
 - **보안조건**: 외부 라이브러리 0. 경로 가드(기존 readers 패턴). 외부 호출 0.
 - **테스트**: CP949로 저장한 한글 컬럼/값 라운드트립, UTF-8(BOM/무BOM) 라운드트립, 인코딩 자동감지 결과 검증.
 - **완료조건**: 3 리더가 공통 CsvReader 사용, CP949 한글 정상.
 - **Branch**: `feature/wp-02-csv-encoding` · **Commit**: `feat: add encoding-aware CSV reader CP949/UTF-8 (WP-02)`
-- **Claude Review Checklist**: NuGet 0(코드페이지 949는 인박스 — net8.0에서 `CodePagesEncodingProvider` 등록 필요 여부 확인) / 자동감지 규칙 결정성 / 3 파서 수렴 / 한글 라운드트립 테스트 / Gate A.
-  - ⚠️ **확인**: net8.0은 CP949에 `System.Text.Encoding.CodePages` 필요할 수 있음 — **이는 MS 1st-party 인박스 확장이나 별도 패키지**다. 패키지가 필요하면 **STOP·승인**(docs/41 Data Gate). 우선 `CodePagesEncodingProvider` 없이 가능한지 확인하고, 불가 시 BLOCKED 보고.
+- **Claude Review Checklist**: WP-02a UTF-8 공통 리더 NuGet 0 / 자동감지 결정성 / 3 파서 수렴 / 라운드트립 테스트 / Gate A. **WP-02b CP949는 (A) 내장 디코더 또는 (B) 패키지 승인 결정 전까지 BLOCKED**(`Encoding.GetEncoding(949)`를 NuGet 없이 호출 시 런타임 예외 — 임의 패키지 추가 금지).
 
 ## WP-03. XLSX 입력 Reader (인박스, NuGet 0) (RR-08)
 
@@ -69,9 +73,9 @@
 - **제외범위**: 수식 평가, 스타일, 다중시트 병합.
 - **수정예상파일**: `Core/Data/XlsxReader.cs`(신규), tests, 더미 `.xlsx` 입력 샘플.
 - **Public Interface**: `CsvTable XlsxReader.Read(string path, string? sheetName = null)`.
-- **구현세부**: `ZipArchive`로 `xl/worksheets/sheetN.xml` + `xl/sharedStrings.xml` 읽어 행/열 복원. 인라인 문자열·shared string·숫자 처리. 손상 zip/누락 part → `InvalidDataException`(UI에서 graceful).
+- **구현세부**: `ZipArchive`로 OOXML 파싱. **시트명 해석은 `xl/workbook.xml` + `xl/_rels/workbook.xml.rels` 관계를 통해** 한다(`sheetN.xml` 순번 ≠ 시트명/순서; 기존 writer `ExcelReportBuilder.cs` L183-196이 동일 매핑 생성). `xl/sharedStrings.xml`·inline string·숫자 처리. 손상 zip/누락 part → `InvalidDataException`(UI graceful).
 - **보안조건**: 외부 라이브러리 0. zip bomb 방지(엔트리 수·크기 상한). 외부 호출 0.
-- **테스트**: 정상 xlsx 파싱(헤더/값/한글), 손상 xlsx → 예외 graceful, 큰 시트 상한.
+- **테스트**: 정상 xlsx 파싱(헤더/값/한글), **이름지정 비-첫시트(리네임/재정렬) 정확 선택**, 손상 xlsx → 예외 graceful, 큰 시트 상한.
 - **완료조건**: xlsx 입력이 CSV와 동일 분석 파이프라인에 투입 가능.
 - **Branch**: `feature/wp-03-xlsx-input` · **Commit**: `feat: add in-box XLSX input reader (WP-03)`
 - **Claude Review Checklist**: NuGet 0 / zip 안전(상한) / 손상 graceful / 한글 / Gate A.
@@ -83,7 +87,7 @@
 - **작업범위**: `config/column_mapping.json`(논리명→물리컬럼) 로더 + 기본 매핑(현 상수와 동일) + 미매핑 검출. PolicyLoader 패턴(경로 가드·safe fallback).
 - **제외범위**: Join 로직(WP-05), 대사(WP-06).
 - **수정예상파일**: `Core/Mapping/ColumnMapping.cs`·`ColumnMappingLoader.cs`(신규), `config/column_mapping.json`(기본), tests.
-- **Public Interface**: `ColumnMapping ColumnMappingLoader.LoadDefault()`; `string ColumnMapping.Physical(LogicalColumn col)`; 미매핑 시 명시 예외/finding.
+- **Public Interface**: `ColumnMappingLoadResult ColumnMappingLoader.LoadDefault()` — **`PolicyLoader` 패턴대로 `{ ColumnMapping Mapping, bool UsedFallback, IReadOnlyList<string> Warnings }`** 반환(bare `ColumnMapping` 아님; 호출자·테스트·audit가 커스텀 매핑 로드 vs 기본 폴백을 식별 가능). `string ColumnMapping.Physical(LogicalColumn col)`; 미매핑 시 명시 예외/finding.
 - **구현세부**: 기본값 = 현재 상수. 파일 있으면 override(검증: 필수 논리컬럼 누락 시 fallback+경고). 매핑 변경은 **승인된 규칙**으로만(Data Gate). 경로 가드(`config/`만).
 - **보안조건**: `config/`만 읽기. 임의 경로 금지. 매핑에 민감정보 금지.
 - **테스트**: 기본 매핑=현 동작, 커스텀 매핑 적용, 필수 누락→fallback+경고.
