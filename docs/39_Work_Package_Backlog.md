@@ -10,7 +10,7 @@
 - **현재 상태**: WP-01 합성 한도 차단/DEMO_ONLY 구현 완료. WP-02 인코딩 인식 CSV Reader(CP949/UTF-8) 구현 완료. WP-03 XLSX 입력 Reader(인박스/NuGet 0) 구현 완료.
 - **NEXT UP**: **WP-04**(Risk Column Mapping, 설정·승인형) → WP-05 → WP-06 → WP-07.
 - **BLOCKED**: 0.
-- **재현 검증**: `git fetch origin main && git switch main && dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI.SmokeTests` (307+ PASS 유지).
+- **재현 검증**: `git fetch origin main && git switch main && dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI.SmokeTests` (308+ PASS 유지).
 - **⚠️ 확인 요망**: WP-04 컬럼 매핑 기본 키/규칙은 Data Spec Gate(docs/41) 검토 대상.
 
 ## R1 진행 원장 (Codex 갱신)
@@ -18,7 +18,7 @@
 |---|---|---|---|---|---|
 | WP-01 | 합성 한도 차단 / DEMO_ONLY | DONE | `feature/wp-01-demo-limit-guard` | 278 PASS / 0 FAIL | 합성 1.1x 산식 제거, `LIMIT_DATA_REQUIRED`/`DEMO_ONLY` 회귀 고정 |
 | WP-02 | 인코딩 인식 CSV Reader(CP949/UTF-8) | DONE | `feature/wp-02-csv-encoding` | 296 PASS / 0 FAIL | `CsvReader` 공통화, CP949 Path A(UHC 전체 매핑표·SHA256 검증), UTF-8 BOM/무BOM |
-| WP-03 | XLSX 입력 Reader(인박스, NuGet 0) | DONE | `feature/wp-03-xlsx-input` | 307 PASS / 0 FAIL | `XlsxReader` → `CsvTable`, workbook 관계 기반 시트 해석, zip 안전상한 |
+| WP-03 | XLSX 입력 Reader(인박스, NuGet 0) | DONE | `feature/wp-03-xlsx-input` | 308 PASS / 0 FAIL | `XlsxReader` → `CsvTable`, workbook 관계 기반 시트 해석, zip 안전상한 |
 | WP-04 | Risk Column Mapping(설정·승인형) | TODO | - | - | Data Gate |
 | WP-05 | 실 Exposure-Limit Join + 공통 AnalysisResult | TODO | - | - | RR-03 |
 | WP-06 | 대사·예외검증 9종 | TODO | - | - | RR-04 |
@@ -81,7 +81,7 @@
 - **완료조건**: xlsx 입력이 CSV와 동일 분석 파이프라인에 투입 가능.
 - **Branch**: `feature/wp-03-xlsx-input` · **Commit**: `feat: add in-box XLSX input reader (WP-03)`
 - **Claude Review Checklist**: NuGet 0 / zip 안전(상한) / 손상 graceful / 한글 / Gate A.
-- **Codex 결과(2026-06-21)**: `Core/Data/XlsxReader.cs` 추가. `ZipArchive` + OOXML XML 파싱만 사용(NuGet/OpenXML SDK/Interop 0). `xl/workbook.xml`의 sheet `r:id`와 `xl/_rels/workbook.xml.rels` 관계로 worksheet target을 해석하여 `sheetN.xml` 파일명 순번에 의존하지 않음. `sharedStrings.xml`·rich text·inline string·숫자 셀을 `CsvTable`로 변환. `DataProfiler.ProfileTable(CsvTable)` 추가로 XLSX→공통 테이블→프로파일링 경로 고정. 손상 파일, missing sheet, non-xlsx, row/column/zip size 안전상한 회귀 추가. build 0/0, SmokeTest 307 PASS / 0 FAIL, NuGet 0 유지.
+- **Codex 결과(2026-06-21)**: `Core/Data/XlsxReader.cs` 추가. `ZipArchive` + OOXML XML 파싱만 사용(NuGet/OpenXML SDK/Interop 0). `xl/workbook.xml`의 sheet `r:id`와 `xl/_rels/workbook.xml.rels` 관계로 worksheet target을 해석하여 `sheetN.xml` 파일명 순번에 의존하지 않음. `sharedStrings.xml`·rich text·inline string·숫자 셀을 `CsvTable`로 변환. `DataProfiler.ProfileTable(CsvTable)` 추가로 XLSX→공통 테이블→프로파일링 경로 고정. 손상 파일, missing sheet, non-xlsx, row/column/zip size 안전상한 회귀 추가. build 0/0, SmokeTest 308 PASS / 0 FAIL, NuGet 0 유지.
 
 ## WP-04. Risk Column Mapping (설정·승인형)
 
