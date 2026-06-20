@@ -6,16 +6,16 @@
 ---
 
 ## 1. Data Spec Gate (R1·R2)
-데이터 정확성 확보를 위한 게이트. **R1 WP-01~07 병합 전** 충족.
+**릴리스-완료(R1 전체 종료 / R2 진입 전) 게이트**다 — 개별 WP PR의 병합 조건이 아니다. **각 WP PR은 자기 DoD + 게이트 A + 자기 테스트만** 충족하면 머지한다(WP-01이 WP-02~07 항목까지 만족할 필요 없음; big-bang 금지). 아래는 **R1 마감 시** 전체 충족 항목.
 - [ ] 합성/Demo 한도 산식 0개 (WP-01) — 실 한도 없으면 `LIMIT_DATA_REQUIRED`/`DEMO_ONLY`
 - [ ] Join Key(BASE_DT·PORTFOLIO_ID·RISK_FACTOR) + **승인된 Column Mapping**(WP-04)
 - [ ] 상태셋 `NORMAL/WARNING/BREACH/NO_LIMIT/INVALID_LIMIT/MAPPING_ERROR` 정의·테스트
 - [ ] 대사 9종(미매핑·중복·기준일·통화·단위·음수/0한도·건수증폭·원천합계 대사) (WP-06)
 - [ ] **원천합계 = 분석합계 대사 PASS**(증폭/누락 0)
-- [ ] CP949/UTF-8/XLSX 입력 검증 (WP-02/03)
+- [ ] CP949/UTF-8/XLSX 입력 검증 (WP-02/03) — CP949는 **경로 A(내장 Windows-949/UHC 디코더)**, **EUC-KR 범위 밖 UHC 확장 음절 라운드트립 포함**
 - [ ] Dashboard·Report **동일 입력→동일 수치** (WP-07, 공통 AnalysisResult)
 - [ ] 기존 SmokeTest 유지 + 신규 회귀
-> 인코딩 코드페이지 확장(`System.Text.Encoding.CodePages`) 도입이 필요하면 여기서 **승인** 후에만.
+> CP949 결정(2026-06-20): **경로 A(repo 내장 Windows-949/UHC 디코더, NuGet 0)** 채택 — `System.Text.Encoding.CodePages` 패키지 **미도입**(불변식 유지). 향후 인코딩 코드페이지 확장 패키지가 필요하면 여기서 **승인** 후에만.
 
 ## 2. RAG / NCR Approval Gate (R3)
 공개 규정·NCR 적재 및 검색 도입 게이트. (`docs/17`·`docs/08`)

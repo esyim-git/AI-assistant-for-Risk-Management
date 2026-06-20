@@ -34,7 +34,7 @@
 - **상태**: 채택 (R1)
 - **맥락**: 현 리더 UTF-8 전용. 국내 금융 CSV(Golden6 export)는 **CP949** 다수, **XLSX** 입력 수요.
 - **결정**:
-  1. `CsvReader`가 **CP949/UTF-8** 지원(Auto 감지 규칙 결정적). CP949는 **코드페이지 949**(인박스). net8.0에서 `CodePagesEncodingProvider`(MS 1st-party `System.Text.Encoding.CodePages`)가 필요하면 **STOP·Data Gate 승인** 후 도입 검토(우선 미도입 경로 확인).
+  1. `CsvReader`가 **UTF-8**(BOM/무BOM) 지원 + Auto 감지(결정적). **CP949는 net8.0에서 인박스 아님** — `Encoding.GetEncoding(949)`는 `CodePagesEncodingProvider`(=`System.Text.Encoding.CodePages` NuGet 패키지)를 필요로 한다. **결정(2026-06-20): 경로 A 채택** — **repo 내장 자체 디코더 + 공개 표준 Windows-949(UHC/CP949) *전체* 매핑표 리소스**(NuGet 0 유지, 리소스 Hash 검증). 매핑표는 **EUC-KR/KS X 1001 부분집합이 아니라 전체 Windows-949/UHC**여야 한다(Golden6 export가 UHC 다수 — 확장 한글 누락 시 오디코드). (기각) 경로 B `System.Text.Encoding.CodePages` 승인 = NuGet-0 불변식 깨짐.
   2. `XlsxReader`는 **인박스 `System.IO.Compression`+OOXML**(NuGet/OpenXML SDK/Interop 0, DM-03/DU-08 정합). zip 안전 상한.
   3. 입력 형식·인코딩 판별 결과는 finding/메타로 **감사 가능**하게 노출.
 - **대안/기각**: 외부 인코딩/엑셀 라이브러리(ExcelDataReader 등) → NuGet 도입 → 기각(원칙 위반, 승인 대상).
