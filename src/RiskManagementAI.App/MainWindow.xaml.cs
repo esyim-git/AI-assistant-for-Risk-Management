@@ -12,6 +12,7 @@ using RiskManagementAI.Core.Generation;
 using RiskManagementAI.Core.Kb;
 using RiskManagementAI.Core.Logging;
 using RiskManagementAI.Core.Report;
+using RiskManagementAI.Core.Risk;
 using RiskManagementAI.Core.Safety;
 
 namespace RiskManagementAI.App;
@@ -24,6 +25,7 @@ public partial class MainWindow : Window
     private readonly Excel2021FunctionChecker _excelChecker;
     private readonly ExcelReportBuilder _excelReportBuilder;
     private readonly DataProfiler _dataProfiler = new();
+    private readonly LimitMonitor _limitMonitor = new();
     private readonly TaskLogWriter _taskLogWriter = new();
     private readonly PolicyLoadResult _policyLoadResult = App.SecurityPolicyLoadResult;
     private readonly ILocalDraftService _draftService;
@@ -59,6 +61,7 @@ public partial class MainWindow : Window
             [MainTabKey.Vba] = VbaTab,
             [MainTabKey.Excel] = ExcelTab,
             [MainTabKey.Data] = DataTab,
+            [MainTabKey.RiskDashboard] = RiskDashboardTab,
             [MainTabKey.Report] = ReportTab,
             [MainTabKey.Regulation] = RegulationTab,
             [MainTabKey.Feedback] = FeedbackTab
@@ -140,10 +143,10 @@ public partial class MainWindow : Window
     private void OnNavigateRiskDashboard(object sender, RoutedEventArgs e)
     {
         SelectMainTab(
-            MainTabKey.Report,
+            MainTabKey.RiskDashboard,
             "Risk Dashboard",
-            "RISK_DASHBOARD_MVP_STATUS",
-            "MVP-2에서는 Excel Report 탭에서 review-only 리스크 리포트를 생성합니다.");
+            "NAVIGATION_RISK_DASHBOARD",
+            "Risk Dashboard 탭으로 이동했습니다. 한도 점검 버튼으로 동일 기준일 한도 모니터링을 실행하세요.");
     }
 
     private void OnNavigateReport(object sender, RoutedEventArgs e)
@@ -329,6 +332,49 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnRunLimitMonitor(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var result = _limitMonitor.Analyze(
+                ResolveInputPath(RiskExposurePathBox.Text),
+                ResolveInputPath(RiskLimitPathBox.Text),
+                RiskBaseDateBox.Text);
+            RiskLimitGrid.ItemsSource = result.Rows.Select(RiskLimitRowDisplay.FromRow).ToList();
+            RiskDashboardSummaryText.Text = BuildRiskDashboardSummary(result);
+
+            var findings = result.Findings.ToList();
+            var resultSeverity = result.BreachCount > 0
+                ? SafetySeverity.High
+                : result.WarningCount > 0
+                    ? SafetySeverity.Medium
+                    : SafetySeverity.Info;
+            findings.Add(new SafetyFinding(
+                "RISK_DASHBOARD_RESULT",
+                resultSeverity,
+                $"Rows={result.Rows.Count:N0}, NORMAL={result.NormalCount:N0}, WARNING={result.WarningCount:N0}, BREACH={result.BreachCount:N0}, MissingLimit={result.MissingLimitCount:N0}."));
+
+            var auditFinding = AppendAuditLog(
+                "RiskLimitMonitor",
+                nameof(LimitMonitor),
+                $"{RiskBaseDateBox.Text}|{RiskExposurePathBox.Text}|{RiskLimitPathBox.Text}",
+                findings);
+            if (auditFinding is not null)
+            {
+                findings.Add(auditFinding);
+            }
+
+            ShowFindings("Risk Dashboard", findings);
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException or InvalidDataException or UnauthorizedAccessException)
+        {
+            RiskDashboardSummaryText.Text = ex.Message;
+            RiskLimitGrid.ItemsSource = Array.Empty<RiskLimitRowDisplay>();
+            var error = new SafetyFinding("RISK_DASHBOARD_ERROR", SafetySeverity.High, ex.Message);
+            ShowFindings("Risk Dashboard", [error]);
+        }
+    }
+
     private void OnGenerateExcelReport(object sender, RoutedEventArgs e)
     {
         try
@@ -437,6 +483,11 @@ public partial class MainWindow : Window
         }
 
         return sb.ToString();
+    }
+
+    private static string BuildRiskDashboardSummary(LimitMonitorResult result)
+    {
+        return $"BASE_DT={result.BaseDate} / Rows={result.Rows.Count:N0} / NORMAL={result.NormalCount:N0} / WARNING={result.WarningCount:N0} / BREACH={result.BreachCount:N0}";
     }
 
     private static IReadOnlyList<ExcelReportLimitRow> BuildUiLimitRows(DataProfileResult profile)
@@ -601,6 +652,38 @@ public partial class MainWindow : Window
         }
     }
 
+    private sealed record RiskLimitRowDisplay(
+        string BaseDate,
+        string PortfolioId,
+        string RiskFactor,
+        decimal ExposureAmount,
+        decimal LimitAmount,
+        string UsagePercent,
+        string Status,
+        string Note)
+    {
+        public static RiskLimitRowDisplay FromRow(LimitMonitorRow row)
+        {
+            return new RiskLimitRowDisplay(
+                row.BaseDate,
+                row.PortfolioId,
+                row.RiskFactor,
+                row.ExposureAmount,
+                row.LimitAmount,
+                $"{row.UsageRatio * 100m:N1}%",
+                row.Status switch
+                {
+                    LimitMonitorStatus.Normal => "NORMAL",
+                    LimitMonitorStatus.Warning => "WARNING",
+                    LimitMonitorStatus.Breach => "BREACH",
+                    LimitMonitorStatus.MissingLimit => "MISSING_LIMIT",
+                    LimitMonitorStatus.InactiveLimit => "INACTIVE_LIMIT",
+                    _ => row.Status.ToString().ToUpperInvariant()
+                },
+                row.Note);
+        }
+    }
+
     private enum MainTabKey
     {
         Sql,
@@ -608,6 +691,7 @@ public partial class MainWindow : Window
         Vba,
         Excel,
         Data,
+        RiskDashboard,
         Report,
         Regulation,
         Feedback

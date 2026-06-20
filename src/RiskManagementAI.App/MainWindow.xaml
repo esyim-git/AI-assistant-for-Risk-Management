@@ -112,6 +112,75 @@
                     </Grid>
                 </TabItem>
 
+                <TabItem x:Name="RiskDashboardTab" Header="Risk">
+                    <Grid Margin="10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="34" />
+                            <RowDefinition Height="34" />
+                            <RowDefinition Height="28" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="36" />
+                        </Grid.RowDefinitions>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="90" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="노출 CSV" VerticalAlignment="Center" />
+                            <TextBox x:Name="RiskExposurePathBox" Grid.Column="1" Text="samples/dummy_data/risk_exposure_sample.csv" />
+                            <TextBlock Grid.Column="2" Text="한도 CSV" Margin="10,0,0,0" VerticalAlignment="Center" />
+                            <TextBox x:Name="RiskLimitPathBox" Grid.Column="3" Text="samples/dummy_data/risk_limit_sample.csv" />
+                        </Grid>
+                        <Grid Grid.Row="1" Margin="0,6,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90" />
+                                <ColumnDefinition Width="160" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="BASE_DT" VerticalAlignment="Center" />
+                            <TextBox x:Name="RiskBaseDateBox" Grid.Column="1" Text="20260617" />
+                            <TextBlock Grid.Column="2" Text="Review-only · 동일 기준일 조인 · ABS 사용률" Margin="12,0,0,0" Foreground="#475569" VerticalAlignment="Center" />
+                        </Grid>
+                        <TextBlock x:Name="RiskDashboardSummaryText" Grid.Row="2" Text="한도 모니터링 실행 전입니다." Foreground="#475569" Margin="0,8,0,0" />
+                        <DataGrid x:Name="RiskLimitGrid"
+                                  Grid.Row="3"
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True"
+                                  CanUserAddRows="False"
+                                  CanUserDeleteRows="False"
+                                  HeadersVisibility="Column"
+                                  Margin="0,8,0,0"
+                                  HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Auto">
+                            <DataGrid.RowStyle>
+                                <Style TargetType="DataGridRow">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Status}" Value="BREACH">
+                                            <Setter Property="Background" Value="#FEF2F2" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Status}" Value="WARNING">
+                                            <Setter Property="Background" Value="#FFFBEB" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGrid.RowStyle>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="BASE_DT" Binding="{Binding BaseDate}" Width="80" />
+                                <DataGridTextColumn Header="Portfolio" Binding="{Binding PortfolioId}" Width="110" />
+                                <DataGridTextColumn Header="Risk Factor" Binding="{Binding RiskFactor}" Width="130" />
+                                <DataGridTextColumn Header="Exposure" Binding="{Binding ExposureAmount, StringFormat=N0}" Width="110" />
+                                <DataGridTextColumn Header="Limit" Binding="{Binding LimitAmount, StringFormat=N0}" Width="110" />
+                                <DataGridTextColumn Header="Usage" Binding="{Binding UsagePercent}" Width="80" />
+                                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="90" />
+                                <DataGridTextColumn Header="Note" Binding="{Binding Note}" Width="220" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <Button Grid.Row="4" Content="한도 점검" Width="110" HorizontalAlignment="Left" Margin="0,10,0,0" Click="OnRunLimitMonitor" />
+                    </Grid>
+                </TabItem>
+
                 <TabItem x:Name="ReportTab" Header="Report">
                     <Grid Margin="10">
                         <Grid.RowDefinitions>
