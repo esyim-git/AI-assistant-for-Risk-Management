@@ -44,7 +44,7 @@
             </Grid.RowDefinitions>
 
             <TabControl x:Name="MainTabs">
-                <TabItem Header="SQL">
+                <TabItem x:Name="SqlTab" Header="SQL">
                     <Grid Margin="10">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="*" />
@@ -56,7 +56,7 @@
                     </Grid>
                 </TabItem>
 
-                <TabItem Header="Draft">
+                <TabItem x:Name="DraftTab" Header="Draft">
                     <Grid Margin="10">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="*" />
@@ -74,7 +74,7 @@
                     </Grid>
                 </TabItem>
 
-                <TabItem Header="VBA">
+                <TabItem x:Name="VbaTab" Header="VBA">
                     <Grid Margin="10">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="*" />
@@ -86,7 +86,7 @@
                     </Grid>
                 </TabItem>
 
-                <TabItem Header="Excel">
+                <TabItem x:Name="ExcelTab" Header="Excel">
                     <Grid Margin="10">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="*" />
@@ -98,7 +98,7 @@
                     </Grid>
                 </TabItem>
 
-                <TabItem Header="Data">
+                <TabItem x:Name="DataTab" Header="Data">
                     <Grid Margin="10">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="34" />
@@ -112,7 +112,7 @@
                     </Grid>
                 </TabItem>
 
-                <TabItem Header="Report">
+                <TabItem x:Name="ReportTab" Header="Report">
                     <Grid Margin="10">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="34" />
@@ -126,7 +126,7 @@
                     </Grid>
                 </TabItem>
 
-                <TabItem Header="Regulation">
+                <TabItem x:Name="RegulationTab" Header="Regulation">
                     <Grid Margin="10">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="34" />
@@ -140,7 +140,7 @@
                     </Grid>
                 </TabItem>
 
-                <TabItem Header="Feedback">
+                <TabItem x:Name="FeedbackTab" Header="Feedback">
                     <Grid Margin="10">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="34" />

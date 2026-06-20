@@ -372,7 +372,9 @@ var uiIntegrationLogText = File.ReadAllText(uiIntegrationLogPath);
 AssertTrue(!uiIntegrationLogText.Contains("ui draft smoke", StringComparison.Ordinal) && !uiIntegrationLogText.Contains("user-smoke", StringComparison.Ordinal), "UI integration audit should not store raw prompt or user id");
 
 XNamespace wpf = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 var mainWindowXaml = XDocument.Load(Path.Combine("src", "RiskManagementAI.App", "MainWindow.xaml"));
+var mainWindowCode = File.ReadAllText(Path.Combine("src", "RiskManagementAI.App", "MainWindow.xaml.cs"));
 var expectedMenuButtons = new[]
 {
     "Dashboard",
@@ -394,6 +396,92 @@ var menuButtonClicks = mainWindowXaml
         button => (string?)button.Attribute("Click") ?? string.Empty);
 AssertTrue(expectedMenuButtons.All(menuButtonClicks.ContainsKey), "UI shell should include all left menu buttons");
 AssertTrue(menuButtonClicks.Values.All(click => !string.IsNullOrWhiteSpace(click)), "Left menu buttons should be wired to click handlers");
+
+var expectedMenuHandlers = new Dictionary<string, string>
+{
+    ["Dashboard"] = "OnShowDashboard",
+    ["SQL Assistant"] = "OnNavigateSql",
+    ["VBA Assistant"] = "OnNavigateVba",
+    ["Data Analyzer"] = "OnNavigateData",
+    ["Risk Dashboard"] = "OnNavigateRiskDashboard",
+    ["Excel Report"] = "OnNavigateReport",
+    ["Regulation / NCR"] = "OnNavigateRegulation",
+    ["Feedback Center"] = "OnNavigateFeedback",
+    ["History"] = "OnShowHistory",
+    ["Settings"] = "OnShowSettings"
+};
+
+foreach (var (label, handler) in expectedMenuHandlers)
+{
+    AssertTrue(menuButtonClicks.TryGetValue(label, out var actualHandler) && actualHandler == handler, $"Left menu {label} should use {handler}");
+}
+
+var expectedTabNames = new Dictionary<string, string>
+{
+    ["SQL"] = "SqlTab",
+    ["Draft"] = "DraftTab",
+    ["VBA"] = "VbaTab",
+    ["Excel"] = "ExcelTab",
+    ["Data"] = "DataTab",
+    ["Report"] = "ReportTab",
+    ["Regulation"] = "RegulationTab",
+    ["Feedback"] = "FeedbackTab"
+};
+var tabNamesByHeader = mainWindowXaml
+    .Descendants(wpf + "TabItem")
+    .ToDictionary(
+        tab => (string?)tab.Attribute("Header") ?? string.Empty,
+        tab => (string?)tab.Attribute(xaml + "Name") ?? string.Empty);
+AssertTrue(tabNamesByHeader.Count == expectedTabNames.Count && tabNamesByHeader.Values.All(name => !string.IsNullOrWhiteSpace(name)), "Main tabs should all have stable x:Name values");
+
+foreach (var (header, tabName) in expectedTabNames)
+{
+    AssertTrue(tabNamesByHeader.TryGetValue(header, out var actualTabName) && actualTabName == tabName, $"Main tab {header} should be named {tabName}");
+}
+
+AssertTrue(!mainWindowCode.Contains("MainTabs.SelectedIndex", StringComparison.Ordinal), "UI navigation should not depend on TabControl indexes");
+AssertTrue(mainWindowCode.Contains("MainTabs.SelectedItem = tab;", StringComparison.Ordinal), "UI navigation should select stable TabItem instances");
+
+var expectedTabKeyMappings = new Dictionary<string, string>
+{
+    ["Sql"] = "SqlTab",
+    ["Draft"] = "DraftTab",
+    ["Vba"] = "VbaTab",
+    ["Excel"] = "ExcelTab",
+    ["Data"] = "DataTab",
+    ["Report"] = "ReportTab",
+    ["Regulation"] = "RegulationTab",
+    ["Feedback"] = "FeedbackTab"
+};
+
+foreach (var (tabKey, tabName) in expectedTabKeyMappings)
+{
+    AssertTrue(mainWindowCode.Contains($"[MainTabKey.{tabKey}] = {tabName}", StringComparison.Ordinal), $"MainTabKey.{tabKey} should map to {tabName}");
+}
+
+var expectedNavigationTargets = new Dictionary<string, string>
+{
+    ["OnNavigateSql"] = "MainTabKey.Sql",
+    ["OnNavigateVba"] = "MainTabKey.Vba",
+    ["OnNavigateData"] = "MainTabKey.Data",
+    ["OnNavigateRiskDashboard"] = "MainTabKey.Report",
+    ["OnNavigateReport"] = "MainTabKey.Report",
+    ["OnNavigateRegulation"] = "MainTabKey.Regulation",
+    ["OnNavigateFeedback"] = "MainTabKey.Feedback"
+};
+
+foreach (var (handler, tabKey) in expectedNavigationTargets)
+{
+    var marker = $"private void {handler}";
+    var start = mainWindowCode.IndexOf(marker, StringComparison.Ordinal);
+    var end = start < 0
+        ? -1
+        : mainWindowCode.IndexOf("\n    private void ", start + marker.Length, StringComparison.Ordinal);
+    var methodBody = start < 0
+        ? string.Empty
+        : mainWindowCode[start..(end < 0 ? mainWindowCode.Length : end)];
+    AssertTrue(methodBody.Contains("SelectMainTab", StringComparison.Ordinal) && methodBody.Contains(tabKey, StringComparison.Ordinal), $"Left menu handler {handler} should select {tabKey}");
+}
 
 var profiler = new DataProfiler();
 var exposureProfile = profiler.ProfileCsv(Path.Combine("samples", "dummy_data", "risk_exposure_sample.csv"));
