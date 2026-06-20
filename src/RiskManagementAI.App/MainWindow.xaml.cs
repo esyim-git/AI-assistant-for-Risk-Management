@@ -520,18 +520,21 @@ public partial class MainWindow : Window
     {
         try
         {
-            var profile = _dataProfiler.ProfileCsv(ResolveInputPath(DataPathBox.Text));
+            var dataPath = ResolveInputPath(DataPathBox.Text);
+            var profile = _dataProfiler.ProfileCsv(dataPath);
             var validationFindings = _sqlChecker.Check(SqlRequestBox.Text).ToList();
+            validationFindings.AddRange(BuildUiLimitFindings(dataPath, profile));
+            var limitRows = BuildUiLimitRows();
             var reportResult = _excelReportBuilder.BuildReport(new ExcelReportRequest(
                 ReportNameBox.Text,
                 profile,
-                BuildUiLimitRows(profile),
+                limitRows,
                 validationFindings,
                 SqlRequestBox.Text,
                 "NoModelMode: 로컬 검토용 리포트입니다. 산출물은 사용자가 확인한 뒤 업무 문서로 활용해야 합니다.",
                 Environment.UserName));
             ReportResultBox.Text = BuildReportSummary(reportResult);
-            ShowFindings("Excel Report", reportResult.Findings);
+            ShowFindings("Excel Report", reportResult.Findings.Concat(validationFindings).ToList());
         }
         catch (Exception ex) when (ex is ArgumentException or IOException or InvalidDataException or UnauthorizedAccessException)
         {
@@ -659,21 +662,37 @@ public partial class MainWindow : Window
             : 0;
     }
 
-    private static IReadOnlyList<ExcelReportLimitRow> BuildUiLimitRows(DataProfileResult profile)
+    private static IReadOnlyList<ExcelReportLimitRow> BuildUiLimitRows()
     {
-        var exposureAmount = profile.NumericColumns.TryGetValue("EXPOSURE_AMT", out var exposureProfile)
-            ? exposureProfile.Sum
-            : 0m;
-        var limitAmount = Math.Max(Math.Abs(exposureAmount) * 1.1m, 1m);
-        return
-        [
-            new ExcelReportLimitRow(
-                "PROFILE_TOTAL",
-                "ALL",
-                exposureAmount,
-                limitAmount,
-                "UI aggregate from DataProfiler; review-only")
-        ];
+        return Array.Empty<ExcelReportLimitRow>();
+    }
+
+    private static IReadOnlyList<SafetyFinding> BuildUiLimitFindings(string dataPath, DataProfileResult profile)
+    {
+        var findings = new List<SafetyFinding>
+        {
+            new(
+                "LIMIT_DATA_REQUIRED",
+                SafetySeverity.High,
+                "실제 한도 데이터가 필요합니다. 데모 합성 한도는 생성하거나 사용하지 않습니다.")
+        };
+
+        if (IsDemoDataPath(dataPath) || profile.SourceName.Contains("sample", StringComparison.OrdinalIgnoreCase))
+        {
+            findings.Add(new SafetyFinding(
+                "DEMO_ONLY",
+                SafetySeverity.Medium,
+                "샘플/데모 데이터 기반 리포트입니다. 운영 판단에 사용하지 마세요."));
+        }
+
+        return findings;
+    }
+
+    private static bool IsDemoDataPath(string path)
+    {
+        var normalized = path.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+        return normalized.Contains($"{Path.DirectorySeparatorChar}samples{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)
+            || normalized.Contains($"{Path.DirectorySeparatorChar}dummy_data{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase);
     }
 
     private void ShowFindings(string title, System.Collections.Generic.IReadOnlyList<SafetyFinding> findings)

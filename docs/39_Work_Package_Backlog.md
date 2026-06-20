@@ -7,8 +7,8 @@
 ---
 
 ## ★ R1 Resume Brief (Codex 갱신 · Claude 인수)
-- **현재 상태**: R1 Data Foundation 시작 전. v0.4.0(main `fafcad1`, SmokeTest 268) 기준선.
-- **NEXT UP**: **WP-01**(합성 한도 차단/DEMO_ONLY) → WP-02 → WP-03 → WP-04 → WP-05 → WP-06 → WP-07.
+- **현재 상태**: WP-01 합성 한도 차단/DEMO_ONLY 구현 완료. v0.4.0 이후 R1 진행 중.
+- **NEXT UP**: **WP-02**(인코딩 인식 CSV Reader: CP949/UTF-8) → WP-03 → WP-04 → WP-05 → WP-06 → WP-07.
 - **BLOCKED**: 0.
 - **재현 검증**: `git fetch origin main && git switch main && dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI.SmokeTests` (268+ PASS 유지).
 - **⚠️ 확인 요망**: WP-04 컬럼 매핑 기본 키/규칙은 Data Spec Gate(docs/41) 검토 대상.
@@ -16,7 +16,7 @@
 ## R1 진행 원장 (Codex 갱신)
 | WP | 목표 | 상태 | PR/커밋 | SmokeTest | 비고 |
 |---|---|---|---|---|---|
-| WP-01 | 합성 한도 차단 / DEMO_ONLY | TODO | - | - | RR-01 최우선 |
+| WP-01 | 합성 한도 차단 / DEMO_ONLY | DONE | `feature/wp-01-demo-limit-guard` | 278 PASS / 0 FAIL | 합성 1.1x 산식 제거, `LIMIT_DATA_REQUIRED`/`DEMO_ONLY` 회귀 고정 |
 | WP-02 | 인코딩 인식 CSV Reader(CP949/UTF-8) | TODO | - | - | RR-02 |
 | WP-03 | XLSX 입력 Reader(인박스, NuGet 0) | TODO | - | - | RR-08 |
 | WP-04 | Risk Column Mapping(설정·승인형) | TODO | - | - | Data Gate |
