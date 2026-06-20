@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Xml.Linq;
 using RiskManagementAI.Core.Data;
 using RiskManagementAI.Core.Config;
+using RiskManagementAI.Core.Dashboard;
 using RiskManagementAI.Core.Excel;
 using RiskManagementAI.Core.Feedback;
 using RiskManagementAI.Core.Generation;
@@ -226,6 +227,20 @@ AssertTrue(settingsSnapshot.Findings.Any(f => f.Code == "SETTINGS_POLICY_LOADED"
 var fallbackSettingsSnapshot = new SecuritySettingsSnapshotBuilder().Build(missingPolicyResult, loadedRuleSet.RuleVersion, NoModelDraftService.ModeName);
 AssertTrue(fallbackSettingsSnapshot.UsedFallback && fallbackSettingsSnapshot.Findings.Any(f => f.Code == "SETTINGS_POLICY_FALLBACK"), "SecuritySettingsSnapshot should report fallback state");
 
+var dashboardSnapshot = new DashboardSnapshotBuilder().Build(new DashboardSnapshotRequest(
+    policyLoadResult,
+    loadedRuleSet.RuleVersion,
+    NoModelDraftService.ModeName,
+    new AuditLogReadResult(Array.Empty<AuditLogRecord>(), Array.Empty<SafetyFinding>()),
+    PromotedExampleCount: 2,
+    ReportCount: 3));
+AssertTrue(dashboardSnapshot.Rows.Any(row => row.Metric == "Offline Mode" && row.Value == "Enabled"), "DashboardSnapshot should show offline mode enabled");
+AssertTrue(dashboardSnapshot.Rows.Any(row => row.Metric == "Local Model" && row.Value == NoModelDraftService.ModeName), "DashboardSnapshot should show local model mode");
+AssertTrue(dashboardSnapshot.Rows.Any(row => row.Metric == "RuleVersion" && row.Value == loadedRuleSet.RuleVersion), "DashboardSnapshot should show rule version");
+AssertTrue(dashboardSnapshot.Rows.Any(row => row.Metric == "Promoted Examples" && row.Value.Trim() == "2"), "DashboardSnapshot should show promoted example count");
+AssertTrue(dashboardSnapshot.Rows.Any(row => row.Metric == "Reports" && row.Value.Trim() == "3"), "DashboardSnapshot should show report count");
+AssertTrue(dashboardSnapshot.Findings.Any(f => f.Code == "DASHBOARD_READY" && f.Severity == SafetySeverity.Info), "DashboardSnapshot should emit ready finding");
+
 var noModelDraftService = new NoModelDraftService(policyLoadResult.Policy);
 var noModelDraftResponse = noModelDraftService.GenerateDraft(new DraftRequest(
     DraftRequestKind.Sql,
@@ -447,6 +462,7 @@ foreach (var (label, handler) in expectedMenuHandlers)
 
 var expectedTabNames = new Dictionary<string, string>
 {
+    ["Dashboard"] = "DashboardTab",
     ["SQL"] = "SqlTab",
     ["Draft"] = "DraftTab",
     ["VBA"] = "VbaTab",
@@ -493,9 +509,15 @@ AssertTrue(
         string.Equals((string?)button.Attribute("Content"), "승인 승격", StringComparison.Ordinal)
         && string.Equals((string?)button.Attribute("Click"), "OnPromoteFeedbackExample", StringComparison.Ordinal)),
     "Feedback Center should expose an approval promotion action");
+AssertTrue(
+    mainWindowXaml.Descendants(wpf + "Button").Any(button =>
+        string.Equals((string?)button.Attribute("Content"), "상태 새로고침", StringComparison.Ordinal)
+        && string.Equals((string?)button.Attribute("Click"), "OnRefreshDashboard", StringComparison.Ordinal)),
+    "Dashboard should expose a read-only status refresh action");
 
 var expectedTabKeyMappings = new Dictionary<string, string>
 {
+    ["Dashboard"] = "DashboardTab",
     ["Sql"] = "SqlTab",
     ["Draft"] = "DraftTab",
     ["Vba"] = "VbaTab",
@@ -516,6 +538,7 @@ foreach (var (tabKey, tabName) in expectedTabKeyMappings)
 
 var expectedNavigationTargets = new Dictionary<string, string>
 {
+    ["OnShowDashboard"] = "MainTabKey.Dashboard",
     ["OnNavigateSql"] = "MainTabKey.Sql",
     ["OnNavigateVba"] = "MainTabKey.Vba",
     ["OnNavigateData"] = "MainTabKey.Data",
