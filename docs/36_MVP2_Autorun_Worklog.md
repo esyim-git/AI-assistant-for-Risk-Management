@@ -9,12 +9,12 @@
 
 > Claude는 복귀 시 **이 블록만으로** 현재 상태·다음 작업을 파악할 수 있어야 한다.
 
-- **현재 상태(1줄)**: MVP-2 코어 M2-01~M2-06 구현 완료. M2-04 Excel 2021 리포트는 DM-03 확정 방식(인박스 xlsx, NuGet 0)으로 완료.
+- **현재 상태(1줄)**: MVP-2 코어 M2-01~M2-06 구현 완료. Release ZIP rehearsal은 로컬 .NET 8 SDK 부재로 BLOCKED(build/00 preflight 보강 완료).
 - **develop 최신 code commit**: `46108dc1e3a6f7f0ea3c6fc7e5a2a8e3959498c7`
 - **DONE (검증됨)**: P0-1 develop/main fast-forward sync; P0-2 release/v0.3.0 변경 반영; P0-3 `.gitignore` `*.zip` 추가; M2-01 NoModelMode; M2-02 DraftPipeline; M2-03 KbSearch; M2-04 Excel report; M2-05 ExamplePromotion; M2-06 UI 연동
 - **진행 중이던 항목 / 중단 지점**: _없음_
-- **NEXT UP (Claude가 바로 집을 작업)**: main 승격 PR 또는 release packaging rehearsal
-- **BLOCKED 개수 / 핵심**: _0_
+- **NEXT UP (Claude가 바로 집을 작업)**: main 승격 PR, 또는 .NET 8 SDK가 있는 Dev/Test PC에서 release packaging rehearsal 재개
+- **BLOCKED 개수 / 핵심**: _1_ — release ZIP rehearsal은 현재 PC에 .NET SDK가 없어 실행 불가(runtime-only dotnet)
 - **재현 검증**: `git fetch origin develop && git switch develop && dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI.SmokeTests`
 - **⚠️ Claude 확인 요망(자동결정/승격대기)**: _-_
 
@@ -55,6 +55,7 @@
 | ID | 항목 | 상태 | 커밋 | 비고 |
 |---|---|---|---|---|
 | S2-* | 룰/테스트/문서/데모 하드닝 | TODO | - | docs/10 로드맵 |
+| S2-REL-00 | Release rehearsal prereq gate | WIP | `feature/release-rehearsal-sdk-prereq` | `build/00` SDK 부재 감지 보강 |
 
 ## 3. 자동 결정 로그 (⚠️ Claude 검토용)
 
@@ -69,6 +70,7 @@ _(아직 없음)_
 
 <!-- [UTC] 항목 | 사유 | 제안 | 필요한 결정 -->
 - [RESOLVED 2026-06-20T03:20:10Z] M2-04 Excel 2021 리포트 | 사용자 DM-03 확정: 인박스 xlsx(`System.IO.Compression` + `templates/report` 템플릿 치환), NuGet 0, Interop 금지, OpenXML SDK 미도입. 산출 수식은 `Excel2021FunctionChecker` 통과, 쓰기 경로는 `reports/`만, 생성 시 audit log 기록. | `feature/mvp2-m2-04-excel-report`에서 구현 재개. 풍부한 서식이 꼭 필요하면 다시 BLOCKED로 둔다. | 해소됨 |
+- [2026-06-20T03:37:22Z] Release ZIP rehearsal | 현재 PC는 `dotnet` 런타임만 있고 .NET SDK가 없다(`dotnet --info`: "No SDKs were found."). `build/00_check-prereqs.ps1`가 기존에는 이를 성공으로 처리했으므로 preflight를 보강했다. | .NET 8 SDK가 설치된 Dev/Test PC에서 `build/00~03 -Version 0.3.0` 재실행. 이 PC에서 계속하려면 .NET 8 SDK 설치가 필요. | .NET 8 SDK availability |
 
 ## 5. 완료 보고 누적 (append-only)
 
@@ -184,6 +186,7 @@ _(아직 없음)_
 - [2026-06-20T03:28:14Z] M2-04 feature CI `build` success, SmokeTest 180 PASS / 현재 항목: develop squash commit 작성 / 다음 항목: docs/36 DONE 갱신 + develop CI
 - [2026-06-20T03:30:03Z] M2-04 develop squash commit 작성(`46108dc`) / 현재 항목: docs/36 DONE 갱신 / 다음 항목: develop push + CI 확인
 - [2026-06-20T03:33:17Z] M2-04 develop CI `build` success, SmokeTest 180 PASS / 현재 항목: MVP-2 코어 완료 / 다음 항목: main 승격 PR 또는 release packaging rehearsal
+- [2026-06-20T03:37:22Z] Release rehearsal 시도: `build/00`가 runtime-only dotnet을 성공 처리하는 gap 확인 후 SDK 부재 시 fail-fast로 보강 / 현재 항목: S2-REL-00 prereq gate / 다음 항목: feature CI + develop 반영
 
 ## 7. Claude 재개 체크리스트
 
