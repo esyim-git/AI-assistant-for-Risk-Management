@@ -83,6 +83,20 @@ hotfix/<name>             : 긴급 수정
 - 보호 적용 후, `main`에 직접 push 시도가 거부되는지 확인. private Free soft guard 상태에서는 `main` 우회 push가 `governance-soft-guard` 실패로 감지되는지 확인.
 - PR 생성 시 PR 템플릿이 자동 채워지는지, `build` 체크가 필수로 뜨는지 확인.
 
+## 6. Hard Branch Protection Migration (Pro/Team 업그레이드 또는 public 전환 시)
+
+> 현재는 private Free → **Soft Guard 유지**(§2.1): PR 필수·CI 필수·Squash only·main 직접 push 금지·force push 금지·commit subject `(#N)` 규칙·Release Tag 규칙. 아래는 플랜 업그레이드 시 즉시 적용할 전환 체크리스트.
+
+- [ ] **Hard Branch Protection** 활성화(§2 설정값 그대로): `main`(+`develop`)
+- [ ] **Required PR review**(승인 1) + **Require review from Code Owners**(CODEOWNERS)
+- [ ] **Required status check** = `build`(ci.yml) + (선택) `main-soft-guard`
+- [ ] **Restrict who can push**(직접 push 차단) + **force push OFF** + **deletion OFF**
+- [ ] **Require conversation resolution** + **Dismiss stale approvals**
+- [ ] (검토) **Signed commit** 요구 여부
+- [ ] **Release Approval**: Release/태그 생성 권한 제한, Release 발행 전 승인자 확인
+- [ ] 전환 후 검증: `main` 직접 push 시도 **거부**되는지, PR 미승인/CI 미통과 머지 **차단**되는지
+- [ ] 전환 완료 시 `docs/35` Soft Guard는 **백업 신호**로 유지(중복 무해)
+
 ## 향후 확장
 
 - secret-scan / 금지확장자 검사 CI job 추가(docs/28 향후확장), Dependabot/Release Drafter 등.
