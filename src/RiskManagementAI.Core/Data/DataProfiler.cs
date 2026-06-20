@@ -23,7 +23,13 @@ public sealed class DataProfiler
             throw new FileNotFoundException("CSV 파일을 찾을 수 없습니다.", csvPath);
         }
 
-        var table = CsvReader.Read(csvPath);
+        return ProfileTable(CsvReader.Read(csvPath));
+    }
+
+    public DataProfileResult ProfileTable(CsvTable table)
+    {
+        ArgumentNullException.ThrowIfNull(table);
+
         var columns = table.Columns.ToArray();
 
         if (columns.Length == 0 || columns.Any(string.IsNullOrWhiteSpace))

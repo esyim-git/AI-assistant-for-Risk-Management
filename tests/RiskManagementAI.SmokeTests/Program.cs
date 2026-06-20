@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Security;
 using System.Text;
 using System.Xml.Linq;
 using RiskManagementAI.Core.Data;
@@ -48,6 +49,106 @@ string ReadZipEntryText(ZipArchive archive, string entryName)
     using var stream = entry.Open();
     using var reader = new StreamReader(stream);
     return reader.ReadToEnd();
+}
+
+void WriteZipEntry(ZipArchive archive, string entryName, string content)
+{
+    var entry = archive.CreateEntry(entryName, CompressionLevel.Optimal);
+    using var stream = entry.Open();
+    using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+    writer.Write(content);
+}
+
+void CreateSmokeXlsx(string path, bool tooManyRows = false)
+{
+    if (File.Exists(path))
+    {
+        File.Delete(path);
+    }
+
+    using var archive = ZipFile.Open(path, ZipArchiveMode.Create);
+    WriteZipEntry(archive, "[Content_Types].xml", """
+<?xml version="1.0" encoding="UTF-8"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+  <Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>
+  <Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  <Override PartName="/xl/worksheets/sheet7.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+</Types>
+""");
+    WriteZipEntry(archive, "_rels/.rels", """
+<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>
+""");
+    WriteZipEntry(archive, "xl/workbook.xml", """
+<?xml version="1.0" encoding="UTF-8"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets>
+    <sheet name="First Visible" sheetId="1" r:id="rIdFirst"/>
+    <sheet name="위험데이터" sheetId="2" r:id="rIdRisk"/>
+  </sheets>
+</workbook>
+""");
+    WriteZipEntry(archive, "xl/_rels/workbook.xml.rels", """
+<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rIdFirst" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet7.xml"/>
+  <Relationship Id="rIdRisk" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/>
+  <Relationship Id="rIdShared" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>
+</Relationships>
+""");
+    WriteZipEntry(archive, "xl/sharedStrings.xml", """
+<?xml version="1.0" encoding="UTF-8"?>
+<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <si><t>Marker</t></si>
+  <si><t>Value</t></si>
+  <si><t>BASE_DT</t></si>
+  <si><t>DESK_CD</t></si>
+  <si><t>한글</t></si>
+  <si><t>FIRST</t></si>
+  <si><t>20260617</t></si>
+  <si><t>EQD</t></si>
+  <si><r><t>값</t></r><r><t>힣</t></r></si>
+</sst>
+""");
+
+    var firstSheetRows = new StringBuilder();
+    firstSheetRows.AppendLine("""<row r="1"><c r="A1" t="s"><v>0</v></c><c r="B1" t="s"><v>1</v></c></row>""");
+    var firstSheetDataRowCount = tooManyRows ? XlsxReader.MaxWorksheetRows + 1 : 1;
+    for (var index = 0; index < firstSheetDataRowCount; index++)
+    {
+        firstSheetRows.Append("<row r=\"");
+        firstSheetRows.Append(index + 2);
+        firstSheetRows.Append("\"><c r=\"A");
+        firstSheetRows.Append(index + 2);
+        firstSheetRows.Append("\" t=\"s\"><v>5</v></c><c r=\"B");
+        firstSheetRows.Append(index + 2);
+        firstSheetRows.Append("\" t=\"inlineStr\"><is><t>");
+        firstSheetRows.Append(SecurityElement.Escape($"default-{index}"));
+        firstSheetRows.AppendLine("</t></is></c></row>");
+    }
+
+    WriteZipEntry(archive, "xl/worksheets/sheet7.xml", $"""
+<?xml version="1.0" encoding="UTF-8"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <sheetData>
+{firstSheetRows}
+  </sheetData>
+</worksheet>
+""");
+    WriteZipEntry(archive, "xl/worksheets/sheet2.xml", """
+<?xml version="1.0" encoding="UTF-8"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <sheetData>
+    <row r="1"><c r="A1" t="s"><v>2</v></c><c r="B1" t="s"><v>3</v></c><c r="C1" t="s"><v>4</v></c><c r="D1" t="inlineStr"><is><t>AMT</t></is></c></row>
+    <row r="2"><c r="A2" t="s"><v>6</v></c><c r="B2" t="s"><v>7</v></c><c r="C2" t="s"><v>8</v></c><c r="D2"><v>10.5</v></c></row>
+  </sheetData>
+</worksheet>
+""");
 }
 
 var loadedRuleSet = RuleLoader.LoadDefault();
@@ -775,6 +876,31 @@ AssertTrue(cp949LimitMonitorResult.Rows.Single().Status == LimitMonitorStatus.Wa
 
 var cp949Catalog = RegulationCatalog.LoadFromFile(Path.Combine("samples", "dummy_data", "regulation_catalog_cp949.csv"));
 AssertTrue(cp949Catalog.Entries.Single().Title == "힣 규정", "RegulationCatalog should use common CsvReader for CP949 catalog files");
+
+var xlsxSmokeDirectory = Path.Combine("artifacts", "smoke-xlsx-input-wp03");
+Directory.CreateDirectory(xlsxSmokeDirectory);
+var xlsxSmokePath = Path.Combine(xlsxSmokeDirectory, "risk_input_relationship_order.xlsx");
+CreateSmokeXlsx(xlsxSmokePath);
+var defaultXlsxTable = XlsxReader.Read(xlsxSmokePath);
+AssertTrue(defaultXlsxTable.Columns.SequenceEqual(["Marker", "Value"]), "XlsxReader should read the first visible sheet by workbook order");
+AssertTrue(defaultXlsxTable.Rows.Single().GetValue("Marker") == "FIRST", "XlsxReader default sheet should use workbook relationship target, not sheet file order");
+var namedXlsxTable = XlsxReader.Read(xlsxSmokePath, "위험데이터");
+AssertTrue(namedXlsxTable.Columns.SequenceEqual(["BASE_DT", "DESK_CD", "한글", "AMT"]), "XlsxReader should read named non-first sheet headers");
+AssertTrue(namedXlsxTable.Rows.Single().GetValue("BASE_DT") == "20260617", "XlsxReader should read shared string cell values");
+AssertTrue(namedXlsxTable.Rows.Single().GetValue("한글") == "값힣", "XlsxReader should read Korean rich shared strings");
+AssertTrue(namedXlsxTable.Rows.Single().GetValue("AMT") == "10.5", "XlsxReader should read numeric cells as invariant text");
+AssertTrue(namedXlsxTable.SourceName == "risk_input_relationship_order.xlsx", "XlsxReader should expose source name through CsvTable");
+AssertTrue(profiler.ProfileTable(namedXlsxTable).NumericColumns["AMT"].Sum == 10.5m, "XlsxReader CsvTable should flow through DataProfiler pipeline");
+AssertTrue(Throws<InvalidDataException>(() => XlsxReader.Read(xlsxSmokePath, "없는시트")), "XlsxReader should fail gracefully for missing sheet names");
+
+var corruptXlsxPath = Path.Combine(xlsxSmokeDirectory, "corrupt.xlsx");
+File.WriteAllText(corruptXlsxPath, "not a zip file");
+AssertTrue(Throws<InvalidDataException>(() => XlsxReader.Read(corruptXlsxPath)), "XlsxReader should fail gracefully for corrupt xlsx files");
+
+var tooManyRowsXlsxPath = Path.Combine(xlsxSmokeDirectory, "too_many_rows.xlsx");
+CreateSmokeXlsx(tooManyRowsXlsxPath, tooManyRows: true);
+AssertTrue(Throws<InvalidDataException>(() => XlsxReader.Read(tooManyRowsXlsxPath)), "XlsxReader should enforce worksheet row safety cap");
+AssertTrue(Throws<ArgumentException>(() => XlsxReader.Read(Path.Combine(xlsxSmokeDirectory, "not_xlsx.csv"))), "XlsxReader should reject non-xlsx extensions");
 
 var taskLogPath = Path.Combine("logs", "smoke_task_log.jsonl");
 var feedbackLogPath = Path.Combine("logs", "smoke_feedback_log.jsonl");
