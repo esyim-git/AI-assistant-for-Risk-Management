@@ -12,7 +12,7 @@
 - **현재 상태(1줄)**: MVP-2 코어 M2-01~M2-06는 PR #5/#6으로 main까지 승격 완료. Release ZIP v0.3.0 rehearsal(build/00~03) 완료, SHA256 검증 완료.
 - **main 최신 commit**: `4edffbe42e07c96eeefc59903e528cac79583f46` (PR #6, soft guard/build green)
 - **develop 최신 상태**: `c28006ce48920effa619847e7dba8478c98d7f69` (`origin/main` 병합 정합 완료, CI green)
-- **DONE (검증됨)**: P0-1 develop/main fast-forward sync; P0-2 release/v0.3.0 변경 반영; P0-3 `.gitignore` `*.zip` 추가; M2-01 NoModelMode; M2-02 DraftPipeline; M2-03 KbSearch; M2-04 Excel report; M2-05 ExamplePromotion; M2-06 UI 연동; PR #5 MVP-2 main 승격; PR #6 soft guard subject 보강
+- **DONE (검증됨)**: P0-1 develop/main fast-forward sync; P0-2 release/v0.3.0 변경 반영; P0-3 `.gitignore` `*.zip` 추가; P0-5 branch protection availability check; M2-01 NoModelMode; M2-02 DraftPipeline; M2-03 KbSearch; M2-04 Excel report; M2-05 ExamplePromotion; M2-06 UI 연동; PR #5 MVP-2 main 승격; PR #6 soft guard subject 보강
 - **진행 중이던 항목 / 중단 지점**: _없음_
 - **NEXT UP (Claude가 바로 집을 작업)**: 별도 Test PC에서 인터넷 차단 후 ZIP 실행 확인(게이트 B 수동 항목) 또는 GitHub Release v0.3.0 준비
 - **BLOCKED 개수 / 핵심**: _0_
@@ -42,6 +42,7 @@
 | P0-2 | release/v0.3.0 변경 develop 반영(VERSION 0.3.0 + build/01 fail-fast/.keep) | DONE | `b04ab2ea1a5e1d822edc1758ad9a0b4c3c1e499a` | main 승격 안 함 |
 | P0-3 | `.gitignore`에 `*.zip` 추가 | DONE | `25c58aa2846127daa7b393ba9c9066892d569c8e` | 루트 잔류 zip 차단 |
 | P0-4 | MVP-2 main 승격 후 develop/main ancestry 정합 | DONE | `c28006ce48920effa619847e7dba8478c98d7f69` | PR #5/#6 main 병합 후 `origin/main`을 develop에 merge, CI 180 PASS |
+| P0-5 | main branch protection availability check | DONE | no code commit | repo private Free 상태로 API 403, soft guard 유지 |
 
 ### Phase 1 — MVP-2 코어 (docs/33)
 | ID | 항목 | 상태 | 커밋 | SmokeTest | 비고 |
@@ -191,6 +192,13 @@ _(아직 없음)_
 - 결정/가정: squash merge로 main에 들어간 MVP-2 내용과 develop 개별 커밋은 트리상 동일하므로, develop 히스토리를 rewrite하지 않고 merge commit으로 정합한다.
 - develop 반영 커밋: `c28006ce48920effa619847e7dba8478c98d7f69`
 
+#### [P0-5] main branch protection availability check — DONE (2026-06-20T04:08:56Z)
+- 구현 요약: GitHub API로 repo visibility와 main branch protection endpoint를 확인했다.
+- 검증: `gh repo view ... --json visibility` → `PRIVATE`; `gh api repos/.../branches/main/protection` → `403 Upgrade to GitHub Pro or make this repository public to enable this feature.`
+- 결론: 현재 상태에서는 강제 branch protection 설정 불가. docs/32/35의 private Free soft guard 운영을 유지한다.
+- 보강 확인: 최신 main soft guard run `27859320438` success. PR #6에서 squash subject에 `(#PR)` 표식을 유지해야 함을 docs/32에 명시했다.
+- develop 반영 커밋: 코드 변경 없음. 본 원장만 후속 커밋.
+
 ## 6. 하트비트 로그 (≈1h 또는 항목 전환마다)
 
 <!-- [UTC] 진행 요약 / 현재 항목 / 다음 항목 -->
@@ -220,6 +228,7 @@ _(아직 없음)_
 - [2026-06-20T03:53:48Z] PR #5/#6 main 병합 및 latest main green 확인 후 `origin/main`을 develop에 merge / 현재 항목: P0-4 docs/36 갱신 / 다음 항목: develop push + CI 확인
 - [2026-06-20T03:56:57Z] P0-4 develop sync CI `build` success, SmokeTest 180 PASS / 현재 항목: docs/36 DONE 갱신 / 다음 항목: release ZIP blocker 유지 또는 SDK 있는 PC에서 재개
 - [2026-06-20T04:04:49Z] Release ZIP v0.3.0 rehearsal 완료: build/00~03 PASS, SHA256 `0578D2D4...1D27`, publish exe startup smoke OK / 현재 항목: docs/36 갱신 / 다음 항목: 별도 Test PC 오프라인 실행 또는 GitHub Release 준비
+- [2026-06-20T04:08:56Z] main branch protection API 재확인: repo private, protection endpoint 403 / 현재 항목: docs/36 갱신 / 다음 항목: develop CI 후 main PR로 원장 최신화
 
 ## 7. Claude 재개 체크리스트
 
