@@ -8,6 +8,7 @@ using RiskManagementAI.Core.Generation;
 using RiskManagementAI.Core.Kb;
 using RiskManagementAI.Core.Logging;
 using RiskManagementAI.Core.Report;
+using RiskManagementAI.Core.Risk;
 using RiskManagementAI.Core.Safety;
 
 var failed = 0;
@@ -423,6 +424,7 @@ var expectedTabNames = new Dictionary<string, string>
     ["VBA"] = "VbaTab",
     ["Excel"] = "ExcelTab",
     ["Data"] = "DataTab",
+    ["Risk"] = "RiskDashboardTab",
     ["Report"] = "ReportTab",
     ["Regulation"] = "RegulationTab",
     ["Feedback"] = "FeedbackTab"
@@ -441,6 +443,11 @@ foreach (var (header, tabName) in expectedTabNames)
 
 AssertTrue(!mainWindowCode.Contains("MainTabs.SelectedIndex", StringComparison.Ordinal), "UI navigation should not depend on TabControl indexes");
 AssertTrue(mainWindowCode.Contains("MainTabs.SelectedItem = tab;", StringComparison.Ordinal), "UI navigation should select stable TabItem instances");
+AssertTrue(
+    mainWindowXaml.Descendants(wpf + "Button").Any(button =>
+        string.Equals((string?)button.Attribute("Content"), "한도 점검", StringComparison.Ordinal)
+        && string.Equals((string?)button.Attribute("Click"), "OnRunLimitMonitor", StringComparison.Ordinal)),
+    "Risk Dashboard should expose a limit monitoring action");
 
 var expectedTabKeyMappings = new Dictionary<string, string>
 {
@@ -449,6 +456,7 @@ var expectedTabKeyMappings = new Dictionary<string, string>
     ["Vba"] = "VbaTab",
     ["Excel"] = "ExcelTab",
     ["Data"] = "DataTab",
+    ["RiskDashboard"] = "RiskDashboardTab",
     ["Report"] = "ReportTab",
     ["Regulation"] = "RegulationTab",
     ["Feedback"] = "FeedbackTab"
@@ -464,7 +472,7 @@ var expectedNavigationTargets = new Dictionary<string, string>
     ["OnNavigateSql"] = "MainTabKey.Sql",
     ["OnNavigateVba"] = "MainTabKey.Vba",
     ["OnNavigateData"] = "MainTabKey.Data",
-    ["OnNavigateRiskDashboard"] = "MainTabKey.Report",
+    ["OnNavigateRiskDashboard"] = "MainTabKey.RiskDashboard",
     ["OnNavigateReport"] = "MainTabKey.Report",
     ["OnNavigateRegulation"] = "MainTabKey.Regulation",
     ["OnNavigateFeedback"] = "MainTabKey.Feedback"
@@ -484,7 +492,9 @@ foreach (var (handler, tabKey) in expectedNavigationTargets)
 }
 
 var profiler = new DataProfiler();
-var exposureProfile = profiler.ProfileCsv(Path.Combine("samples", "dummy_data", "risk_exposure_sample.csv"));
+var exposureCsvPath = Path.Combine("samples", "dummy_data", "risk_exposure_sample.csv");
+var limitCsvPath = Path.Combine("samples", "dummy_data", "risk_limit_sample.csv");
+var exposureProfile = profiler.ProfileCsv(exposureCsvPath);
 AssertTrue(exposureProfile.SourceName == "risk_exposure_sample.csv", "DataProfiler should preserve source file name");
 AssertTrue(exposureProfile.RowCount == 6, "Risk exposure sample should have 6 data rows");
 AssertTrue(exposureProfile.ColumnCount == 10, "Risk exposure sample should have 10 columns");
@@ -494,6 +504,19 @@ AssertTrue(exposureProfile.BaseDateDistribution["20260617"] == 5 && exposureProf
 AssertTrue(exposureProfile.NumericColumns["EXPOSURE_AMT"].Sum == 3830000000m, "Risk exposure sample should compute numeric sum");
 AssertTrue(exposureProfile.NumericColumns["EXPOSURE_AMT"].Min == -420000000m, "Risk exposure sample should compute numeric min");
 AssertTrue(exposureProfile.NumericColumns["EXPOSURE_AMT"].Max == 1250000000m, "Risk exposure sample should compute numeric max");
+
+var limitMonitor = new LimitMonitor();
+var limitMonitorResult = limitMonitor.Analyze(exposureCsvPath, limitCsvPath, "20260617");
+AssertTrue(limitMonitorResult.Rows.Count == 5, "LimitMonitor should filter exposure rows by BASE_DT");
+AssertTrue(limitMonitorResult.Rows.All(row => row.BaseDate == "20260617"), "LimitMonitor should not match prior BASE_DT exposure rows to current limits");
+AssertTrue(limitMonitorResult.NormalCount == 2 && limitMonitorResult.WarningCount == 2 && limitMonitorResult.BreachCount == 1, "LimitMonitor should classify NORMAL/WARNING/BREACH counts");
+var warningEqRow = limitMonitorResult.Rows.Single(row => row.PortfolioId == "PF_EQ_002");
+AssertTrue(warningEqRow.Status == LimitMonitorStatus.Warning && warningEqRow.UsageRatio > 0.94m && warningEqRow.UsageRatio < 0.95m, "LimitMonitor should classify PF_EQ_002 as WARNING around 94%");
+var breachCreditRow = limitMonitorResult.Rows.Single(row => row.PortfolioId == "PF_CR_001");
+AssertTrue(breachCreditRow.Status == LimitMonitorStatus.Breach && breachCreditRow.RemainingLimit < 0m, "LimitMonitor should classify PF_CR_001 as BREACH");
+var shortSideRow = limitMonitorResult.Rows.Single(row => row.PortfolioId == "PF_FI_001");
+AssertTrue(shortSideRow.ExposureAmount < 0m && shortSideRow.UsageRatio == 0.84m && shortSideRow.Status == LimitMonitorStatus.Normal, "LimitMonitor should use ABS exposure for short-side rows");
+AssertTrue(limitMonitorResult.Findings.Any(f => f.Code == "LIMIT_BREACH_DETECTED" && f.Severity == SafetySeverity.High), "LimitMonitor should emit a high finding when breaches exist");
 
 var excelReportLogPath = Path.Combine("logs", "smoke_excel_report_log.jsonl");
 var excelReportPath = Path.Combine("reports", "smoke_m2_04_report.xlsx");
