@@ -1,64 +1,85 @@
 using System.Globalization;
 using RiskManagementAI.Core.Data;
+using RiskManagementAI.Core.Mapping;
 using RiskManagementAI.Core.Safety;
 
 namespace RiskManagementAI.Core.Risk;
 
 public sealed class LimitMonitor
 {
-    private const string BaseDateColumn = "BASE_DT";
-    private const string PortfolioIdColumn = "PORTFOLIO_ID";
-    private const string RiskFactorColumn = "RISK_FACTOR";
-    private const string ExposureAmountColumn = "EXPOSURE_AMT";
-    private const string LimitAmountColumn = "LIMIT_AMT";
-    private const string UseYnColumn = "USE_YN";
+    private readonly ColumnMappingLoadResult columnMappingLoadResult;
+
+    public LimitMonitor()
+        : this(ColumnMappingLoader.LoadDefault())
+    {
+    }
+
+    public LimitMonitor(ColumnMapping mapping)
+        : this(new ColumnMappingLoadResult(mapping, UsedFallback: false, Warnings: Array.Empty<string>()))
+    {
+    }
+
+    public LimitMonitor(ColumnMappingLoadResult columnMappingLoadResult)
+    {
+        ArgumentNullException.ThrowIfNull(columnMappingLoadResult);
+        this.columnMappingLoadResult = columnMappingLoadResult;
+    }
 
     public LimitMonitorResult Analyze(string exposureCsvPath, string limitCsvPath, string baseDate)
     {
         if (string.IsNullOrWhiteSpace(baseDate))
         {
-            throw new ArgumentException("기준일(BASE_DT)이 비어 있습니다.", nameof(baseDate));
+            throw new ArgumentException("기준일이 비어 있습니다.", nameof(baseDate));
         }
 
+        var mapping = columnMappingLoadResult.Mapping;
+        var baseDateColumn = mapping.Physical(LogicalColumn.BaseDate);
+        var portfolioIdColumn = mapping.Physical(LogicalColumn.PortfolioId);
+        var riskFactorColumn = mapping.Physical(LogicalColumn.RiskFactor);
+        var exposureAmountColumn = mapping.Physical(LogicalColumn.ExposureAmount);
+        var limitAmountColumn = mapping.Physical(LogicalColumn.LimitAmount);
+        var useYnColumn = mapping.Physical(LogicalColumn.UseYn);
         var normalizedBaseDate = baseDate.Trim();
         var exposures = ReadCsv(exposureCsvPath)
-            .Where(row => string.Equals(row.GetValue(BaseDateColumn), normalizedBaseDate, StringComparison.Ordinal))
+            .Where(row => string.Equals(row.GetValue(baseDateColumn), normalizedBaseDate, StringComparison.Ordinal))
             .ToList();
         var limits = ReadCsv(limitCsvPath)
-            .Where(row => string.Equals(row.GetValue(BaseDateColumn), normalizedBaseDate, StringComparison.Ordinal))
+            .Where(row => string.Equals(row.GetValue(baseDateColumn), normalizedBaseDate, StringComparison.Ordinal))
             .ToList();
         var activeLimits = limits
-            .GroupBy(row => BuildJoinKey(row.GetValue(PortfolioIdColumn), row.GetValue(RiskFactorColumn)), StringComparer.OrdinalIgnoreCase)
+            .GroupBy(row => BuildJoinKey(row.GetValue(portfolioIdColumn), row.GetValue(riskFactorColumn)), StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.Last(), StringComparer.OrdinalIgnoreCase);
 
         var rows = new List<LimitMonitorRow>();
-        var findings = new List<SafetyFinding>();
+        var findings = columnMappingLoadResult.Warnings
+            .Select(warning => new SafetyFinding("COLUMN_MAPPING_FALLBACK", SafetySeverity.Medium, warning))
+            .ToList();
 
         foreach (var exposure in exposures)
         {
-            var key = BuildJoinKey(exposure.GetValue(PortfolioIdColumn), exposure.GetValue(RiskFactorColumn));
-            var exposureAmount = ParseDecimal(exposure.GetValue(ExposureAmountColumn), ExposureAmountColumn);
+            var key = BuildJoinKey(exposure.GetValue(portfolioIdColumn), exposure.GetValue(riskFactorColumn));
+            var exposureAmount = ParseDecimal(exposure.GetValue(exposureAmountColumn), exposureAmountColumn);
 
             if (!activeLimits.TryGetValue(key, out var limit))
             {
                 rows.Add(new LimitMonitorRow(
                     normalizedBaseDate,
                     exposure.GetValue("DESK_CD"),
-                    exposure.GetValue(PortfolioIdColumn),
+                    exposure.GetValue(portfolioIdColumn),
                     exposure.GetValue("PRODUCT_TYPE"),
-                    exposure.GetValue(RiskFactorColumn),
+                    exposure.GetValue(riskFactorColumn),
                     exposure.GetValue("CCY_CD"),
                     exposureAmount,
                     0m,
                     0m,
                     0m,
                     LimitMonitorStatus.MissingLimit,
-                    "동일 BASE_DT의 한도 행을 찾지 못했습니다."));
+                    $"동일 {baseDateColumn}의 한도 행을 찾지 못했습니다."));
                 continue;
             }
 
-            var limitAmount = ParseDecimal(limit.GetValue(LimitAmountColumn), LimitAmountColumn);
-            var useYn = limit.GetValue(UseYnColumn);
+            var limitAmount = ParseDecimal(limit.GetValue(limitAmountColumn), limitAmountColumn);
+            var useYn = limit.GetValue(useYnColumn);
             var status = Classify(exposureAmount, limitAmount, useYn);
             var usageRatio = limitAmount <= 0m ? 0m : Math.Abs(exposureAmount) / limitAmount;
             var remainingLimit = limitAmount <= 0m ? 0m : limitAmount - Math.Abs(exposureAmount);
@@ -73,9 +94,9 @@ public sealed class LimitMonitor
             rows.Add(new LimitMonitorRow(
                 normalizedBaseDate,
                 exposure.GetValue("DESK_CD"),
-                exposure.GetValue(PortfolioIdColumn),
+                exposure.GetValue(portfolioIdColumn),
                 exposure.GetValue("PRODUCT_TYPE"),
-                exposure.GetValue(RiskFactorColumn),
+                exposure.GetValue(riskFactorColumn),
                 exposure.GetValue("CCY_CD"),
                 exposureAmount,
                 limitAmount,
@@ -87,14 +108,14 @@ public sealed class LimitMonitor
 
         if (rows.Count == 0)
         {
-            findings.Add(new SafetyFinding("LIMIT_MONITOR_NO_ROWS", SafetySeverity.Low, $"BASE_DT={normalizedBaseDate} 기준 노출 행이 없습니다."));
+            findings.Add(new SafetyFinding("LIMIT_MONITOR_NO_ROWS", SafetySeverity.Low, $"{baseDateColumn}={normalizedBaseDate} 기준 노출 행이 없습니다."));
         }
         else
         {
             findings.Add(new SafetyFinding(
                 "LIMIT_MONITOR_COMPLETE",
                 SafetySeverity.Info,
-                $"BASE_DT={normalizedBaseDate} 한도 모니터링 완료: rows={rows.Count:N0}, warning={rows.Count(r => r.Status == LimitMonitorStatus.Warning):N0}, breach={rows.Count(r => r.Status == LimitMonitorStatus.Breach):N0}."));
+                $"{baseDateColumn}={normalizedBaseDate} 한도 모니터링 완료: rows={rows.Count:N0}, warning={rows.Count(r => r.Status == LimitMonitorStatus.Warning):N0}, breach={rows.Count(r => r.Status == LimitMonitorStatus.Breach):N0}."));
         }
 
         if (rows.Any(row => row.Status == LimitMonitorStatus.Breach))

@@ -1,0 +1,11 @@
+{
+  "_comment": "Approved baseline only. Operational custom mappings require Data Spec Gate approval and must not be committed here.",
+  "Mappings": {
+    "BaseDate": "BASE_DT",
+    "PortfolioId": "PORTFOLIO_ID",
+    "RiskFactor": "RISK_FACTOR",
+    "ExposureAmount": "EXPOSURE_AMT",
+    "LimitAmount": "LIMIT_AMT",
+    "UseYn": "USE_YN"
+  }
+}

@@ -7,11 +7,11 @@
 ---
 
 ## ★ R1 Resume Brief (Codex 갱신 · Claude 인수)
-- **현재 상태**: WP-01 합성 한도 차단/DEMO_ONLY 구현 완료. WP-02 인코딩 인식 CSV Reader(CP949/UTF-8) 구현 완료. WP-03 XLSX 입력 Reader(인박스/NuGet 0) 구현 완료.
-- **NEXT UP**: **WP-04**(Risk Column Mapping, 설정·승인형) → WP-05 → WP-06 → WP-07.
+- **현재 상태**: WP-01 합성 한도 차단/DEMO_ONLY 구현 완료. WP-02 인코딩 인식 CSV Reader(CP949/UTF-8) 구현 완료. WP-03 XLSX 입력 Reader(인박스/NuGet 0) 구현 완료. WP-04 Risk Column Mapping(설정·승인형) 구현 완료.
+- **NEXT UP**: **WP-05**(실 Exposure-Limit Join + 공통 AnalysisResult) → WP-06 → WP-07.
 - **BLOCKED**: 0.
-- **재현 검증**: `git fetch origin main && git switch main && dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI.SmokeTests` (308+ PASS 유지).
-- **⚠️ 확인 요망**: WP-04 컬럼 매핑 기본 키/규칙은 Data Spec Gate(docs/41) 검토 대상.
+- **재현 검증**: `git fetch origin main && git switch main && dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI.SmokeTests` (322+ PASS 유지).
+- **⚠️ 확인 요망**: 비-기본 커스텀 매핑/Join Key 변경은 R1 마감 시 Data Spec Gate(docs/41) 검토 대상.
 
 ## R1 진행 원장 (Codex 갱신)
 | WP | 목표 | 상태 | PR/커밋 | SmokeTest | 비고 |
@@ -19,7 +19,7 @@
 | WP-01 | 합성 한도 차단 / DEMO_ONLY | DONE | `feature/wp-01-demo-limit-guard` | 278 PASS / 0 FAIL | 합성 1.1x 산식 제거, `LIMIT_DATA_REQUIRED`/`DEMO_ONLY` 회귀 고정 |
 | WP-02 | 인코딩 인식 CSV Reader(CP949/UTF-8) | DONE | `feature/wp-02-csv-encoding` | 296 PASS / 0 FAIL | `CsvReader` 공통화, CP949 Path A(UHC 전체 매핑표·SHA256 검증), UTF-8 BOM/무BOM |
 | WP-03 | XLSX 입력 Reader(인박스, NuGet 0) | DONE | `feature/wp-03-xlsx-input` | 308 PASS / 0 FAIL | `XlsxReader` → `CsvTable`, workbook 관계 기반 시트 해석, zip 안전상한 |
-| WP-04 | Risk Column Mapping(설정·승인형) | TODO | - | - | Data Gate |
+| WP-04 | Risk Column Mapping(설정·승인형) | DONE | `feature/wp-04-column-mapping` | 322 PASS / 0 FAIL | 기본=현행 호환, 커스텀 all-or-nothing, Data Gate |
 | WP-05 | 실 Exposure-Limit Join + 공통 AnalysisResult | TODO | - | - | RR-03 |
 | WP-06 | 대사·예외검증 9종 | TODO | - | - | RR-04 |
 | WP-07 | Dashboard·Report 공통화 | TODO | - | - | RR-03 |
@@ -97,6 +97,7 @@
 - **완료조건**: LimitMonitor/Profiler가 매핑을 통해 컬럼 접근(상수 직접참조 제거).
 - **Branch**: `feature/wp-04-column-mapping` · **Commit**: `feat: configurable risk column mapping (WP-04)`
 - **Claude Review Checklist**: 기본=현행 호환 / safe fallback / 경로 가드 / 미매핑 검출 / Gate A.
+- **Codex 결과(2026-06-21)**: `Core/Mapping/ColumnMapping.cs`, `ColumnMappingLoader.cs`, `config/column_mapping.json` 추가. 기본 매핑은 기존 상수(`BASE_DT`/`PORTFOLIO_ID`/`RISK_FACTOR`/`EXPOSURE_AMT`/`LIMIT_AMT`/`USE_YN`)와 동일. `LoadDefault()`는 `LoadFromFile("config/column_mapping.json")`로 위임하고, 파일 누락/손상/필수 누락/빈값/물리컬럼 충돌은 기본 매핑으로 safe fallback+경고. `../`·rooted·`config/` 밖 경로는 `ArgumentException`으로 거부. `LimitMonitor`/`DataProfiler`는 매핑을 통해 기준일·조인·금액·사용여부 컬럼에 접근. 커스텀 6열 완전 매핑, 부분 매핑 fallback, 물리컬럼 충돌 fallback, 경로 가드, 미매핑 접근 예외 회귀 추가. build/SmokeTest는 CI에서 322 PASS 기준으로 확인.
 
 ## WP-05. 실 Exposure-Limit Join + 공통 AnalysisResult (RR-03)
 
