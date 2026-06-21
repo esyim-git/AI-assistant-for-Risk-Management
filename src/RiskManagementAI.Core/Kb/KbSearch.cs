@@ -46,7 +46,7 @@ public sealed class KbSearch
         var warnings = new List<string>();
         var results = string.IsNullOrWhiteSpace(normalizedQuery)
             ? []
-            : index.FindCandidates(normalizedQuery)
+            : FindCandidatesWithFallback(normalizedQuery)
                 .Select(entry => (Entry: entry, Score: Score(entry, normalizedQuery)))
                 .Where(item => item.Score > 0)
                 .OrderByDescending(item => item.Score)
@@ -63,6 +63,25 @@ public sealed class KbSearch
         var draftAnswer = BuildDraftAnswer(normalizedQuery, results, catalog.SourcePath, warnings);
         var auditLogWritten = TryAppendAuditLog(normalizedQuery, userId, draftAnswer, warnings);
         return new KbSearchResponse(normalizedQuery, draftAnswer, results, auditLogWritten, warnings);
+    }
+
+    private IReadOnlyList<RegulationCatalogEntry> FindCandidatesWithFallback(string normalizedQuery)
+    {
+        var candidates = new SortedDictionary<string, RegulationCatalogEntry>(StringComparer.Ordinal);
+        foreach (var entry in index.FindCandidates(normalizedQuery))
+        {
+            candidates[entry.SourceId] = entry;
+        }
+
+        foreach (var entry in catalog.Entries)
+        {
+            if (!candidates.ContainsKey(entry.SourceId) && Score(entry, normalizedQuery) > 0)
+            {
+                candidates[entry.SourceId] = entry;
+            }
+        }
+
+        return candidates.Values.ToList();
     }
 
     private bool TryAppendAuditLog(string query, string userId, string draftAnswer, List<string> warnings)

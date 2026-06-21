@@ -4,6 +4,8 @@ namespace RiskManagementAI.Core.Kb;
 
 public sealed class KbIndex
 {
+    private const int MaxNGramLength = 3;
+
     private readonly IReadOnlyDictionary<string, IReadOnlyList<RegulationCatalogEntry>> postings;
 
     private KbIndex(
@@ -115,9 +117,9 @@ public sealed class KbIndex
             yield return token;
         }
 
-        foreach (var substring in Substrings(normalized))
+        foreach (var ngram in BoundedNGrams(normalized))
         {
-            yield return substring;
+            yield return ngram;
         }
     }
 
@@ -145,11 +147,12 @@ public sealed class KbIndex
         }
     }
 
-    private static IEnumerable<string> Substrings(string value)
+    private static IEnumerable<string> BoundedNGrams(string value)
     {
         for (var start = 0; start < value.Length; start++)
         {
-            for (var length = 1; start + length <= value.Length; length++)
+            var maxLength = Math.Min(MaxNGramLength, value.Length - start);
+            for (var length = 1; length <= maxLength; length++)
             {
                 yield return value.Substring(start, length);
             }
