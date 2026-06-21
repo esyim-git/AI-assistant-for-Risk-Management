@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using RiskManagementAI.Core.Logging;
+using RiskManagementAI.Core.Safety;
 
 namespace RiskManagementAI.Core.Kb;
 
@@ -32,6 +33,8 @@ public sealed record KbSearchResult(
     string SupersededBy,
     string LicenseStatus,
     string Clause,
+    KbDisclosure Disclosure,
+    string DisclosureReason,
     int Score);
 
 public sealed record KbSearchResponse(
@@ -39,7 +42,8 @@ public sealed record KbSearchResponse(
     string DraftAnswer,
     IReadOnlyList<KbSearchResult> Results,
     bool AuditLogWritten,
-    IReadOnlyList<string> Warnings);
+    IReadOnlyList<string> Warnings,
+    IReadOnlyList<SafetyFinding> Findings);
 
 public sealed class KbSearch
 {
@@ -68,6 +72,7 @@ public sealed class KbSearch
     {
         var normalizedQuery = query.Trim();
         var warnings = new List<string>(catalog.Warnings);
+        var findings = new List<SafetyFinding>();
         var searchDate = NormalizeSearchDate(asOfDate, warnings);
         var results = string.IsNullOrWhiteSpace(normalizedQuery)
             ? []
@@ -77,7 +82,7 @@ public sealed class KbSearch
                 .OrderByDescending(item => item.Score)
                 .ThenBy(item => item.Entry.SourceId, StringComparer.Ordinal)
                 .Take(Math.Max(1, maxResults))
-                .Select(item => ToSearchResult(item.Entry, item.Score))
+                .Select(item => ToSearchResult(item.Entry, item.Score, findings))
                 .ToList();
 
         AddCitationMetadataWarnings(results, warnings);
@@ -89,7 +94,7 @@ public sealed class KbSearch
 
         var draftAnswer = BuildDraftAnswer(normalizedQuery, searchDate, results, catalog.SourcePath, warnings);
         var auditLogWritten = TryAppendAuditLog(normalizedQuery, userId, draftAnswer, warnings);
-        return new KbSearchResponse(normalizedQuery, draftAnswer, results, auditLogWritten, warnings);
+        return new KbSearchResponse(normalizedQuery, draftAnswer, results, auditLogWritten, warnings, findings);
     }
 
     private string NormalizeSearchDate(string? asOfDate, List<string> warnings)
@@ -174,6 +179,7 @@ public sealed class KbSearch
                 sb.AppendLine($"  출처: {DisplayValue(result.Source)}");
                 sb.AppendLine($"  출처기관: {DisplayValue(result.SourceOrg)} / 유형: {DisplayValue(result.SourceType)}");
                 sb.AppendLine($"  상태: {DisplayValue(result.Status)} / 라이선스: {DisplayValue(result.LicenseStatus)} / 분류: {DisplayValue(result.Category)}");
+                sb.AppendLine($"  노출등급: {result.Disclosure} / 사유: {result.DisclosureReason}");
                 sb.AppendLine($"  폐기일: {DisplayValue(result.RepealDate)} / 적재일: {DisplayValue(result.LoadedDate)} / 대체문서: {DisplayValue(result.SupersededBy)}");
                 sb.AppendLine($"  비고: {result.Note}");
             }
@@ -224,8 +230,10 @@ public sealed class KbSearch
             || normalized.Equals("NOT_LOADED", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static KbSearchResult ToSearchResult(RegulationCatalogEntry entry, int score)
+    private static KbSearchResult ToSearchResult(RegulationCatalogEntry entry, int score, List<SafetyFinding> findings)
     {
+        var accessDecision = KbAccessPolicy.Evaluate(entry);
+        findings.AddRange(accessDecision.Findings);
         return new KbSearchResult(
             entry.SourceId,
             entry.Category,
@@ -244,6 +252,8 @@ public sealed class KbSearch
             entry.SupersededBy,
             entry.LicenseStatus,
             "catalog 단위 - 조항별 원문은 Prod 권한통제 KB에서 확인",
+            accessDecision.Disclosure,
+            accessDecision.Reason,
             score);
     }
 
