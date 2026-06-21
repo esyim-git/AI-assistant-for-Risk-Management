@@ -485,15 +485,15 @@ public partial class MainWindow : Window
             RiskDashboardSummaryText.Text = BuildRiskDashboardSummary(result);
 
             var findings = result.Findings.ToList();
-            var resultSeverity = result.BreachCount > 0
+            var resultSeverity = result.BreachCount > 0 || result.MappingErrorCount > 0
                 ? SafetySeverity.High
-                : result.WarningCount > 0
+                : result.WarningCount > 0 || result.NoLimitCount > 0 || result.InvalidLimitCount > 0
                     ? SafetySeverity.Medium
                     : SafetySeverity.Info;
             findings.Add(new SafetyFinding(
                 "RISK_DASHBOARD_RESULT",
                 resultSeverity,
-                $"Rows={result.Rows.Count:N0}, NORMAL={result.NormalCount:N0}, WARNING={result.WarningCount:N0}, BREACH={result.BreachCount:N0}, MissingLimit={result.MissingLimitCount:N0}."));
+                $"Rows={result.Rows.Count:N0}, NORMAL={result.NormalCount:N0}, WARNING={result.WarningCount:N0}, BREACH={result.BreachCount:N0}, NO_LIMIT={result.NoLimitCount:N0}, INVALID_LIMIT={result.InvalidLimitCount:N0}, MAPPING_ERROR={result.MappingErrorCount:N0}."));
 
             var auditFinding = AppendAuditLog(
                 "RiskLimitMonitor",
@@ -631,9 +631,9 @@ public partial class MainWindow : Window
         return sb.ToString();
     }
 
-    private static string BuildRiskDashboardSummary(LimitMonitorResult result)
+    private static string BuildRiskDashboardSummary(LimitAnalysisResult result)
     {
-        return $"BASE_DT={result.BaseDate} / Rows={result.Rows.Count:N0} / NORMAL={result.NormalCount:N0} / WARNING={result.WarningCount:N0} / BREACH={result.BreachCount:N0}";
+        return $"BASE_DT={result.BaseDate} / Rows={result.Rows.Count:N0} / NORMAL={result.NormalCount:N0} / WARNING={result.WarningCount:N0} / BREACH={result.BreachCount:N0} / NO_LIMIT={result.NoLimitCount:N0} / INVALID_LIMIT={result.InvalidLimitCount:N0} / MAPPING_ERROR={result.MappingErrorCount:N0}";
     }
 
     private static string BuildHistorySummary(AuditLogReadResult result)
@@ -859,15 +859,7 @@ public partial class MainWindow : Window
                 row.ExposureAmount,
                 row.LimitAmount,
                 $"{row.UsageRatio * 100m:N1}%",
-                row.Status switch
-                {
-                    LimitMonitorStatus.Normal => "NORMAL",
-                    LimitMonitorStatus.Warning => "WARNING",
-                    LimitMonitorStatus.Breach => "BREACH",
-                    LimitMonitorStatus.MissingLimit => "MISSING_LIMIT",
-                    LimitMonitorStatus.InactiveLimit => "INACTIVE_LIMIT",
-                    _ => row.Status.ToString().ToUpperInvariant()
-                },
+                row.StatusCode,
                 row.Note);
         }
     }

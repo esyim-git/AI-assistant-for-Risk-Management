@@ -33,4 +33,16 @@ public sealed class CsvRow
 
         throw new InvalidDataException($"{columnName} 컬럼이 없습니다.");
     }
+
+    public bool TryGetValue(string columnName, out string value)
+    {
+        if (values.TryGetValue(columnName, out var found))
+        {
+            value = found;
+            return true;
+        }
+
+        value = string.Empty;
+        return false;
+    }
 }

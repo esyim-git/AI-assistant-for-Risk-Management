@@ -152,6 +152,87 @@ void CreateSmokeXlsx(string path, bool tooManyRows = false)
 """);
 }
 
+string ToExcelColumnName(int columnIndex)
+{
+    var name = string.Empty;
+    while (columnIndex > 0)
+    {
+        columnIndex--;
+        name = (char)('A' + (columnIndex % 26)) + name;
+        columnIndex /= 26;
+    }
+
+    return name;
+}
+
+void CreateSingleSheetXlsx(string path, string[][] rows)
+{
+    if (File.Exists(path))
+    {
+        File.Delete(path);
+    }
+
+    var sheetRows = new StringBuilder();
+    for (var rowIndex = 0; rowIndex < rows.Length; rowIndex++)
+    {
+        var rowNumber = rowIndex + 1;
+        sheetRows.Append("<row r=\"");
+        sheetRows.Append(rowNumber);
+        sheetRows.Append("\">");
+        for (var columnIndex = 0; columnIndex < rows[rowIndex].Length; columnIndex++)
+        {
+            var columnName = ToExcelColumnName(columnIndex + 1);
+            sheetRows.Append("<c r=\"");
+            sheetRows.Append(columnName);
+            sheetRows.Append(rowNumber);
+            sheetRows.Append("\" t=\"inlineStr\"><is><t>");
+            sheetRows.Append(SecurityElement.Escape(rows[rowIndex][columnIndex]) ?? string.Empty);
+            sheetRows.Append("</t></is></c>");
+        }
+
+        sheetRows.AppendLine("</row>");
+    }
+
+    using var archive = ZipFile.Open(path, ZipArchiveMode.Create);
+    WriteZipEntry(archive, "[Content_Types].xml", """
+<?xml version="1.0" encoding="UTF-8"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+</Types>
+""");
+    WriteZipEntry(archive, "_rels/.rels", """
+<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>
+""");
+    WriteZipEntry(archive, "xl/workbook.xml", """
+<?xml version="1.0" encoding="UTF-8"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets>
+    <sheet name="Sheet1" sheetId="1" r:id="rId1"/>
+  </sheets>
+</workbook>
+""");
+    WriteZipEntry(archive, "xl/_rels/workbook.xml.rels", """
+<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+</Relationships>
+""");
+    WriteZipEntry(archive, "xl/worksheets/sheet1.xml", $"""
+<?xml version="1.0" encoding="UTF-8"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <sheetData>
+{sheetRows}
+  </sheetData>
+</worksheet>
+""");
+}
+
 var loadedRuleSet = RuleLoader.LoadDefault();
 AssertTrue(!loadedRuleSet.UsedFallback, "RuleLoader should load repo rules");
 AssertTrue(loadedRuleSet.RuleVersion.StartsWith("ruleset-", StringComparison.Ordinal) && loadedRuleSet.RuleVersion.Length == 20, "RuleLoader should produce deterministic ruleset version");
@@ -777,7 +858,63 @@ var breachCreditRow = limitMonitorResult.Rows.Single(row => row.PortfolioId == "
 AssertTrue(breachCreditRow.Status == LimitMonitorStatus.Breach && breachCreditRow.RemainingLimit < 0m, "LimitMonitor should classify PF_CR_001 as BREACH");
 var shortSideRow = limitMonitorResult.Rows.Single(row => row.PortfolioId == "PF_FI_001");
 AssertTrue(shortSideRow.ExposureAmount < 0m && shortSideRow.UsageRatio == 0.84m && shortSideRow.Status == LimitMonitorStatus.Normal, "LimitMonitor should use ABS exposure for short-side rows");
+AssertTrue(limitMonitorResult.Kpis.TotalCount == 5 && limitMonitorResult.Metadata.IsDeterministic, "LimitMonitor should return shared deterministic LimitAnalysisResult KPIs");
+AssertTrue(!limitMonitorResult.Metadata.ColumnMappingUsedFallback && limitMonitorResult.Metadata.ExposureSourceName == "risk_exposure_sample.csv", "LimitAnalysisResult metadata should include source and mapping state");
 AssertTrue(limitMonitorResult.Findings.Any(f => f.Code == "LIMIT_BREACH_DETECTED" && f.Severity == SafetySeverity.High), "LimitMonitor should emit a high finding when breaches exist");
+
+var limitSmokeDirectory = Path.Combine("artifacts", "smoke-limit-wp05");
+Directory.CreateDirectory(limitSmokeDirectory);
+var wp05ExposureRows = new[]
+{
+    new[] { "BASE_DT", "DESK_CD", "PORTFOLIO_ID", "PRODUCT_TYPE", "RISK_FACTOR", "CCY_CD", "EXPOSURE_AMT" },
+    new[] { "20260617", "EQD", "PF_NORMAL", "ELS", "RF_NORMAL", "KRW", "50" },
+    new[] { "20260617", "EQD", "PF_WARNING", "ELS", "RF_WARNING", "KRW", "95" },
+    new[] { "20260617", "EQD", "PF_BREACH", "ELS", "RF_BREACH", "KRW", "110" },
+    new[] { "20260617", "EQD", "PF_NOLIMIT", "ELS", "RF_NOLIMIT", "KRW", "10" },
+    new[] { "20260617", "EQD", "PF_INACTIVE", "ELS", "RF_INACTIVE", "KRW", "10" },
+    new[] { "20260617", "EQD", "PF_ZERO", "ELS", "RF_ZERO", "KRW", "10" }
+};
+var wp05LimitRows = new[]
+{
+    new[] { "BASE_DT", "PORTFOLIO_ID", "RISK_FACTOR", "LIMIT_AMT", "USE_YN" },
+    new[] { "20260617", "PF_NORMAL", "RF_NORMAL", "100", "Y" },
+    new[] { "20260617", "PF_WARNING", "RF_WARNING", "100", "Y" },
+    new[] { "20260617", "PF_BREACH", "RF_BREACH", "100", "Y" },
+    new[] { "20260617", "PF_INACTIVE", "RF_INACTIVE", "100", "N" },
+    new[] { "20260617", "PF_ZERO", "RF_ZERO", "0", "Y" }
+};
+var wp05ExposureCsv = Path.Combine(limitSmokeDirectory, "wp05_exposure.csv");
+var wp05LimitCsv = Path.Combine(limitSmokeDirectory, "wp05_limit.csv");
+File.WriteAllText(wp05ExposureCsv, string.Join(Environment.NewLine, wp05ExposureRows.Select(row => string.Join(",", row))) + Environment.NewLine);
+File.WriteAllText(wp05LimitCsv, string.Join(Environment.NewLine, wp05LimitRows.Select(row => string.Join(",", row))) + Environment.NewLine);
+var sixStateResult = limitMonitor.Analyze(wp05ExposureCsv, wp05LimitCsv, "20260617");
+AssertTrue(
+    sixStateResult.Kpis is { NormalCount: 1, WarningCount: 1, BreachCount: 1, NoLimitCount: 1, InvalidLimitCount: 2, MappingErrorCount: 0 },
+    "LimitMonitor should classify NORMAL/WARNING/BREACH/NO_LIMIT/INVALID_LIMIT states");
+AssertTrue(sixStateResult.Rows.Single(row => row.PortfolioId == "PF_NOLIMIT").StatusCode == "NO_LIMIT", "LimitMonitor should expose NO_LIMIT output string for unmatched joins");
+AssertTrue(sixStateResult.ExceptionList.Count(exception => exception.Code == "INVALID_LIMIT") == 2, "LimitMonitor should split inactive or zero limits into INVALID_LIMIT exceptions");
+AssertTrue(sixStateResult.Findings.Any(finding => finding.Code == "LIMIT_NO_LIMIT_DETECTED"), "LimitMonitor should emit finding when real limit row is absent");
+var repeatedSixStateResult = limitMonitor.Analyze(wp05ExposureCsv, wp05LimitCsv, "20260617");
+AssertTrue(repeatedSixStateResult.Kpis == sixStateResult.Kpis, "LimitAnalysisResult KPIs should be deterministic for repeated inputs");
+AssertTrue(repeatedSixStateResult.Rows.Select(row => row.StatusCode).SequenceEqual(sixStateResult.Rows.Select(row => row.StatusCode)), "LimitAnalysisResult monitoring rows should be deterministic for repeated inputs");
+var coreTableResult = limitMonitor.Analyze(CsvReader.Read(wp05ExposureCsv), CsvReader.Read(wp05LimitCsv), "20260617");
+AssertTrue(coreTableResult.Kpis == sixStateResult.Kpis, "LimitMonitor CsvTable core interface should match path overload results");
+
+var wp05ExposureXlsx = Path.Combine(limitSmokeDirectory, "wp05_exposure.xlsx");
+var wp05LimitXlsx = Path.Combine(limitSmokeDirectory, "wp05_limit.xlsx");
+CreateSingleSheetXlsx(wp05ExposureXlsx, wp05ExposureRows);
+CreateSingleSheetXlsx(wp05LimitXlsx, wp05LimitRows);
+var xlsxLimitResult = limitMonitor.Analyze(wp05ExposureXlsx, wp05LimitXlsx, "20260617");
+AssertTrue(xlsxLimitResult.Kpis == sixStateResult.Kpis, "LimitMonitor .xlsx path overload should match .csv path overload results");
+
+var mappingErrorExposureCsv = Path.Combine(limitSmokeDirectory, "wp05_missing_amount.csv");
+File.WriteAllText(
+    mappingErrorExposureCsv,
+    "BASE_DT,DESK_CD,PORTFOLIO_ID,PRODUCT_TYPE,RISK_FACTOR,CCY_CD\n20260617,EQD,PF_MAP,ELS,RF_MAP,KRW\n");
+var mappingErrorResult = limitMonitor.Analyze(mappingErrorExposureCsv, wp05LimitCsv, "20260617");
+AssertTrue(mappingErrorResult.MappingErrorCount == 1, "LimitMonitor should return graceful MAPPING_ERROR for missing mapped physical columns");
+AssertTrue(mappingErrorResult.ExceptionList.Any(exception => exception.Code == "MAPPING_ERROR" && exception.Severity == SafetySeverity.High), "LimitMonitor should include high severity MappingError exception");
+AssertTrue(mappingErrorResult.Findings.Any(finding => finding.Code == "LIMIT_MAPPING_ERROR"), "LimitMonitor should include MappingError finding instead of throwing");
 
 var excelReportLogPath = Path.Combine("logs", "smoke_excel_report_log.jsonl");
 var excelReportPath = Path.Combine("reports", "smoke_m2_04_report.xlsx");
@@ -936,13 +1073,13 @@ var cp949Profile = profiler.ProfileCsv(cp949UhcCsv);
 AssertTrue(cp949Profile.SourceName == "cp949_uhc_sample_cp949.csv" && cp949Profile.RowCount == 1, "DataProfiler should use common CsvReader for CP949 files");
 AssertTrue(cp949Profile.NumericColumns["AMT"].Sum == 10m, "DataProfiler should preserve numeric profiling through common CsvReader");
 
-var cp949LimitMonitorResult = limitMonitor.Analyze(
+var cp949LimitResult = limitMonitor.Analyze(
     Path.Combine("samples", "dummy_data", "risk_exposure_sample_cp949.csv"),
     Path.Combine("samples", "dummy_data", "risk_limit_sample_cp949.csv"),
     "20260617");
-AssertTrue(cp949LimitMonitorResult.Rows.Count == 1, "LimitMonitor should use common CsvReader for CP949 files");
-AssertTrue(cp949LimitMonitorResult.Rows.Single().RiskFactor == "KOSPI200힣", "LimitMonitor should preserve CP949 UHC join key text");
-AssertTrue(cp949LimitMonitorResult.Rows.Single().Status == LimitMonitorStatus.Warning, "LimitMonitor should classify CP949 sample after common CsvReader join");
+AssertTrue(cp949LimitResult.Rows.Count == 1, "LimitMonitor should use common CsvReader for CP949 files");
+AssertTrue(cp949LimitResult.Rows.Single().RiskFactor == "KOSPI200힣", "LimitMonitor should preserve CP949 UHC join key text");
+AssertTrue(cp949LimitResult.Rows.Single().Status == LimitMonitorStatus.Warning, "LimitMonitor should classify CP949 sample after common CsvReader join");
 
 var cp949Catalog = RegulationCatalog.LoadFromFile(Path.Combine("samples", "dummy_data", "regulation_catalog_cp949.csv"));
 AssertTrue(cp949Catalog.Entries.Single().Title == "힣 규정", "RegulationCatalog should use common CsvReader for CP949 catalog files");
