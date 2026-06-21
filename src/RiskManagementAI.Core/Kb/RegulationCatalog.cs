@@ -113,6 +113,11 @@ public sealed class RegulationCatalog
         var entries = new List<RegulationCatalogEntry>();
         foreach (var row in table.Rows)
         {
+            if (row.RawFieldCount < RequiredColumns.Length)
+            {
+                throw new InvalidDataException($"Line {row.LineNumber}: Regulation catalog required column count mismatch. expected-at-least={RequiredColumns.Length}, actual={row.RawFieldCount}");
+            }
+
             if (row.RawFieldCount > table.Columns.Count)
             {
                 throw new InvalidDataException($"Line {row.LineNumber}: Regulation catalog column count mismatch. expected={table.Columns.Count}, actual={row.RawFieldCount}");
@@ -140,6 +145,7 @@ public sealed class RegulationCatalog
                 GetOptionalValue(row, headerMap, "approval_status"),
                 GetOptionalValue(row, headerMap, "superseded_by"),
                 GetOptionalValue(row, headerMap, "license_status"));
+            ValidateRequiredValues(entry, row.LineNumber);
             entries.Add(entry);
             AddMetadataWarnings(entry, row.LineNumber, warnings);
         }
@@ -155,6 +161,30 @@ public sealed class RegulationCatalog
         return headerMap.ContainsKey(columnName) && row.TryGetValue(columnName, out var value)
             ? value
             : string.Empty;
+    }
+
+    private static void ValidateRequiredValues(RegulationCatalogEntry entry, int lineNumber)
+    {
+        var missingColumn = RequiredColumns.FirstOrDefault(columnName => string.IsNullOrWhiteSpace(GetRequiredValue(entry, columnName)));
+        if (missingColumn is not null)
+        {
+            throw new InvalidDataException($"Line {lineNumber}: Regulation catalog required column '{missingColumn}' is empty.");
+        }
+    }
+
+    private static string GetRequiredValue(RegulationCatalogEntry entry, string columnName)
+    {
+        return columnName switch
+        {
+            "source_id" => entry.SourceId,
+            "category" => entry.Category,
+            "title" => entry.Title,
+            "source_org" => entry.SourceOrg,
+            "source_type" => entry.SourceType,
+            "status" => entry.Status,
+            "note" => entry.Note,
+            _ => string.Empty
+        };
     }
 
     private static void AddMetadataWarnings(

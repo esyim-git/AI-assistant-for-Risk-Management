@@ -633,6 +633,20 @@ var legacyCatalog = RegulationCatalog.LoadFromFile(legacyCatalogPath);
 AssertTrue(legacyCatalog.Entries.Single().Source == string.Empty, "RegulationCatalog should load legacy 7-column catalog with empty source metadata");
 AssertTrue(legacyCatalog.Warnings.Any(warning => warning.Contains("missing optional column 'source'", StringComparison.OrdinalIgnoreCase)), "RegulationCatalog should warn on missing metadata columns without throwing");
 
+var missingRequiredCatalogPath = Path.Combine(Path.GetTempPath(), $"missing_required_catalog_{Guid.NewGuid():N}.csv");
+File.WriteAllText(
+    missingRequiredCatalogPath,
+    "source_id,category,title,source_org,source_type,status,note\nSHORT,PUBLIC_REG,Short Regulation,Public Org,Public regulation,CATALOG_ONLY\n",
+    Encoding.UTF8);
+AssertTrue(Throws<InvalidDataException>(() => RegulationCatalog.LoadFromFile(missingRequiredCatalogPath)), "RegulationCatalog should reject rows that omit required catalog fields");
+
+var emptyRequiredCatalogPath = Path.Combine(Path.GetTempPath(), $"empty_required_catalog_{Guid.NewGuid():N}.csv");
+File.WriteAllText(
+    emptyRequiredCatalogPath,
+    "source_id,category,title,source_org,source_type,status,note\nEMPTY_STATUS,PUBLIC_REG,Empty Status,Public Org,Public regulation,,required status is empty\n",
+    Encoding.UTF8);
+AssertTrue(Throws<InvalidDataException>(() => RegulationCatalog.LoadFromFile(emptyRequiredCatalogPath)), "RegulationCatalog should reject empty required catalog values");
+
 var emptyMetadataCatalogPath = Path.Combine(Path.GetTempPath(), $"empty_metadata_catalog_{Guid.NewGuid():N}.csv");
 File.WriteAllText(
     emptyMetadataCatalogPath,
