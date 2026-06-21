@@ -65,7 +65,7 @@ Answer with Source
 | **R3-WP-02** | **Keyword/Inverted Index** 검색엔진 | **DONE** | linear Contains → 역색인(NuGet 0, 결정적). 결과·순서·점수 현행 동일, 한글 부분일치 보존, substring key L=32 cap + 긴 쿼리 linear 후보 fallback. SmokeTest 399 PASS |
 | **R3-WP-03** | **인용형 답변 강화** | **DONE** | 문서명·버전·시행일·**조항**·출처·**검색 기준일**·"검토 필요" 완비. `IClock` 주입 + `asOfDate` optional, invalid date fallback, `CONFIRM_*`/`NOT_LOADED` 메타 `(확인 필요)` 처리. SmokeTest 422 PASS |
 | **R3-WP-04** | **적재 게이트 가드** | **DONE** | `CATALOG_ONLY`→PublicCited, `PROD_ONLY`/`MANUAL_APPROVAL_REQUIRED`→원문 비노출(metadata/approval 표식), 라이선스·승인·미지 status 구조화 finding, repo 원문 스캔 guard. SmokeTest 437 PASS |
-| R3-WP-05 | **NCR Rule Set 구조**(`docs/08` 심화) | TODO(RAG 후) | Rule Set/Version/Effective Date/Component Map/Formula Description/Validation SQL/Regulation Basis/Approval History. **모델 산식 암기 금지** |
+| **R3-WP-05** | **NCR Rule Set 구조**(`docs/08` 심화) | **NEXT** (프롬프트 `prompts/codex/R3-WP-05_ncr_ruleset.md`) | Rule Set/Version/Effective Date/Component Map/Formula Description/Validation SQL(조회전용)/Regulation Basis/Approval History. **모델 산식 암기 금지** · NCR 공식본 원문 repo 미포함 |
 
 - **순서**: RAG(WP-01→04) 먼저, 그다음 NCR(WP-05). 각 WP는 자기 DoD+게이트 A+자기 테스트로 머지(big-bang 금지).
 - **STOP 규칙**: Vector DB/Embedding Runtime/외부 라이브러리/모델파일이 필요해지는 순간 **작업 STOP** → 승인 문서(`docs/41 §2`) 후에만.
