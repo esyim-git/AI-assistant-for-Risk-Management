@@ -715,9 +715,14 @@ var kbSearch = new KbSearch(
     loadedRuleSet.RuleVersion);
 var ncrSearchResponse = kbSearch.Search("NCR", "user-smoke");
 AssertTrue(ncrSearchResponse.Results.Any(result => result.SourceId == "NCR_GUIDE"), "KbSearch should find NCR catalog entry");
+var ncrSearchResult = ncrSearchResponse.Results.Single(result => result.SourceId == "NCR_GUIDE");
+AssertTrue(ncrSearchResult.Disclosure == KbDisclosure.ApprovalRequired, "KbSearch should mark NCR manual upload entries as approval required");
+AssertTrue(ncrSearchResult.DisclosureReason.Contains("원문 미적재", StringComparison.Ordinal), "KbSearch should explain NCR source text is not loaded");
+AssertTrue(ncrSearchResponse.Findings.Any(finding => finding.Code == "KB_APPROVAL_REQUIRED" && finding.Severity == SafetySeverity.Medium), "KbSearch should emit structured approval-required finding for NCR entries");
 AssertTrue(ncrSearchResponse.DraftAnswer.Contains("검토용 초안", StringComparison.Ordinal), "KbSearch answer should mark review draft");
 AssertTrue(ncrSearchResponse.DraftAnswer.Contains("출처", StringComparison.Ordinal), "KbSearch answer should always include sources");
 AssertTrue(ncrSearchResponse.DraftAnswer.Contains("원문은 포함하지 않습니다", StringComparison.Ordinal), "KbSearch answer should state internal originals are excluded");
+AssertTrue(!ncrSearchResponse.DraftAnswer.Contains("제1조", StringComparison.Ordinal), "KbSearch should not expose NCR clause source text");
 AssertTrue(ncrSearchResponse.AuditLogWritten, "KbSearch should write audit log when configured");
 AssertTrue(!ncrSearchResponse.DraftAnswer.Contains("NOT_LOADED", StringComparison.Ordinal), "KbSearch citation answer should not cite NOT_LOADED as real metadata");
 AssertTrue(ncrSearchResponse.DraftAnswer.Contains("(확인 필요)", StringComparison.Ordinal), "KbSearch citation answer should render NOT_LOADED metadata as confirmation-needed");
@@ -725,6 +730,14 @@ AssertTrue(ncrSearchResponse.Warnings.Any(warning => warning.Contains("source_id
 
 var publicRegSearchResponse = kbSearch.Search("금융투자업규정", "user-smoke");
 AssertTrue(publicRegSearchResponse.Results.Any(result => result.SourceId == "FIA_REG"), "KbSearch should find public regulation catalog entry");
+var publicRegSearchResult = publicRegSearchResponse.Results.First(result => result.SourceId == "FIA_REG");
+AssertTrue(publicRegSearchResult.Disclosure == KbDisclosure.PublicCited, "KbSearch should mark public catalog entries as PublicCited");
+AssertTrue(publicRegSearchResult.DisclosureReason.Contains("공개 catalog", StringComparison.Ordinal), "KbSearch should explain public catalog citation disclosure");
+var internalRulesSearchResponse = kbSearch.Search("내부규정", "user-smoke");
+var internalRulesSearchResult = internalRulesSearchResponse.Results.Single(result => result.SourceId == "INTERNAL_RULES");
+AssertTrue(internalRulesSearchResult.Disclosure == KbDisclosure.MetadataOnly, "KbSearch should keep internal rules metadata-only");
+AssertTrue(internalRulesSearchResult.DisclosureReason.Contains("Prod 권한통제", StringComparison.Ordinal), "KbSearch should route internal source text to Prod-controlled KB");
+AssertTrue(internalRulesSearchResponse.Findings.Any(finding => finding.Code == "KB_PROD_ONLY_METADATA"), "KbSearch should emit structured metadata-only finding for internal rules");
 var fixedKbSearch = new KbSearch(regulationCatalog, clock: new FixedClock(new DateOnly(2026, 6, 21)));
 var citationSearchResponse = fixedKbSearch.Search("금융투자업규정", "user-smoke", asOfDate: "2026-06-20");
 var citationText = citationSearchResponse.DraftAnswer;
@@ -753,6 +766,24 @@ var emptyMetadataSearch = new KbSearch(emptyMetadataCatalog, clock: new FixedClo
 var emptyMetadataSearchResponse = emptyMetadataSearch.Search("Empty Metadata", "user-smoke", asOfDate: "2026-06-20");
 AssertTrue(emptyMetadataSearchResponse.DraftAnswer.Contains("(미기재)", StringComparison.Ordinal), "KbSearch citation answer should render empty metadata as missing gracefully");
 AssertTrue(!emptyMetadataSearchResponse.DraftAnswer.Contains("검색 기준일: (미기재)", StringComparison.Ordinal), "KbSearch citation answer should never render search date as missing");
+AssertTrue(emptyMetadataSearchResponse.Findings.Any(finding => finding.Code == "KB_LICENSE_MISSING" && finding.Severity == SafetySeverity.Medium), "KbSearch should emit structured finding for missing license metadata");
+AssertTrue(emptyMetadataSearchResponse.Findings.Any(finding => finding.Code == "KB_APPROVAL_MISSING" && finding.Severity == SafetySeverity.Medium), "KbSearch should emit structured finding for missing approval metadata");
+var unknownStatusCatalogPath = Path.Combine(Path.GetTempPath(), $"unknown_status_catalog_{Guid.NewGuid():N}.csv");
+File.WriteAllText(
+    unknownStatusCatalogPath,
+    "source_id,category,title,source_org,source_type,status,note,source,version,effective_date,repeal_date,file_hash,loaded_date,approval_status,superseded_by,license_status\nUNKNOWN_STATUS,PUBLIC_REG,Mystery Status,Public Org,Public regulation,MYSTERY_STATUS,unknown status metadata,https://example.invalid,v1,2026-01-01,,hash,2026-06-21,PUBLIC_CATALOG_METADATA,,PUBLIC_REFERENCE\n",
+    Encoding.UTF8);
+var unknownStatusSearchResponse = new KbSearch(RegulationCatalog.LoadFromFile(unknownStatusCatalogPath)).Search("Mystery Status", "user-smoke");
+var unknownStatusResult = unknownStatusSearchResponse.Results.Single(result => result.SourceId == "UNKNOWN_STATUS");
+AssertTrue(unknownStatusResult.Disclosure == KbDisclosure.MetadataOnly, "KbSearch should conservatively mark unknown status as metadata-only");
+AssertTrue(unknownStatusSearchResponse.Findings.Any(finding => finding.Code == "KB_UNKNOWN_STATUS" && finding.Severity == SafetySeverity.High), "KbSearch should emit structured finding for unknown status");
+var repoGuardFindings = KbRepositoryGuard.Scan(Directory.GetCurrentDirectory());
+AssertTrue(!repoGuardFindings.Any(finding => finding.Severity == SafetySeverity.Blocker), "KbRepositoryGuard should not find internal/NCR original text in repo assets");
+var suspiciousKbRoot = Path.Combine(Path.GetTempPath(), $"kb_guard_{Guid.NewGuid():N}");
+Directory.CreateDirectory(Path.Combine(suspiciousKbRoot, "kb"));
+File.WriteAllText(Path.Combine(suspiciousKbRoot, "kb", "internal_rule_original.txt"), "내부규정 원문", Encoding.UTF8);
+var suspiciousFindings = KbRepositoryGuard.Scan(suspiciousKbRoot);
+AssertTrue(suspiciousFindings.Any(finding => finding.Code == "KB_FORBIDDEN_SOURCE_TEXT" && finding.Severity == SafetySeverity.Blocker), "KbRepositoryGuard should block suspicious internal/NCR original files");
 var kbIndexA = KbIndex.Build(regulationCatalog.Entries);
 var kbIndexB = KbIndex.Build(regulationCatalog.Entries);
 AssertTrue(kbIndexA.IndexedTermCount > regulationCatalog.Entries.Count, "KbIndex should build searchable inverted terms");
