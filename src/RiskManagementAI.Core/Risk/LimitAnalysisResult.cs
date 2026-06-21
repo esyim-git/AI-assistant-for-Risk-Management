@@ -8,7 +8,8 @@ public sealed record LimitAnalysisResult(
     LimitAnalysisKpis Kpis,
     LimitAnalysisMetadata Metadata,
     IReadOnlyList<LimitException> ExceptionList,
-    IReadOnlyList<SafetyFinding> Findings)
+    IReadOnlyList<SafetyFinding> Findings,
+    ReconciliationSummary Reconciliation)
 {
     public IReadOnlyList<LimitMonitorRow> Rows => MonitoringTable;
 
@@ -68,3 +69,14 @@ public sealed record LimitException(
     string BaseDate,
     string PortfolioId,
     string RiskFactor);
+
+public sealed record ReconciliationSummary(
+    bool Passed,
+    int CheckCount,
+    IReadOnlyList<ReconciliationCheck> Checks);
+
+public sealed record ReconciliationCheck(
+    string Code,
+    bool Applicable,
+    int ExceptionCount,
+    SafetySeverity MaxSeverity);

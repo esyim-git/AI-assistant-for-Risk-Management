@@ -233,6 +233,28 @@ void CreateSingleSheetXlsx(string path, string[][] rows)
 """);
 }
 
+void WriteCsvRows(string path, string[][] rows)
+{
+    File.WriteAllText(path, string.Join(Environment.NewLine, rows.Select(row => string.Join(",", row))) + Environment.NewLine);
+}
+
+int ReconciliationExceptionCount(LimitAnalysisResult result, string code)
+{
+    return result.ExceptionList.Count(exception => string.Equals(exception.Code, code, StringComparison.Ordinal));
+}
+
+ReconciliationCheck ReconciliationCheckFor(LimitAnalysisResult result, string code)
+{
+    return result.Reconciliation.Checks.Single(check => string.Equals(check.Code, code, StringComparison.Ordinal));
+}
+
+string ReconciliationSignature(LimitAnalysisResult result)
+{
+    return string.Join(
+        "|",
+        result.Reconciliation.Checks.Select(check => $"{check.Code}:{check.Applicable}:{check.ExceptionCount}:{check.MaxSeverity}"));
+}
+
 var loadedRuleSet = RuleLoader.LoadDefault();
 AssertTrue(!loadedRuleSet.UsedFallback, "RuleLoader should load repo rules");
 AssertTrue(loadedRuleSet.RuleVersion.StartsWith("ruleset-", StringComparison.Ordinal) && loadedRuleSet.RuleVersion.Length == 20, "RuleLoader should produce deterministic ruleset version");
@@ -861,6 +883,13 @@ AssertTrue(shortSideRow.ExposureAmount < 0m && shortSideRow.UsageRatio == 0.84m 
 AssertTrue(limitMonitorResult.Kpis.TotalCount == 5 && limitMonitorResult.Metadata.IsDeterministic, "LimitMonitor should return shared deterministic LimitAnalysisResult KPIs");
 AssertTrue(!limitMonitorResult.Metadata.ColumnMappingUsedFallback && limitMonitorResult.Metadata.ExposureSourceName == "risk_exposure_sample.csv", "LimitAnalysisResult metadata should include source and mapping state");
 AssertTrue(limitMonitorResult.Findings.Any(f => f.Code == "LIMIT_BREACH_DETECTED" && f.Severity == SafetySeverity.High), "LimitMonitor should emit a high finding when breaches exist");
+AssertTrue(limitMonitorResult.Reconciliation.Passed, "LimitMonitor sample reconciliation should pass without fail-code exceptions");
+AssertTrue(limitMonitorResult.Reconciliation.CheckCount == 9, "LimitMonitor should expose nine WP-06 reconciliation checks");
+AssertTrue(ReconciliationExceptionCount(limitMonitorResult, "RECON_BASEDATE_MISMATCH") == 0, "LimitMonitor should not flag normal multi-date exports when requested BASE_DT exists");
+AssertTrue(
+    !ReconciliationCheckFor(limitMonitorResult, "RECON_CURRENCY_MISMATCH").Applicable
+        && !ReconciliationCheckFor(limitMonitorResult, "RECON_UNIT_MISMATCH").Applicable,
+    "LimitMonitor should mark currency and unit reconciliation as N/A for R1 default inputs");
 
 var limitSmokeDirectory = Path.Combine("artifacts", "smoke-limit-wp05");
 Directory.CreateDirectory(limitSmokeDirectory);
@@ -885,8 +914,8 @@ var wp05LimitRows = new[]
 };
 var wp05ExposureCsv = Path.Combine(limitSmokeDirectory, "wp05_exposure.csv");
 var wp05LimitCsv = Path.Combine(limitSmokeDirectory, "wp05_limit.csv");
-File.WriteAllText(wp05ExposureCsv, string.Join(Environment.NewLine, wp05ExposureRows.Select(row => string.Join(",", row))) + Environment.NewLine);
-File.WriteAllText(wp05LimitCsv, string.Join(Environment.NewLine, wp05LimitRows.Select(row => string.Join(",", row))) + Environment.NewLine);
+WriteCsvRows(wp05ExposureCsv, wp05ExposureRows);
+WriteCsvRows(wp05LimitCsv, wp05LimitRows);
 var sixStateResult = limitMonitor.Analyze(wp05ExposureCsv, wp05LimitCsv, "20260617");
 AssertTrue(
     sixStateResult.Kpis is { NormalCount: 1, WarningCount: 1, BreachCount: 1, NoLimitCount: 1, InvalidLimitCount: 2, MappingErrorCount: 0 },
@@ -894,11 +923,97 @@ AssertTrue(
 AssertTrue(sixStateResult.Rows.Single(row => row.PortfolioId == "PF_NOLIMIT").StatusCode == "NO_LIMIT", "LimitMonitor should expose NO_LIMIT output string for unmatched joins");
 AssertTrue(sixStateResult.ExceptionList.Count(exception => exception.Code == "INVALID_LIMIT") == 2, "LimitMonitor should split inactive or zero limits into INVALID_LIMIT exceptions");
 AssertTrue(sixStateResult.Findings.Any(finding => finding.Code == "LIMIT_NO_LIMIT_DETECTED"), "LimitMonitor should emit finding when real limit row is absent");
+AssertTrue(ReconciliationExceptionCount(sixStateResult, "RECON_EXPOSURE_NO_LIMIT") == 1, "WP-06 should flag exposure rows without matching limits");
+AssertTrue(ReconciliationExceptionCount(sixStateResult, "RECON_NONPOSITIVE_LIMIT") == 1, "WP-06 should flag non-positive limit rows");
+AssertTrue(ReconciliationExceptionCount(sixStateResult, "RECON_SUM_BALANCE") == 0, "WP-06 should preserve source-vs-analysis exposure balance for valid six-state inputs");
+AssertTrue(!sixStateResult.Reconciliation.Passed, "WP-06 reconciliation should fail when a fail-code exception exists");
 var repeatedSixStateResult = limitMonitor.Analyze(wp05ExposureCsv, wp05LimitCsv, "20260617");
 AssertTrue(repeatedSixStateResult.Kpis == sixStateResult.Kpis, "LimitAnalysisResult KPIs should be deterministic for repeated inputs");
 AssertTrue(repeatedSixStateResult.Rows.Select(row => row.StatusCode).SequenceEqual(sixStateResult.Rows.Select(row => row.StatusCode)), "LimitAnalysisResult monitoring rows should be deterministic for repeated inputs");
+AssertTrue(ReconciliationSignature(repeatedSixStateResult) == ReconciliationSignature(sixStateResult), "WP-06 reconciliation summary should be deterministic for repeated inputs");
 var coreTableResult = limitMonitor.Analyze(CsvReader.Read(wp05ExposureCsv), CsvReader.Read(wp05LimitCsv), "20260617");
 AssertTrue(coreTableResult.Kpis == sixStateResult.Kpis, "LimitMonitor CsvTable core interface should match path overload results");
+
+var wp06CleanExposureRows = new[]
+{
+    new[] { "BASE_DT", "DESK_CD", "PORTFOLIO_ID", "PRODUCT_TYPE", "RISK_FACTOR", "CCY_CD", "EXPOSURE_AMT" },
+    new[] { "20260617", "EQD", "PF_CLEAN", "ELS", "RF_CLEAN", "KRW", "50" }
+};
+var wp06CleanLimitRows = new[]
+{
+    new[] { "BASE_DT", "PORTFOLIO_ID", "RISK_FACTOR", "LIMIT_AMT", "USE_YN" },
+    new[] { "20260617", "PF_CLEAN", "RF_CLEAN", "100", "Y" }
+};
+var wp06CleanExposureCsv = Path.Combine(limitSmokeDirectory, "wp06_clean_exposure.csv");
+var wp06CleanLimitCsv = Path.Combine(limitSmokeDirectory, "wp06_clean_limit.csv");
+WriteCsvRows(wp06CleanExposureCsv, wp06CleanExposureRows);
+WriteCsvRows(wp06CleanLimitCsv, wp06CleanLimitRows);
+var cleanReconciliationResult = limitMonitor.Analyze(wp06CleanExposureCsv, wp06CleanLimitCsv, "20260617");
+AssertTrue(cleanReconciliationResult.ExceptionList.All(exception => !exception.Code.StartsWith("RECON_", StringComparison.Ordinal)), "WP-06 clean inputs should not emit reconciliation exceptions");
+AssertTrue(cleanReconciliationResult.Reconciliation.Passed, "WP-06 clean inputs should pass reconciliation");
+
+var wp06OrphanLimitCsv = Path.Combine(limitSmokeDirectory, "wp06_orphan_limit.csv");
+WriteCsvRows(
+    wp06OrphanLimitCsv,
+    [
+        new[] { "BASE_DT", "PORTFOLIO_ID", "RISK_FACTOR", "LIMIT_AMT", "USE_YN" },
+        new[] { "20260617", "PF_CLEAN", "RF_CLEAN", "100", "Y" },
+        new[] { "20260617", "PF_ORPHAN", "RF_ORPHAN", "100", "Y" }
+    ]);
+var orphanLimitResult = limitMonitor.Analyze(wp06CleanExposureCsv, wp06OrphanLimitCsv, "20260617");
+AssertTrue(ReconciliationExceptionCount(orphanLimitResult, "RECON_LIMIT_NO_EXPOSURE") == 1, "WP-06 should flag orphan limit rows");
+AssertTrue(orphanLimitResult.Reconciliation.Passed, "WP-06 orphan limits should not fail reconciliation unless a fail-code exists");
+
+var wp06DuplicateLimitCsv = Path.Combine(limitSmokeDirectory, "wp06_duplicate_limit.csv");
+WriteCsvRows(
+    wp06DuplicateLimitCsv,
+    [
+        new[] { "BASE_DT", "PORTFOLIO_ID", "RISK_FACTOR", "LIMIT_AMT", "USE_YN" },
+        new[] { "20260617", "PF_CLEAN", "RF_CLEAN", "100", "Y" },
+        new[] { "20260617", "PF_CLEAN", "RF_CLEAN", "120", "Y" }
+    ]);
+var duplicateLimitResult = limitMonitor.Analyze(wp06CleanExposureCsv, wp06DuplicateLimitCsv, "20260617");
+AssertTrue(ReconciliationExceptionCount(duplicateLimitResult, "RECON_DUPLICATE_LIMIT") == 1, "WP-06 should flag duplicate limit join keys");
+AssertTrue(ReconciliationExceptionCount(duplicateLimitResult, "RECON_ROW_AMPLIFICATION") == 1, "WP-06 should flag duplicate-limit row amplification risk");
+AssertTrue(duplicateLimitResult.Rows.Count == 1 && duplicateLimitResult.Kpis.TotalCount == 1, "WP-06 duplicate limit checks should not change existing monitoring row counts");
+AssertTrue(!duplicateLimitResult.Reconciliation.Passed, "WP-06 row amplification should fail reconciliation");
+
+var wp06MismatchExposureCsv = Path.Combine(limitSmokeDirectory, "wp06_basedate_mismatch_exposure.csv");
+var wp06MismatchLimitCsv = Path.Combine(limitSmokeDirectory, "wp06_basedate_mismatch_limit.csv");
+WriteCsvRows(
+    wp06MismatchExposureCsv,
+    [
+        new[] { "BASE_DT", "DESK_CD", "PORTFOLIO_ID", "PRODUCT_TYPE", "RISK_FACTOR", "CCY_CD", "EXPOSURE_AMT" },
+        new[] { "20260616", "EQD", "PF_OLD", "ELS", "RF_OLD", "KRW", "50" }
+    ]);
+WriteCsvRows(
+    wp06MismatchLimitCsv,
+    [
+        new[] { "BASE_DT", "PORTFOLIO_ID", "RISK_FACTOR", "LIMIT_AMT", "USE_YN" },
+        new[] { "20260616", "PF_OLD", "RF_OLD", "100", "Y" }
+    ]);
+var baseDateMismatchResult = limitMonitor.Analyze(wp06MismatchExposureCsv, wp06MismatchLimitCsv, "20260617");
+AssertTrue(ReconciliationExceptionCount(baseDateMismatchResult, "RECON_BASEDATE_MISMATCH") >= 1, "WP-06 should flag requested BASE_DT missing when other dates exist");
+AssertTrue(baseDateMismatchResult.Reconciliation.Passed, "WP-06 base-date mismatch should remain non-fail severity in R1");
+
+var wp06BadAmountExposureCsv = Path.Combine(limitSmokeDirectory, "wp06_bad_amount_exposure.csv");
+WriteCsvRows(
+    wp06BadAmountExposureCsv,
+    [
+        new[] { "BASE_DT", "DESK_CD", "PORTFOLIO_ID", "PRODUCT_TYPE", "RISK_FACTOR", "CCY_CD", "EXPOSURE_AMT" },
+        new[] { "20260617", "EQD", "PF_BAD", "ELS", "RF_BAD", "KRW", "BAD" }
+    ]);
+var wp06BadAmountLimitCsv = Path.Combine(limitSmokeDirectory, "wp06_bad_amount_limit.csv");
+WriteCsvRows(
+    wp06BadAmountLimitCsv,
+    [
+        new[] { "BASE_DT", "PORTFOLIO_ID", "RISK_FACTOR", "LIMIT_AMT", "USE_YN" },
+        new[] { "20260617", "PF_BAD", "RF_BAD", "100", "Y" }
+    ]);
+var sumBalanceResult = limitMonitor.Analyze(wp06BadAmountExposureCsv, wp06BadAmountLimitCsv, "20260617");
+AssertTrue(ReconciliationExceptionCount(sumBalanceResult, "RECON_SUM_BALANCE") == 1, "WP-06 should fail sum balance when source exposure amount is nonnumeric");
+AssertTrue(!sumBalanceResult.Reconciliation.Passed, "WP-06 sum balance exceptions should fail reconciliation");
+AssertTrue(sumBalanceResult.MappingErrorCount == 1, "WP-06 sum balance test should preserve WP-05 MappingError classification");
 
 var wp05ExposureXlsx = Path.Combine(limitSmokeDirectory, "wp05_exposure.xlsx");
 var wp05LimitXlsx = Path.Combine(limitSmokeDirectory, "wp05_limit.xlsx");

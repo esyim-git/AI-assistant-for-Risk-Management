@@ -7,10 +7,10 @@
 ---
 
 ## ★ R1 Resume Brief (Codex 갱신 · Claude 인수)
-- **현재 상태**: WP-01 합성 한도 차단/DEMO_ONLY 구현 완료. WP-02 인코딩 인식 CSV Reader(CP949/UTF-8) 구현 완료. WP-03 XLSX 입력 Reader(인박스/NuGet 0) 구현 완료. WP-04 Risk Column Mapping(설정·승인형) 구현 완료. WP-05 실 Exposure-Limit Join + 공통 AnalysisResult 구현 완료.
-- **NEXT UP**: **WP-06**(대사·예외검증 9종) → WP-07.
+- **현재 상태**: WP-01 합성 한도 차단/DEMO_ONLY 구현 완료. WP-02 인코딩 인식 CSV Reader(CP949/UTF-8) 구현 완료. WP-03 XLSX 입력 Reader(인박스/NuGet 0) 구현 완료. WP-04 Risk Column Mapping(설정·승인형) 구현 완료. WP-05 실 Exposure-Limit Join + 공통 AnalysisResult 구현 완료. WP-06 대사·예외검증 9종 구현 완료.
+- **NEXT UP**: **WP-07**(Dashboard·Report 공통화) → WP-09.
 - **BLOCKED**: 0.
-- **재현 검증**: `git fetch origin main && git switch main && dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI.SmokeTests` (335+ PASS 유지).
+- **재현 검증**: `git fetch origin main && git switch main && dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI.SmokeTests` (357 PASS / 0 FAIL 기준).
 - **⚠️ 확인 요망**: 비-기본 커스텀 매핑/Join Key 변경은 R1 마감 시 Data Spec Gate(docs/41) 검토 대상.
 
 ## R1 진행 원장 (Codex 갱신)
@@ -21,7 +21,7 @@
 | WP-03 | XLSX 입력 Reader(인박스, NuGet 0) | DONE | `feature/wp-03-xlsx-input` | 308 PASS / 0 FAIL | `XlsxReader` → `CsvTable`, workbook 관계 기반 시트 해석, zip 안전상한 |
 | WP-04 | Risk Column Mapping(설정·승인형) | DONE | `feature/wp-04-column-mapping` | 322 PASS / 0 FAIL | 기본=현행 호환, 커스텀 all-or-nothing, Data Gate |
 | WP-05 | 실 Exposure-Limit Join + 공통 AnalysisResult | DONE | `feature/wp-05-join-analysis-result` | 335 PASS / 0 FAIL | RR-03, GitHub Actions 기준 |
-| WP-06 | 대사·예외검증 9종 | TODO | - | - | RR-04 |
+| WP-06 | 대사·예외검증 9종 | DONE | `feature/wp-06-reconciliation` | 357 PASS / 0 FAIL | RR-04, GitHub Actions 기준 |
 | WP-07 | Dashboard·Report 공통화 | TODO | - | - | RR-03 |
 | WP-08 | 공통 CSV 파서 통합(3중 중복 제거) | DONE | `feature/wp-02-csv-encoding` | 296 PASS / 0 FAIL | WP-02에 흡수: DataProfiler/LimitMonitor/RegulationCatalog 공통 `CsvReader` 사용 |
 | WP-09 | 전일 대비 데이터모델(설계) | TODO | - | - | R2 구현 |
@@ -119,7 +119,7 @@
 ---
 
 ## WP-06~09 (요지, 상세는 R1 진행 중 확정)
-- **WP-06 대사·예외검증 9종** (프롬프트 `prompts/codex/WP-06_reconciliation_checks.md`): WP-05 위에 대사 패스 추가 → `ExceptionList` 9종 코드 + `ReconciliationSummary`(PASS/FAIL). 9종: ①`RECON_EXPOSURE_NO_LIMIT` ②`RECON_LIMIT_NO_EXPOSURE` ③`RECON_DUPLICATE_LIMIT` ④`RECON_BASEDATE_MISMATCH` ⑤`RECON_CURRENCY_MISMATCH`(컬럼 없으면 N/A) ⑥`RECON_UNIT_MISMATCH`(컬럼 없으면 N/A) ⑦`RECON_NONPOSITIVE_LIMIT` ⑧`RECON_ROW_AMPLIFICATION` ⑨**`RECON_SUM_BALANCE`(키스톤: 원천합계=분석합계, 증폭/누락 0)**. 기존 6상태·KPI·수치 불변(대사는 추가 필드).
+- **WP-06 대사·예외검증 9종** (프롬프트 `prompts/codex/WP-06_reconciliation_checks.md`): WP-05 위에 대사 패스 추가 → `ExceptionList` 9종 코드 + `ReconciliationSummary`(PASS/FAIL). 9종: ①`RECON_EXPOSURE_NO_LIMIT` ②`RECON_LIMIT_NO_EXPOSURE` ③`RECON_DUPLICATE_LIMIT` ④`RECON_BASEDATE_MISMATCH` ⑤`RECON_CURRENCY_MISMATCH`(컬럼 없으면 N/A) ⑥`RECON_UNIT_MISMATCH`(컬럼 없으면 N/A) ⑦`RECON_NONPOSITIVE_LIMIT` ⑧`RECON_ROW_AMPLIFICATION` ⑨**`RECON_SUM_BALANCE`(키스톤: 원천합계=분석합계, 증폭/누락 0)**. 기존 6상태·KPI·수치 불변(대사는 추가 필드). **Codex 결과(2026-06-21)**: `LimitAnalysisResult`에 `ReconciliationSummary` 추가. 9개 check summary와 fail-code set(`RECON_NONPOSITIVE_LIMIT`/`RECON_ROW_AMPLIFICATION`/`RECON_SUM_BALANCE`) 적용. 7개 데이터 체크 양성/음성 회귀, 통화·단위 N/A 회귀, 정상 multi-date export의 base-date mismatch 미탐지, 반복 실행 summary 결정성, duplicate limit의 row amplification 감지 추가.
 - **WP-07 Dashboard·Report 공통화**: `LimitAnalysisResult` 하나로 KPI/표/ExceptionList/Excel/History/Audit 생성. `BuildUiLimitRows` 완전 대체.
 - **WP-08 공통 CSV 파서 통합**: 3중 중복 제거(WP-02에 흡수).
 - **WP-09 전일 대비 데이터모델 설계**: 기준일 N vs N-1 비교 모델(설계 산출물, 구현은 R2).
