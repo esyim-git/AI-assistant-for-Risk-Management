@@ -49,7 +49,7 @@ public sealed record RegulationCatalogEntry(
 - NuGet 0 / 기존 SmokeTest 유지.
 
 ## 완료/보고
-catalog가 docs/17 §R3 metadata 8필드 보유, 기존 KbSearch 테스트 유지. build 0/0 · SmokeTest 유지+신규 · NuGet 0 · 게이트 A 0건 · `docs/17` 진행표 갱신.
+catalog가 docs/17 §R3 metadata 9필드 보유, 기존 KbSearch 테스트 유지. build 0/0 · SmokeTest 유지+신규 · NuGet 0 · 게이트 A 0건 · `docs/17` 진행표 갱신.
 
 ## Claude Review Checklist
 9 메타필드 추가(**출처 locator `Source` ≠ 출처기관 `SourceOrg`** 포함) / 하위호환(빈값 graceful) / 공개 메타만·원문 미포함(내부·NCR status 유지) / KbSearch 동작·점수 불변 / NuGet 0 / 기존 SmokeTest 유지 / Gate A.
