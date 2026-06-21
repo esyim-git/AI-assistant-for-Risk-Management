@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using RiskManagementAI.Core.Logging;
 
@@ -66,8 +67,8 @@ public sealed class KbSearch
     public KbSearchResponse Search(string query, string userId = "anonymous", int maxResults = 5, string? asOfDate = null)
     {
         var normalizedQuery = query.Trim();
-        var searchDate = NormalizeSearchDate(asOfDate);
-        var warnings = new List<string>();
+        var warnings = new List<string>(catalog.Warnings);
+        var searchDate = NormalizeSearchDate(asOfDate, warnings);
         var results = string.IsNullOrWhiteSpace(normalizedQuery)
             ? []
             : index.FindCandidates(normalizedQuery)
@@ -79,6 +80,8 @@ public sealed class KbSearch
                 .Select(item => ToSearchResult(item.Entry, item.Score))
                 .ToList();
 
+        AddCitationMetadataWarnings(results, warnings);
+
         if (results.Count == 0)
         {
             warnings.Add("공개 catalog에서 일치 항목을 찾지 못했습니다. 운영 KB 적재 전 최신 시행일과 문서오너 승인을 확인해야 합니다.");
@@ -89,11 +92,22 @@ public sealed class KbSearch
         return new KbSearchResponse(normalizedQuery, draftAnswer, results, auditLogWritten, warnings);
     }
 
-    private string NormalizeSearchDate(string? asOfDate)
+    private string NormalizeSearchDate(string? asOfDate, List<string> warnings)
     {
-        return string.IsNullOrWhiteSpace(asOfDate)
-            ? clock.Today.ToString("yyyy-MM-dd")
-            : asOfDate.Trim();
+        if (string.IsNullOrWhiteSpace(asOfDate))
+        {
+            return clock.Today.ToString("yyyy-MM-dd");
+        }
+
+        var trimmed = asOfDate.Trim();
+        if (DateOnly.TryParseExact(trimmed, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
+        {
+            return parsedDate.ToString("yyyy-MM-dd");
+        }
+
+        var fallbackDate = clock.Today.ToString("yyyy-MM-dd");
+        warnings.Add($"검색 기준일 입력이 yyyy-MM-dd 형식이 아니어서 {fallbackDate}로 대체했습니다.");
+        return fallbackDate;
     }
 
     private bool TryAppendAuditLog(string query, string userId, string draftAnswer, List<string> warnings)
@@ -175,7 +189,37 @@ public sealed class KbSearch
 
     private static string DisplayValue(string value)
     {
+        if (IsPlaceholderMetadata(value))
+        {
+            return "(확인 필요)";
+        }
+
         return string.IsNullOrWhiteSpace(value) ? "(미기재)" : value;
+    }
+
+    private static void AddCitationMetadataWarnings(IReadOnlyList<KbSearchResult> results, List<string> warnings)
+    {
+        foreach (var result in results)
+        {
+            AddPlaceholderWarning(result.SourceId, "version", result.Version, warnings);
+            AddPlaceholderWarning(result.SourceId, "effective_date", result.EffectiveDate, warnings);
+            AddPlaceholderWarning(result.SourceId, "repeal_date", result.RepealDate, warnings);
+            AddPlaceholderWarning(result.SourceId, "loaded_date", result.LoadedDate, warnings);
+            AddPlaceholderWarning(result.SourceId, "license_status", result.LicenseStatus, warnings);
+        }
+    }
+
+    private static void AddPlaceholderWarning(string sourceId, string fieldName, string value, List<string> warnings)
+    {
+        if (IsPlaceholderMetadata(value))
+        {
+            warnings.Add($"인용 metadata 확인 필요: source_id={sourceId}, field={fieldName}.");
+        }
+    }
+
+    private static bool IsPlaceholderMetadata(string value)
+    {
+        return value.Trim().StartsWith("CONFIRM_", StringComparison.OrdinalIgnoreCase);
     }
 
     private static KbSearchResult ToSearchResult(RegulationCatalogEntry entry, int score)
