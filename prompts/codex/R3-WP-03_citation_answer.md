@@ -23,22 +23,23 @@ dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI
 
 ## Public Interface
 - `KbSearchResult` 메타 필드 추가(WP-01 항목). `KbSearch.Search(string query, string userId = "anonymous", int maxResults = 5, string? asOfDate = null)`.
-- 기존 호출부 호환(추가 인자 optional).
+- **주입식 시계 `IClock`**(KbSearch 생성자, 기본=시스템 clock). 검색 기준일 = `asOfDate ?? clock.Today` — **항상 실제 날짜**(placeholder 아님). 기존 호출부 호환(추가 인자 optional).
 
 ## 구현 세부 / 보안
 - **조항(clause)**: catalog가 catalog-level이라 조항 단위 원문이 없으면 → "조항: (catalog 단위 — 조항별 원문은 Prod 권한통제 KB)" 안내. catalog에 조항 필드가 있으면 그 값. **원문 적재 금지**.
-- 메타 빈값 → "(미기재)" 표기(경고 finding은 WP-01/04 로직 유지).
-- **검색 기준일**: `asOfDate` 없으면 결정적 기본(예: 호출자 전달 필수 또는 고정 placeholder) — **비결정 `DateTime.Now` 직접 출력 금지**(테스트 결정성). 감사/표시는 호출자 제공값.
+- 메타 빈값 → "(미기재)" 표기(경고 finding은 WP-01/04 로직 유지). **단, 검색 기준일은 "(미기재)"/placeholder 금지.**
+- **검색 기준일(실제 날짜 필수)**: `asOfDate ?? clock.Today`. `asOfDate` 미지정 경로도 **주입 clock의 실제 날짜**가 찍혀야 함. **`DateTime.Now` 직접 호출 금지**(테스트는 고정 clock 주입으로 결정적).
 - "검토용 초안"·해시 전용 감사 **유지**. 외부 0·NuGet 0.
 
 ## 테스트(필수)
-- 답변에 **문서명·버전·시행일·출처(locator)·검색기준일·"검토" 문구** 포함(결과 있을 때).
+- 답변에 **문서명·버전·시행일·조항·출처(locator)·검색기준일·"검토" 문구** 포함(결과 있을 때) — **`조항` 필드 포함 단언 필수**.
 - `asOfDate` 반영(결정적): 동일 입력+동일 asOfDate → 동일 답변.
-- 메타 빈값 → "(미기재)" graceful.
+- **asOfDate 미지정 경로**: 주입 clock의 **실제 날짜**가 기준일로 출력됨(placeholder/"(미기재)" 아님) 단언.
+- 메타 빈값 → "(미기재)" graceful(검색기준일 제외).
 - 기존 KbSearch 결과/점수·"검토용 초안" 회귀 유지.
 
 ## 완료/보고
 검색 답변이 docs/17 인용 항목 완비. build 0/0 · SmokeTest 유지+신규 · NuGet 0 · 게이트 A 0건 · `docs/17` 진행표 갱신.
 
 ## Claude Review Checklist
-인용 항목 완비(문서명·버전·시행일·조항·출처·검색기준일·검토필요) / 검색기준일 결정적(Now 직접출력 금지) / 원문 chunk 미적재(조항=catalog 단위 안내) / "검토용 초안"·해시감사 유지 / NuGet 0 / 기존 SmokeTest 유지 / Gate A.
+인용 항목 완비(문서명·버전·시행일·**조항(테스트 단언)**·출처·검색기준일·검토필요) / 검색기준일 **실제 날짜**(IClock 주입, Now 직접출력·placeholder 금지, 미지정 경로 테스트) / 원문 chunk 미적재(조항=catalog 단위 안내) / "검토용 초안"·해시감사 유지 / NuGet 0 / 기존 SmokeTest 유지 / Gate A.
