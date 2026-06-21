@@ -63,7 +63,7 @@ Answer with Source
 |---|---|---|---|
 | **R3-WP-01** | KB Document **Metadata 확장**(catalog 9 메타필드) | **DONE** | **출처(locator,≠출처기관)**·버전·시행일·폐기일·파일Hash·적재일·승인상태·대체문서·라이선스. 공개 메타만, 원문 미포함. SmokeTest 383 PASS |
 | **R3-WP-02** | **Keyword/Inverted Index** 검색엔진 | **DONE** | linear Contains → 역색인(NuGet 0, 결정적). 결과·순서·점수 현행 동일, 한글 부분일치 보존, substring key L=32 cap + 긴 쿼리 linear 후보 fallback. SmokeTest 399 PASS |
-| **R3-WP-03** | **인용형 답변 강화** | **DONE** | 문서명·버전·시행일·**조항**·출처·**검색 기준일**·"검토 필요" 완비. `IClock` 주입 + `asOfDate` optional. SmokeTest 412 PASS |
+| **R3-WP-03** | **인용형 답변 강화** | **DONE** | 문서명·버전·시행일·**조항**·출처·**검색 기준일**·"검토 필요" 완비. `IClock` 주입 + `asOfDate` optional, invalid date fallback, placeholder 메타 `(확인 필요)` 처리. SmokeTest 419 PASS |
 | R3-WP-04 | **적재 게이트 가드** | TODO | 공개/승인 status만 검색 노출, `PROD_ONLY`/`MANUAL_APPROVAL_REQUIRED`는 원문 비노출(catalog-only), 라이선스·승인 검증 finding |
 | R3-WP-05 | **NCR Rule Set 구조**(`docs/08` 심화) | TODO(RAG 후) | Rule Set/Version/Effective Date/Component Map/Formula Description/Validation SQL/Regulation Basis/Approval History. **모델 산식 암기 금지** |
 
