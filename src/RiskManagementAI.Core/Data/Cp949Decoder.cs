@@ -7,7 +7,10 @@ namespace RiskManagementAI.Core.Data;
 
 public static class Cp949Decoder
 {
-    public const string ExpectedMappingSha256 = "7af60dbf6153362b4e7c65eaac24c233209fd1b854e182b09bc9601ec531851c";
+    // SHA256 of the LF-normalized resource bytes. The resource is pinned to LF
+    // via .gitattributes (text eol=lf) so this hash is identical on every
+    // platform/checkout (Windows autocrlf would otherwise change it).
+    public const string ExpectedMappingSha256 = "ca2d8cb6296b659c227237955dd87ba2d212ebc6e18cfc218bacee6c232db67d";
     public const int ExpectedMappingEntryCount = 17236;
 
     private const string ResourceName = "RiskManagementAI.Core.Data.Resources.cp949-uhc-map.txt";

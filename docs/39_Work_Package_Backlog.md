@@ -65,7 +65,7 @@
 - **완료조건**: 3 리더가 공통 CsvReader 사용, CP949(UHC 전체) 한글 정상, NuGet 0 유지.
 - **Branch**: `feature/wp-02-csv-encoding` · **Commit**: `feat: add encoding-aware CSV reader CP949/UTF-8 (WP-02)`
 - **Claude Review Checklist**: WP-02a UTF-8 공통 리더 NuGet 0 / 자동감지 결정성 / 3 파서 수렴. **WP-02b**: NuGet 0 유지(패키지 미추가) / **Windows-949 UHC 전체 매핑표**(EUC-KR 부분집합 아님) / 매핑표 Hash / **확장 음절 라운드트립** / Gate A.
-- **Codex 결과(2026-06-20)**: `Core/Data/CsvReader.cs`, `CsvTable`, `CsvRow`, `CsvReadMetadata`, `CsvEncoding`, `Cp949Decoder` 추가. `DataProfiler`/`LimitMonitor`/`RegulationCatalog`는 공통 reader로 수렴. CP949는 repo 내장 `Data/Resources/cp949-uhc-map.txt`(17,236 entries, SHA256 `7af60dbf6153362b4e7c65eaac24c233209fd1b854e182b09bc9601ec531851c`)를 런타임 검증 후 사용. 더미 CP949 샘플(`samples/dummy_data/*_cp949.csv`)과 UHC 확장 음절 `힣` 라운드트립 회귀 추가. build 0/0, SmokeTest 296 PASS / 0 FAIL, NuGet 0 유지.
+- **Codex 결과(2026-06-20)**: `Core/Data/CsvReader.cs`, `CsvTable`, `CsvRow`, `CsvReadMetadata`, `CsvEncoding`, `Cp949Decoder` 추가. `DataProfiler`/`LimitMonitor`/`RegulationCatalog`는 공통 reader로 수렴. CP949는 repo 내장 `Data/Resources/cp949-uhc-map.txt`(17,236 entries, SHA256 `ca2d8cb6296b659c227237955dd87ba2d212ebc6e18cfc218bacee6c232db67d` — **LF 고정**(`.gitattributes` `text eol=lf`)으로 플랫폼 무관 byte-stable)를 런타임 검증 후 사용. 더미 CP949 샘플(`samples/dummy_data/*_cp949.csv`)과 UHC 확장 음절 `힣` 라운드트립 회귀 추가. build 0/0, SmokeTest 296 PASS / 0 FAIL, NuGet 0 유지.
 
 ## WP-03. XLSX 입력 Reader (인박스, NuGet 0) (RR-08)
 
