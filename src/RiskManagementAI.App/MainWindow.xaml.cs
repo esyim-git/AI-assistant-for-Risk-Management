@@ -523,18 +523,17 @@ public partial class MainWindow : Window
             var dataPath = ResolveInputPath(DataPathBox.Text);
             var profile = _dataProfiler.ProfileCsv(dataPath);
             var validationFindings = _sqlChecker.Check(SqlRequestBox.Text).ToList();
-            validationFindings.AddRange(BuildUiLimitFindings(dataPath, profile));
-            var limitRows = BuildUiLimitRows();
+            var analysis = BuildReportLimitAnalysis(dataPath, profile, validationFindings);
             var reportResult = _excelReportBuilder.BuildReport(new ExcelReportRequest(
                 ReportNameBox.Text,
                 profile,
-                limitRows,
+                analysis,
                 validationFindings,
                 SqlRequestBox.Text,
                 "NoModelMode: 로컬 검토용 리포트입니다. 산출물은 사용자가 확인한 뒤 업무 문서로 활용해야 합니다.",
                 Environment.UserName));
             ReportResultBox.Text = BuildReportSummary(reportResult);
-            ShowFindings("Excel Report", reportResult.Findings.Concat(validationFindings).ToList());
+            ShowFindings("Excel Report", reportResult.Findings.Concat(validationFindings).Concat(analysis.Findings).ToList());
         }
         catch (Exception ex) when (ex is ArgumentException or IOException or InvalidDataException or UnauthorizedAccessException)
         {
@@ -662,12 +661,62 @@ public partial class MainWindow : Window
             : 0;
     }
 
-    private static IReadOnlyList<ExcelReportLimitRow> BuildUiLimitRows()
+    private LimitAnalysisResult BuildReportLimitAnalysis(
+        string dataPath,
+        DataProfileResult profile,
+        List<SafetyFinding> validationFindings)
     {
-        return Array.Empty<ExcelReportLimitRow>();
+        var exposureInput = RiskExposurePathBox.Text.Trim();
+        var limitInput = RiskLimitPathBox.Text.Trim();
+        if (string.IsNullOrWhiteSpace(exposureInput) || string.IsNullOrWhiteSpace(limitInput))
+        {
+            validationFindings.AddRange(BuildMissingLimitFindings(dataPath, profile));
+            return BuildEmptyLimitAnalysis(RiskBaseDateBox.Text, exposureInput, limitInput);
+        }
+
+        var exposurePath = ResolveInputPath(exposureInput);
+        var limitPath = ResolveInputPath(limitInput);
+        if (!File.Exists(exposurePath) || !File.Exists(limitPath))
+        {
+            validationFindings.AddRange(BuildMissingLimitFindings(dataPath, profile));
+            validationFindings.Add(new SafetyFinding(
+                "LIMIT_INPUT_FILE_MISSING",
+                SafetySeverity.High,
+                $"한도 분석 입력 파일을 찾을 수 없습니다. ExposureExists={File.Exists(exposurePath)}, LimitExists={File.Exists(limitPath)}"));
+            return BuildEmptyLimitAnalysis(RiskBaseDateBox.Text, exposurePath, limitPath);
+        }
+
+        var analysis = _limitMonitor.Analyze(exposurePath, limitPath, RiskBaseDateBox.Text);
+        var demoFinding = BuildDemoOnlyFinding(dataPath, profile, exposurePath, limitPath);
+        if (demoFinding is not null)
+        {
+            validationFindings.Add(demoFinding);
+        }
+
+        return analysis;
     }
 
-    private static IReadOnlyList<SafetyFinding> BuildUiLimitFindings(string dataPath, DataProfileResult profile)
+    private static LimitAnalysisResult BuildEmptyLimitAnalysis(string baseDate, string exposureSourceName, string limitSourceName)
+    {
+        var normalizedBaseDate = string.IsNullOrWhiteSpace(baseDate) ? "N/A" : baseDate.Trim();
+        var rows = Array.Empty<LimitMonitorRow>();
+        return new LimitAnalysisResult(
+            normalizedBaseDate,
+            rows,
+            LimitAnalysisKpis.FromRows(rows),
+            new LimitAnalysisMetadata(
+                normalizedBaseDate,
+                string.IsNullOrWhiteSpace(exposureSourceName) ? "N/A" : Path.GetFileName(exposureSourceName),
+                string.IsNullOrWhiteSpace(limitSourceName) ? "N/A" : Path.GetFileName(limitSourceName),
+                ColumnMappingUsedFallback: false,
+                ColumnMappingWarnings: Array.Empty<string>(),
+                IsDeterministic: true),
+            Array.Empty<LimitException>(),
+            Array.Empty<SafetyFinding>(),
+            new ReconciliationSummary(Passed: true, CheckCount: 0, Checks: Array.Empty<ReconciliationCheck>()));
+    }
+
+    private static IReadOnlyList<SafetyFinding> BuildMissingLimitFindings(string dataPath, DataProfileResult profile)
     {
         var findings = new List<SafetyFinding>
         {
@@ -677,15 +726,30 @@ public partial class MainWindow : Window
                 "실제 한도 데이터가 필요합니다. 데모 합성 한도는 생성하거나 사용하지 않습니다.")
         };
 
-        if (IsDemoDataPath(dataPath) || profile.SourceName.Contains("sample", StringComparison.OrdinalIgnoreCase))
+        var demoFinding = BuildDemoOnlyFinding(dataPath, profile);
+        if (demoFinding is not null)
         {
-            findings.Add(new SafetyFinding(
-                "DEMO_ONLY",
-                SafetySeverity.Medium,
-                "샘플/데모 데이터 기반 리포트입니다. 운영 판단에 사용하지 마세요."));
+            findings.Add(demoFinding);
         }
 
         return findings;
+    }
+
+    private static SafetyFinding? BuildDemoOnlyFinding(
+        string dataPath,
+        DataProfileResult profile,
+        string? exposurePath = null,
+        string? limitPath = null)
+    {
+        return IsDemoDataPath(dataPath)
+            || (exposurePath is not null && IsDemoDataPath(exposurePath))
+            || (limitPath is not null && IsDemoDataPath(limitPath))
+            || profile.SourceName.Contains("sample", StringComparison.OrdinalIgnoreCase)
+            ? new SafetyFinding(
+                "DEMO_ONLY",
+                SafetySeverity.Medium,
+                "샘플/데모 데이터 기반 리포트입니다. 운영 판단에 사용하지 마세요.")
+            : null;
     }
 
     private static bool IsDemoDataPath(string path)
