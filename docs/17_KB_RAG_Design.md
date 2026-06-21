@@ -61,7 +61,7 @@ Answer with Source
 
 | WP | 목표 | 상태 | 비고 |
 |---|---|---|---|
-| **R3-WP-01** | KB Document **Metadata 확장**(catalog 9 메타필드) | **NEXT** | **출처(locator,≠출처기관)**·버전·시행일·폐기일·파일Hash·적재일·승인상태·대체문서·라이선스. 공개 메타만, 원문 미포함 |
+| **R3-WP-01** | KB Document **Metadata 확장**(catalog 9 메타필드) | **DONE** | **출처(locator,≠출처기관)**·버전·시행일·폐기일·파일Hash·적재일·승인상태·대체문서·라이선스. 공개 메타만, 원문 미포함. SmokeTest 381 PASS |
 | R3-WP-02 | **Keyword/Inverted Index** 검색엔진 | TODO | linear Contains → 역색인(NuGet 0, 결정적). **Vector/Embedding 필요 시 STOP+승인** |
 | R3-WP-03 | **인용형 답변 강화** | TODO | 문서명·버전·시행일·**조항**·출처·**검색 기준일**·"검토 필요" 완비 |
 | R3-WP-04 | **적재 게이트 가드** | TODO | 공개/승인 status만 검색 노출, `PROD_ONLY`/`MANUAL_APPROVAL_REQUIRED`는 원문 비노출(catalog-only), 라이선스·승인 검증 finding |

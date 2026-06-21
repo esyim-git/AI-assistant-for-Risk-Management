@@ -611,6 +611,36 @@ if (File.Exists(kbSearchLogPath))
 
 var regulationCatalog = RegulationCatalog.LoadDefault();
 AssertTrue(regulationCatalog.Entries.Count >= 5, "RegulationCatalog should load public catalog entries");
+var publicRegEntry = regulationCatalog.Entries.Single(entry => entry.SourceId == "FIA_REG");
+AssertTrue(!string.IsNullOrWhiteSpace(publicRegEntry.Source) && publicRegEntry.Source != publicRegEntry.SourceOrg, "RegulationCatalog metadata should include source locator distinct from source org");
+AssertTrue(!string.IsNullOrWhiteSpace(publicRegEntry.Version), "RegulationCatalog metadata should include version field");
+AssertTrue(!string.IsNullOrWhiteSpace(publicRegEntry.EffectiveDate), "RegulationCatalog metadata should include effective date field");
+AssertTrue(!string.IsNullOrWhiteSpace(publicRegEntry.LoadedDate), "RegulationCatalog metadata should include loaded date field");
+AssertTrue(!string.IsNullOrWhiteSpace(publicRegEntry.ApprovalStatus), "RegulationCatalog metadata should include approval status");
+AssertTrue(!string.IsNullOrWhiteSpace(publicRegEntry.LicenseStatus), "RegulationCatalog metadata should include license status");
+AssertTrue(regulationCatalog.Warnings.Any(warning => warning.Contains("file_hash", StringComparison.OrdinalIgnoreCase)), "RegulationCatalog should warn when public source file hash is not loaded");
+var internalCatalogEntry = regulationCatalog.Entries.Single(entry => entry.SourceId == "INTERNAL_RULES");
+var ncrCatalogEntry = regulationCatalog.Entries.Single(entry => entry.SourceId == "NCR_GUIDE");
+AssertTrue(internalCatalogEntry.Status == "PROD_ONLY" && internalCatalogEntry.Note.Contains("권한통제형", StringComparison.Ordinal), "RegulationCatalog should keep internal rules metadata-only and prod-only");
+AssertTrue(ncrCatalogEntry.Status == "MANUAL_APPROVAL_REQUIRED" && ncrCatalogEntry.Note.Contains("원문 금지", StringComparison.Ordinal), "RegulationCatalog should keep NCR official text out of repo");
+
+var legacyCatalogPath = Path.Combine(Path.GetTempPath(), $"legacy_catalog_{Guid.NewGuid():N}.csv");
+File.WriteAllText(
+    legacyCatalogPath,
+    "source_id,category,title,source_org,source_type,status,note\nLEGACY,PUBLIC_REG,Legacy Regulation,Public Org,Public regulation,CATALOG_ONLY,legacy only\n",
+    Encoding.UTF8);
+var legacyCatalog = RegulationCatalog.LoadFromFile(legacyCatalogPath);
+AssertTrue(legacyCatalog.Entries.Single().Source == string.Empty, "RegulationCatalog should load legacy 7-column catalog with empty source metadata");
+AssertTrue(legacyCatalog.Warnings.Any(warning => warning.Contains("missing optional column 'source'", StringComparison.OrdinalIgnoreCase)), "RegulationCatalog should warn on missing metadata columns without throwing");
+
+var emptyMetadataCatalogPath = Path.Combine(Path.GetTempPath(), $"empty_metadata_catalog_{Guid.NewGuid():N}.csv");
+File.WriteAllText(
+    emptyMetadataCatalogPath,
+    "source_id,category,title,source_org,source_type,status,note,source,version,effective_date,repeal_date,file_hash,loaded_date,approval_status,superseded_by,license_status\nEMPTY,PUBLIC_REG,Empty Metadata,Public Org,Public regulation,CATALOG_ONLY,metadata empty,,,,,,,,,\n",
+    Encoding.UTF8);
+var emptyMetadataCatalog = RegulationCatalog.LoadFromFile(emptyMetadataCatalogPath);
+AssertTrue(emptyMetadataCatalog.Entries.Single().LicenseStatus == string.Empty, "RegulationCatalog should keep empty metadata values as empty strings");
+AssertTrue(emptyMetadataCatalog.Warnings.Any(warning => warning.Contains("metadata incomplete", StringComparison.OrdinalIgnoreCase)), "RegulationCatalog should warn on empty metadata values without throwing");
 var kbSearch = new KbSearch(
     regulationCatalog,
     new TaskLogWriter("logs", "smoke_kb_search_log.jsonl"),
