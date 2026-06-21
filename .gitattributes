@@ -1,0 +1,5 @@
+# Hash-pinned data resources must have byte-identical content on every
+# platform/checkout, otherwise Cp949Decoder's SHA256 integrity check fails
+# (Windows autocrlf would otherwise yield a different hash than a LF checkout).
+# Force LF so the embedded-resource hash is deterministic everywhere.
+src/RiskManagementAI.Core/Data/Resources/cp949-uhc-map.txt text eol=lf

@@ -8,14 +8,14 @@
 ## 1. Data Spec Gate (R1·R2)
 **릴리스-완료(R1 전체 종료 / R2 진입 전) 게이트**다 — 개별 WP PR의 병합 조건이 아니다. **각 WP PR은 자기 DoD + 게이트 A + 자기 테스트만** 충족하면 머지한다(WP-01이 WP-02~07 항목까지 만족할 필요 없음; big-bang 금지). 아래는 **R1 마감 시** 전체 충족 항목.
 
-> ✅ **R1 Data Spec Gate PASS — 2026-06-21** (Claude 검증, `main` `d8c45c6`, SmokeTest **368 PASS / 0 FAIL**). WP-01~08 머지 완료. 코드 레벨 게이트 항목 전부 충족. (실 Test PC 검증 = §4 Pilot Gate B/C, 별도·대기.)
+> ✅ **R1 Data Spec Gate PASS — 2026-06-21** (Claude 검증, `main` `d8c45c6`, SmokeTest **368 PASS / 0 FAIL**). WP-01~08 머지 완료. 코드 레벨 게이트 항목 전부 충족. CP949 매핑표 EOL 결정성은 후속 PR(`.gitattributes` `text eol=lf` 고정 + 핀 `ca2d8cb6…`)로 byte-stable 확정. (실 Test PC 검증 = §4 Pilot Gate B/C, 별도·대기.)
 
 - [x] 합성/Demo 한도 산식 0개 (WP-01) — 실 한도 없으면 `LIMIT_DATA_REQUIRED`/`DEMO_ONLY` · *증거: `src/`에 `1.1m`/`BuildUiLimitRows`/`ExcelReportLimitRow` 0개(WP-01·WP-07), 빈 입력→`BuildEmptyLimitAnalysis`+`LIMIT_DATA_REQUIRED`*
 - [x] Join Key(BASE_DT·PORTFOLIO_ID·RISK_FACTOR) + **승인된 Column Mapping**(WP-04) · *증거: `config/column_mapping.json` 기본 baseline=현행 상수(승인됨), all-or-nothing 커스텀·`config/` 경로 가드. **비-기본 커스텀 매핑은 미반영**(승인 시에만)*
 - [x] 상태셋 `NORMAL/WARNING/BREACH/NO_LIMIT/INVALID_LIMIT/MAPPING_ERROR` 정의·테스트 (WP-05) · *증거: `enum LimitMonitorStatus`(6) + 6상태 분류 회귀*
-- [x] 대사 9종(미매핑·중복·기준일·통화·단위·음수/0한도·건수증폭·원천합계 대사) (WP-06) · *증거: 9 `RECON_*` 코드 + `ReconciliationSummary`. 통화·단위는 한도측 컬럼 부재로 **R1 N/A(Applicable=false)**, 컬럼 승인 시 활성*
+- [x] 대사 9종(미매핑·중복·기준일·통화·단위·음수/0한도·건수증폭·원천합계 대사) (WP-06) · *증거: 9 `RECON_*` 코드 + `ReconciliationSummary`. 통화·단위는 **노출·한도 양쪽에 컬럼(`CCY_CD` 등) 존재 시 활성**(현재 한도 샘플 미포함 → R1 N/A·Applicable=false).* ⚠️ **알려진 한계**: 통화 비교가 현재 **하드코딩 `CCY_CD` 존재 기반**(ColumnMapping 미경유)이라, 미승인 `CCY_CD`가 포함된 한도 export에선 정보성 `RECON_CURRENCY_MISMATCH`(비-fail-code, PASS/FAIL 무영향)가 나올 수 있음 → **승인형 ColumnMapping 통화/단위 논리컬럼으로 전환은 R2 후속**(RR/Data Gate).
 - [x] **원천합계 = 분석합계 대사 PASS**(증폭/누락 0) (WP-06) · *증거: `RECON_SUM_BALANCE`=합계일치 AND 누락0(비숫자/MappingError 누락 시 FAIL), `RECON_ROW_AMPLIFICATION`=기준일-필터 모집단 대비. fail-code 기반 PASS/FAIL*
-- [x] CP949/UTF-8/XLSX 입력 검증 (WP-02/03) — CP949는 **경로 A(내장 Windows-949/UHC 디코더)**, **EUC-KR 범위 밖 UHC 확장 음절 라운드트립 포함** · *증거: `cp949-uhc-map.txt`(17,236 entries·SHA256 검증)·`힣` 라운드트립, `XlsxReader`(workbook-rels 시트해석·zip 안전상한·XXE 차단)*
+- [x] CP949/UTF-8/XLSX 입력 검증 (WP-02/03) — CP949는 **경로 A(내장 Windows-949/UHC 디코더)**, **EUC-KR 범위 밖 UHC 확장 음절 라운드트립 포함** · *증거: `cp949-uhc-map.txt`(17,236 entries·SHA256 `ca2d8cb6…` **byte-stable**: `.gitattributes` `text eol=lf`로 EOL 고정 → 플랫폼 무관 동일 해시)·`힣` 라운드트립, `XlsxReader`(workbook-rels 시트해석·zip 안전상한·XXE 차단)*
 - [x] Dashboard·Report **동일 입력→동일 수치** (WP-07, 공통 AnalysisResult) · *증거: `ExcelReportRequest`가 `LimitAnalysisResult` 소비, LIMIT_MONITORING=`MonitoringTable`(6상태·사용률 재계산 없음), EXCEPTION_LIST=분석 `ExceptionList`(`RECON_*`)+High validation*
 - [x] 기존 SmokeTest 유지 + 신규 회귀 · *증거: 268→**368 PASS**, 삭제·약화 0(각 WP additive)*
 > CP949 결정(2026-06-20): **경로 A(repo 내장 Windows-949/UHC 디코더, NuGet 0)** 채택 — `System.Text.Encoding.CodePages` 패키지 **미도입**(불변식 유지). 향후 인코딩 코드페이지 확장 패키지가 필요하면 여기서 **승인** 후에만.
