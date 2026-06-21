@@ -719,6 +719,9 @@ AssertTrue(ncrSearchResponse.DraftAnswer.Contains("검토용 초안", StringComp
 AssertTrue(ncrSearchResponse.DraftAnswer.Contains("출처", StringComparison.Ordinal), "KbSearch answer should always include sources");
 AssertTrue(ncrSearchResponse.DraftAnswer.Contains("원문은 포함하지 않습니다", StringComparison.Ordinal), "KbSearch answer should state internal originals are excluded");
 AssertTrue(ncrSearchResponse.AuditLogWritten, "KbSearch should write audit log when configured");
+AssertTrue(!ncrSearchResponse.DraftAnswer.Contains("NOT_LOADED", StringComparison.Ordinal), "KbSearch citation answer should not cite NOT_LOADED as real metadata");
+AssertTrue(ncrSearchResponse.DraftAnswer.Contains("(확인 필요)", StringComparison.Ordinal), "KbSearch citation answer should render NOT_LOADED metadata as confirmation-needed");
+AssertTrue(ncrSearchResponse.Warnings.Any(warning => warning.Contains("source_id=NCR_GUIDE", StringComparison.Ordinal) && warning.Contains("version", StringComparison.OrdinalIgnoreCase)), "KbSearch citation answer should warn for NOT_LOADED version metadata");
 
 var publicRegSearchResponse = kbSearch.Search("금융투자업규정", "user-smoke");
 AssertTrue(publicRegSearchResponse.Results.Any(result => result.SourceId == "FIA_REG"), "KbSearch should find public regulation catalog entry");

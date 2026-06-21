@@ -219,7 +219,9 @@ public sealed class KbSearch
 
     private static bool IsPlaceholderMetadata(string value)
     {
-        return value.Trim().StartsWith("CONFIRM_", StringComparison.OrdinalIgnoreCase);
+        var normalized = value.Trim();
+        return normalized.StartsWith("CONFIRM_", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("NOT_LOADED", StringComparison.OrdinalIgnoreCase);
     }
 
     private static KbSearchResult ToSearchResult(RegulationCatalogEntry entry, int score)
