@@ -11,6 +11,7 @@ using RiskManagementAI.Core.Generation;
 using RiskManagementAI.Core.Kb;
 using RiskManagementAI.Core.Logging;
 using RiskManagementAI.Core.Mapping;
+using RiskManagementAI.Core.Ncr;
 using RiskManagementAI.Core.Report;
 using RiskManagementAI.Core.Risk;
 using RiskManagementAI.Core.Safety;
@@ -784,6 +785,90 @@ Directory.CreateDirectory(Path.Combine(suspiciousKbRoot, "kb"));
 File.WriteAllText(Path.Combine(suspiciousKbRoot, "kb", "internal_rule_original.txt"), "내부규정 원문", Encoding.UTF8);
 var suspiciousFindings = KbRepositoryGuard.Scan(suspiciousKbRoot);
 AssertTrue(suspiciousFindings.Any(finding => finding.Code == "KB_FORBIDDEN_SOURCE_TEXT" && finding.Severity == SafetySeverity.Blocker), "KbRepositoryGuard should block suspicious internal/NCR original files");
+var suspiciousNcrRoot = Path.Combine(Path.GetTempPath(), $"ncr_guard_{Guid.NewGuid():N}");
+Directory.CreateDirectory(Path.Combine(suspiciousNcrRoot, "config", "ncr"));
+File.WriteAllText(Path.Combine(suspiciousNcrRoot, "config", "ncr", "ncr_official_original.json"), "official text", Encoding.UTF8);
+var suspiciousNcrFindings = KbRepositoryGuard.Scan(suspiciousNcrRoot);
+AssertTrue(suspiciousNcrFindings.Any(finding => finding.Code == "KB_FORBIDDEN_SOURCE_TEXT" && finding.Severity == SafetySeverity.Blocker), "KbRepositoryGuard should scan config/ncr and block suspicious NCR originals");
+
+var ncrRuleSetLoadResult = NcrRuleSetLoader.LoadDefault();
+AssertTrue(!ncrRuleSetLoadResult.UsedFallback, "NcrRuleSetLoader should load repo sample structure");
+AssertTrue(ncrRuleSetLoadResult.RuleSet.Components.Count > 0, "NcrRuleSet should include Components");
+AssertTrue(ncrRuleSetLoadResult.RuleSet.ComponentMap.Count > 0, "NcrRuleSet should include ComponentMap");
+AssertTrue(!string.IsNullOrWhiteSpace(ncrRuleSetLoadResult.RuleSet.RuleSetId), "NcrRuleSet should include RuleSetId");
+AssertTrue(!string.IsNullOrWhiteSpace(ncrRuleSetLoadResult.RuleSet.RuleSetVersion), "NcrRuleSet should include RuleSetVersion");
+AssertTrue(DateOnly.TryParseExact(ncrRuleSetLoadResult.RuleSet.EffectiveDate, "yyyy-MM-dd", out _), "NcrRuleSet should include YYYY-MM-DD EffectiveDate");
+AssertTrue(!string.IsNullOrWhiteSpace(ncrRuleSetLoadResult.RuleSet.FormulaDescription), "NcrRuleSet should include FormulaDescription");
+AssertTrue(ncrRuleSetLoadResult.RuleSet.ValidationSqlTemplates.Count > 0, "NcrRuleSet should include Validation SQL templates");
+AssertTrue(!string.IsNullOrWhiteSpace(ncrRuleSetLoadResult.RuleSet.RegulationBasis), "NcrRuleSet should include RegulationBasis");
+AssertTrue(ncrRuleSetLoadResult.RuleSet.ApprovalHistory.Count > 0, "NcrRuleSet should include ApprovalHistory");
+AssertTrue(!ncrRuleSetLoadResult.Findings.Any(finding => finding.Code.StartsWith("SQL_", StringComparison.Ordinal)), "NcrRuleSet sample validation SQL should be read-only");
+AssertTrue(ncrRuleSetLoadResult.RuleSet.Components.All(component => component.ValuePolicy.Contains("APPROVAL_REQUIRED", StringComparison.Ordinal)), "NcrRuleSet sample should not contain real NCR coefficients");
+
+var ncrExplanation = NcrExplain.Build(ncrRuleSetLoadResult.RuleSet);
+AssertTrue(ncrExplanation.Contains("검토용 초안", StringComparison.Ordinal), "NcrExplain should always mark answers as review drafts");
+AssertTrue(ncrExplanation.Contains(ncrRuleSetLoadResult.RuleSet.RuleSetVersion, StringComparison.Ordinal), "NcrExplain should include RuleSetVersion");
+AssertTrue(ncrExplanation.Contains(ncrRuleSetLoadResult.RuleSet.EffectiveDate, StringComparison.Ordinal), "NcrExplain should include EffectiveDate");
+AssertTrue(ncrExplanation.Contains("Component Map", StringComparison.Ordinal), "NcrExplain should include ComponentMap");
+AssertTrue(ncrExplanation.Contains(ncrRuleSetLoadResult.RuleSet.FormulaDescription, StringComparison.Ordinal), "NcrExplain should include FormulaDescription");
+AssertTrue(ncrExplanation.Contains(ncrRuleSetLoadResult.RuleSet.RegulationBasis, StringComparison.Ordinal), "NcrExplain should include RegulationBasis");
+
+var missingNcrRuleSetResult = NcrRuleSetLoader.LoadFromFile("config/ncr/missing_smoke_ruleset.json");
+AssertTrue(missingNcrRuleSetResult.UsedFallback && missingNcrRuleSetResult.Findings.Any(finding => finding.Code == "NCR_RULESET_MISSING"), "NcrRuleSetLoader should safe-fallback on missing files");
+var rejectedNcrPathResult = NcrRuleSetLoader.LoadFromFile("../ncr_ruleset.json");
+AssertTrue(rejectedNcrPathResult.UsedFallback && rejectedNcrPathResult.Findings.Any(finding => finding.Code == "NCR_RULESET_PATH_REJECTED"), "NcrRuleSetLoader should reject paths outside config/ncr");
+
+var invalidNcrRelativePath = $"config/ncr/invalid_{Guid.NewGuid():N}.json";
+Directory.CreateDirectory(Path.Combine("config", "ncr"));
+File.WriteAllText(invalidNcrRelativePath, "{ broken json", Encoding.UTF8);
+var invalidNcrResult = NcrRuleSetLoader.LoadFromFile(invalidNcrRelativePath);
+AssertTrue(invalidNcrResult.UsedFallback && invalidNcrResult.Findings.Any(finding => finding.Code == "NCR_RULESET_LOAD_FAILED"), "NcrRuleSetLoader should safe-fallback on invalid JSON");
+File.Delete(invalidNcrRelativePath);
+
+var blockedSqlNcrRelativePath = $"config/ncr/blocked_sql_{Guid.NewGuid():N}.json";
+File.WriteAllText(
+    blockedSqlNcrRelativePath,
+    """
+{
+  "RuleSetId": "BAD_NCR_RULESET",
+  "RuleSetVersion": "bad-001",
+  "EffectiveDate": "2026-06-21",
+  "Components": [
+    {
+      "ComponentId": "BAD_COMPONENT",
+      "Name": "Blocked component",
+      "Category": "PLACEHOLDER",
+      "ValuePolicy": "APPROVAL_REQUIRED_NO_REAL_COEFFICIENT"
+    }
+  ],
+  "ComponentMap": [
+    {
+      "ComponentId": "BAD_COMPONENT",
+      "SourceName": "APPROVED_SOURCE",
+      "ColumnName": "APPROVED_COLUMN",
+      "DataType": "DECIMAL",
+      "Required": true
+    }
+  ],
+  "FormulaDescription": "Structure-only description.",
+  "ValidationSqlTemplates": [
+    "DELETE FROM ncr_result WHERE base_dt = @BASE_DT"
+  ],
+  "RegulationBasis": "APPROVED_BASIS_REQUIRED",
+  "ApprovalHistory": [
+    {
+      "Status": "TEST_ONLY",
+      "ReviewerRole": "TEST",
+      "ApprovedAt": "2026-06-21T00:00:00Z",
+      "Note": "Test only."
+    }
+  ]
+}
+""",
+    Encoding.UTF8);
+var blockedSqlNcrResult = NcrRuleSetLoader.LoadFromFile(blockedSqlNcrRelativePath);
+AssertTrue(blockedSqlNcrResult.UsedFallback && blockedSqlNcrResult.Findings.Any(finding => finding.Code == "SQL_DML_DELETE"), "NcrRuleSetLoader should flag blocked DML in validation SQL templates");
+File.Delete(blockedSqlNcrRelativePath);
 var kbIndexA = KbIndex.Build(regulationCatalog.Entries);
 var kbIndexB = KbIndex.Build(regulationCatalog.Entries);
 AssertTrue(kbIndexA.IndexedTermCount > regulationCatalog.Entries.Count, "KbIndex should build searchable inverted terms");

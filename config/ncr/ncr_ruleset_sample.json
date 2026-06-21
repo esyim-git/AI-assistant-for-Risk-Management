@@ -1,0 +1,49 @@
+{
+  "RuleSetId": "NCR_RULESET_SAMPLE_STRUCTURE",
+  "RuleSetVersion": "sample-structure-2026-06",
+  "EffectiveDate": "2026-06-21",
+  "Components": [
+    {
+      "ComponentId": "NCR_COMPONENT_NET_CAPITAL",
+      "Name": "Net capital component placeholder",
+      "Category": "CAPITAL_COMPONENT",
+      "ValuePolicy": "APPROVAL_REQUIRED_NO_REAL_COEFFICIENT"
+    },
+    {
+      "ComponentId": "NCR_COMPONENT_TOTAL_RISK",
+      "Name": "Total risk component placeholder",
+      "Category": "RISK_COMPONENT",
+      "ValuePolicy": "APPROVAL_REQUIRED_NO_REAL_COEFFICIENT"
+    }
+  ],
+  "ComponentMap": [
+    {
+      "ComponentId": "NCR_COMPONENT_NET_CAPITAL",
+      "SourceName": "PROD_APPROVED_NCR_EXPORT",
+      "ColumnName": "NET_CAPITAL_AMOUNT",
+      "DataType": "DECIMAL",
+      "Required": true
+    },
+    {
+      "ComponentId": "NCR_COMPONENT_TOTAL_RISK",
+      "SourceName": "PROD_APPROVED_NCR_EXPORT",
+      "ColumnName": "TOTAL_RISK_AMOUNT",
+      "DataType": "DECIMAL",
+      "Required": true
+    }
+  ],
+  "FormulaDescription": "Structure-only description: approved source columns are reconciled by component and base date. Real coefficients and final calculation rules require Prod document-owner approval.",
+  "ValidationSqlTemplates": [
+    "SELECT base_dt, component_id, source_amount FROM approved_ncr_component_view WHERE base_dt = @BASE_DT",
+    "SELECT base_dt, component_id, calculated_amount FROM approved_ncr_result_view WHERE base_dt = @BASE_DT"
+  ],
+  "RegulationBasis": "PUBLIC_OR_PROD_APPROVED_BASIS_LOCATOR_REQUIRED",
+  "ApprovalHistory": [
+    {
+      "Status": "SAMPLE_STRUCTURE_ONLY",
+      "ReviewerRole": "DOCUMENT_OWNER_REQUIRED",
+      "ApprovedAt": "2026-06-21T00:00:00Z",
+      "Note": "Repository sample contains structure only; real NCR coefficients and source material remain approval-gated."
+    }
+  ]
+}

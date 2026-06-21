@@ -4,7 +4,7 @@ namespace RiskManagementAI.Core.Kb;
 
 public static class KbRepositoryGuard
 {
-    private static readonly string[] ScanDirectories = ["kb", "data_sources", "samples"];
+    private static readonly string[] ScanDirectories = ["kb", "data_sources", "samples", "config/ncr"];
 
     private static readonly HashSet<string> MetadataAllowlist = new(StringComparer.OrdinalIgnoreCase)
     {
