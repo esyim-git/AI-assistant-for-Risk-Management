@@ -44,6 +44,60 @@ bool Throws<TException>(Action action)
     }
 }
 
+int ExpectedKbLinearScore(RegulationCatalogEntry entry, string query)
+{
+    var score = 0;
+    score += KbContains(entry.SourceId, query) ? 10 : 0;
+    score += KbContains(entry.Title, query) ? 8 : 0;
+    score += KbContains(entry.Category, query) ? 5 : 0;
+    score += KbContains(entry.SourceOrg, query) ? 3 : 0;
+    score += KbContains(entry.SourceType, query) ? 3 : 0;
+    score += KbContains(entry.Status, query) ? 2 : 0;
+    score += KbContains(entry.Note, query) ? 1 : 0;
+
+    foreach (var term in query.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+    {
+        if (term.Length < 2)
+        {
+            continue;
+        }
+
+        score += KbContains(entry.Title, term) ? 2 : 0;
+        score += KbContains(entry.Note, term) ? 1 : 0;
+    }
+
+    return score;
+}
+
+IReadOnlyList<(string SourceId, int Score)> ExpectedKbLinearResults(RegulationCatalog catalog, string query, int maxResults = 5)
+{
+    var normalizedQuery = query.Trim();
+    if (string.IsNullOrWhiteSpace(normalizedQuery))
+    {
+        return [];
+    }
+
+    return catalog.Entries
+        .Select(entry => (entry.SourceId, Score: ExpectedKbLinearScore(entry, normalizedQuery)))
+        .Where(item => item.Score > 0)
+        .OrderByDescending(item => item.Score)
+        .ThenBy(item => item.SourceId, StringComparer.Ordinal)
+        .Take(Math.Max(1, maxResults))
+        .ToList();
+}
+
+IReadOnlyList<(string SourceId, int Score)> KbSearchSignature(KbSearchResponse response)
+{
+    return response.Results
+        .Select(result => (result.SourceId, result.Score))
+        .ToList();
+}
+
+bool KbContains(string source, string value)
+{
+    return source.Contains(value, StringComparison.OrdinalIgnoreCase);
+}
+
 string ReadZipEntryText(ZipArchive archive, string entryName)
 {
     var entry = archive.GetEntry(entryName) ?? throw new InvalidDataException($"ZIP entry not found: {entryName}");
@@ -668,6 +722,43 @@ AssertTrue(ncrSearchResponse.AuditLogWritten, "KbSearch should write audit log w
 
 var publicRegSearchResponse = kbSearch.Search("금융투자업규정", "user-smoke");
 AssertTrue(publicRegSearchResponse.Results.Any(result => result.SourceId == "FIA_REG"), "KbSearch should find public regulation catalog entry");
+var kbIndexA = KbIndex.Build(regulationCatalog.Entries);
+var kbIndexB = KbIndex.Build(regulationCatalog.Entries);
+AssertTrue(kbIndexA.IndexedTermCount > regulationCatalog.Entries.Count, "KbIndex should build searchable inverted terms");
+AssertTrue(kbIndexA.DeterministicSignature() == kbIndexB.DeterministicSignature(), "KbIndex build should be deterministic for the same catalog");
+AssertTrue(kbIndexA.FindCandidates("투자업").Any(entry => entry.SourceId == "FIA_REG"), "KbIndex should preserve Korean substring candidates");
+var longKbText = string.Concat(Enumerable.Range(0, 5000).Select(index => (char)('\uAC00' + index)));
+var longKbEntry = publicRegEntry with
+{
+    SourceId = "LONG_NOTE",
+    Note = longKbText
+};
+var longKbIndex = KbIndex.Build([longKbEntry]);
+AssertTrue(longKbIndex.PostingCount < longKbText.Length * 40, "KbIndex should cap substring key generation for long catalog fields");
+AssertTrue(longKbIndex.FindCandidates(longKbText.Substring(200, 12)).Any(entry => entry.SourceId == "LONG_NOTE"), "KbIndex bounded substrings should preserve long substring candidates");
+var longQuery = new string('가', 5000);
+AssertTrue(kbIndexA.FindCandidates(longQuery).Count == regulationCatalog.Entries.Count, "KbIndex should use full-catalog fallback for queries longer than the substring cap");
+AssertTrue(
+    ExpectedKbLinearResults(regulationCatalog, longQuery).SequenceEqual(KbSearchSignature(kbSearch.Search(longQuery, "user-smoke"))),
+    "KbSearch long-query fallback should preserve linear scoring without unbounded substring expansion");
+foreach (var query in new[]
+         {
+             "NCR",
+             "금융투자업규정",
+             "투자업",
+             "Public regulation",
+             "CATALOG_ONLY",
+             "원문 금지",
+             "법률 국가",
+             "없는검색어",
+             string.Empty
+         })
+{
+    var expected = ExpectedKbLinearResults(regulationCatalog, query);
+    var actual = KbSearchSignature(kbSearch.Search(query, "user-smoke"));
+    AssertTrue(expected.SequenceEqual(actual), $"KbSearch indexed results should match linear scoring for query '{query}'");
+}
+
 var emptyKbSearchResponse = kbSearch.Search("없는검색어", "user-smoke");
 AssertTrue(emptyKbSearchResponse.Results.Count == 0, "KbSearch should return zero results for unmatched query");
 AssertTrue(emptyKbSearchResponse.DraftAnswer.Contains("검토용 초안", StringComparison.Ordinal) && emptyKbSearchResponse.DraftAnswer.Contains("출처", StringComparison.Ordinal), "KbSearch no-result answer should still include review draft and source");

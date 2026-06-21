@@ -25,6 +25,7 @@ public sealed class KbSearch
     private const string ReviewDraftNotice = "검토용 초안";
 
     private readonly RegulationCatalog catalog;
+    private readonly KbIndex index;
     private readonly TaskLogWriter? auditLogWriter;
     private readonly string? auditRuleVersion;
 
@@ -34,6 +35,7 @@ public sealed class KbSearch
         string? auditRuleVersion = null)
     {
         this.catalog = catalog;
+        index = KbIndex.Build(catalog.Entries);
         this.auditLogWriter = auditLogWriter;
         this.auditRuleVersion = auditRuleVersion;
     }
@@ -44,7 +46,7 @@ public sealed class KbSearch
         var warnings = new List<string>();
         var results = string.IsNullOrWhiteSpace(normalizedQuery)
             ? []
-            : catalog.Entries
+            : index.FindCandidates(normalizedQuery)
                 .Select(entry => (Entry: entry, Score: Score(entry, normalizedQuery)))
                 .Where(item => item.Score > 0)
                 .OrderByDescending(item => item.Score)
