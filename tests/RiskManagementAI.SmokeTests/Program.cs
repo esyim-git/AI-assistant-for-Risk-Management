@@ -722,6 +722,26 @@ AssertTrue(ncrSearchResponse.AuditLogWritten, "KbSearch should write audit log w
 
 var publicRegSearchResponse = kbSearch.Search("금융투자업규정", "user-smoke");
 AssertTrue(publicRegSearchResponse.Results.Any(result => result.SourceId == "FIA_REG"), "KbSearch should find public regulation catalog entry");
+var fixedKbSearch = new KbSearch(regulationCatalog, clock: new FixedClock(new DateOnly(2026, 6, 21)));
+var citationSearchResponse = fixedKbSearch.Search("금융투자업규정", "user-smoke", asOfDate: "2026-06-20");
+var citationText = citationSearchResponse.DraftAnswer;
+AssertTrue(citationText.Contains(publicRegEntry.Title, StringComparison.Ordinal), "KbSearch citation answer should include document name");
+AssertTrue(citationText.Contains("버전", StringComparison.Ordinal) && citationText.Contains(publicRegEntry.Version, StringComparison.Ordinal), "KbSearch citation answer should include document version");
+AssertTrue(citationText.Contains("시행일", StringComparison.Ordinal) && citationText.Contains(publicRegEntry.EffectiveDate, StringComparison.Ordinal), "KbSearch citation answer should include effective date");
+AssertTrue(citationText.Contains("조항:", StringComparison.Ordinal), "KbSearch citation answer should include clause label");
+AssertTrue(citationText.Contains(publicRegEntry.Source, StringComparison.Ordinal), "KbSearch citation answer should include source locator");
+AssertTrue(citationText.Contains("검색 기준일: 2026-06-20", StringComparison.Ordinal), "KbSearch citation answer should include caller as-of date");
+AssertTrue(citationText.Contains("검토 필요", StringComparison.Ordinal), "KbSearch citation answer should include review-needed wording");
+AssertTrue(citationSearchResponse.Results.Any(result => result.SourceId == publicRegEntry.SourceId && result.Version == publicRegEntry.Version && result.Source == publicRegEntry.Source), "KbSearchResult should expose citation metadata");
+var repeatedCitationAnswer = fixedKbSearch.Search("금융투자업규정", "user-smoke", asOfDate: "2026-06-20").DraftAnswer;
+AssertTrue(citationText == repeatedCitationAnswer, "KbSearch citation answer should be deterministic for the same as-of date");
+var clockDateResponse = fixedKbSearch.Search("금융투자업규정", "user-smoke");
+AssertTrue(clockDateResponse.DraftAnswer.Contains("검색 기준일: 2026-06-21", StringComparison.Ordinal), "KbSearch citation answer should use injected clock date when asOfDate is omitted");
+AssertTrue(!clockDateResponse.DraftAnswer.Contains("검색 기준일: (미기재)", StringComparison.Ordinal), "KbSearch citation answer should not use placeholder for search date");
+var emptyMetadataSearch = new KbSearch(emptyMetadataCatalog, clock: new FixedClock(new DateOnly(2026, 6, 21)));
+var emptyMetadataSearchResponse = emptyMetadataSearch.Search("Empty Metadata", "user-smoke", asOfDate: "2026-06-20");
+AssertTrue(emptyMetadataSearchResponse.DraftAnswer.Contains("(미기재)", StringComparison.Ordinal), "KbSearch citation answer should render empty metadata as missing gracefully");
+AssertTrue(!emptyMetadataSearchResponse.DraftAnswer.Contains("검색 기준일: (미기재)", StringComparison.Ordinal), "KbSearch citation answer should never render search date as missing");
 var kbIndexA = KbIndex.Build(regulationCatalog.Entries);
 var kbIndexB = KbIndex.Build(regulationCatalog.Entries);
 AssertTrue(kbIndexA.IndexedTermCount > regulationCatalog.Entries.Count, "KbIndex should build searchable inverted terms");
@@ -1493,4 +1513,14 @@ sealed class StubDraftService : ILocalDraftService
     {
         return response;
     }
+}
+
+sealed class FixedClock : IClock
+{
+    public FixedClock(DateOnly today)
+    {
+        Today = today;
+    }
+
+    public DateOnly Today { get; }
 }

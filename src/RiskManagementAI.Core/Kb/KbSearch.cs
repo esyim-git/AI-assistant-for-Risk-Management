@@ -3,6 +3,16 @@ using RiskManagementAI.Core.Logging;
 
 namespace RiskManagementAI.Core.Kb;
 
+public interface IClock
+{
+    DateOnly Today { get; }
+}
+
+public sealed class SystemClock : IClock
+{
+    public DateOnly Today => DateOnly.FromDateTime(DateTime.Today);
+}
+
 public sealed record KbSearchResult(
     string SourceId,
     string Category,
@@ -11,6 +21,16 @@ public sealed record KbSearchResult(
     string SourceType,
     string Status,
     string Note,
+    string Source,
+    string Version,
+    string EffectiveDate,
+    string RepealDate,
+    string FileHash,
+    string LoadedDate,
+    string ApprovalStatus,
+    string SupersededBy,
+    string LicenseStatus,
+    string Clause,
     int Score);
 
 public sealed record KbSearchResponse(
@@ -28,21 +48,25 @@ public sealed class KbSearch
     private readonly KbIndex index;
     private readonly TaskLogWriter? auditLogWriter;
     private readonly string? auditRuleVersion;
+    private readonly IClock clock;
 
     public KbSearch(
         RegulationCatalog catalog,
         TaskLogWriter? auditLogWriter = null,
-        string? auditRuleVersion = null)
+        string? auditRuleVersion = null,
+        IClock? clock = null)
     {
         this.catalog = catalog;
         index = KbIndex.Build(catalog.Entries);
         this.auditLogWriter = auditLogWriter;
         this.auditRuleVersion = auditRuleVersion;
+        this.clock = clock ?? new SystemClock();
     }
 
-    public KbSearchResponse Search(string query, string userId = "anonymous", int maxResults = 5)
+    public KbSearchResponse Search(string query, string userId = "anonymous", int maxResults = 5, string? asOfDate = null)
     {
         var normalizedQuery = query.Trim();
+        var searchDate = NormalizeSearchDate(asOfDate);
         var warnings = new List<string>();
         var results = string.IsNullOrWhiteSpace(normalizedQuery)
             ? []
@@ -60,9 +84,16 @@ public sealed class KbSearch
             warnings.Add("공개 catalog에서 일치 항목을 찾지 못했습니다. 운영 KB 적재 전 최신 시행일과 문서오너 승인을 확인해야 합니다.");
         }
 
-        var draftAnswer = BuildDraftAnswer(normalizedQuery, results, catalog.SourcePath, warnings);
+        var draftAnswer = BuildDraftAnswer(normalizedQuery, searchDate, results, catalog.SourcePath, warnings);
         var auditLogWritten = TryAppendAuditLog(normalizedQuery, userId, draftAnswer, warnings);
         return new KbSearchResponse(normalizedQuery, draftAnswer, results, auditLogWritten, warnings);
+    }
+
+    private string NormalizeSearchDate(string? asOfDate)
+    {
+        return string.IsNullOrWhiteSpace(asOfDate)
+            ? clock.Today.ToString("yyyy-MM-dd")
+            : asOfDate.Trim();
     }
 
     private bool TryAppendAuditLog(string query, string userId, string draftAnswer, List<string> warnings)
@@ -101,15 +132,17 @@ public sealed class KbSearch
 
     private static string BuildDraftAnswer(
         string query,
+        string searchDate,
         IReadOnlyList<KbSearchResult> results,
         string catalogSourcePath,
         IReadOnlyList<string> warnings)
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"{ReviewDraftNotice}: 공개 regulation catalog 기준 검색 결과입니다. 내부규정 원문과 NCR 공식본 원문은 포함하지 않습니다.");
+        sb.AppendLine($"{ReviewDraftNotice}: 공개 regulation catalog 기준 검색 결과입니다. 공식 해석이 아니므로 검토 필요입니다. 내부규정 원문과 NCR 공식본 원문은 포함하지 않습니다.");
         sb.AppendLine($"질의: {(string.IsNullOrWhiteSpace(query) ? "(empty)" : query)}");
-        sb.AppendLine($"출처: {catalogSourcePath}");
-        sb.AppendLine("버전/시행일: Dev/Test catalog metadata only. 운영 KB 적재 전 최신 시행일과 문서오너 승인을 확인해야 합니다.");
+        sb.AppendLine($"검색 기준일: {searchDate}");
+        sb.AppendLine($"출처(Catalog 파일): {catalogSourcePath}");
+        sb.AppendLine("검토 필요: 운영 KB 적재 전 최신 시행일, 조항 단위 원문, 문서오너 승인을 확인해야 합니다.");
 
         if (results.Count == 0)
         {
@@ -120,9 +153,14 @@ public sealed class KbSearch
             sb.AppendLine("검색 결과:");
             foreach (var result in results)
             {
-                sb.AppendLine($"- [{result.SourceId}] {result.Title}");
-                sb.AppendLine($"  출처: {result.SourceOrg} / {result.SourceType}");
-                sb.AppendLine($"  상태: {result.Status} / 분류: {result.Category}");
+                sb.AppendLine($"- [{result.SourceId}] {result.Title} (버전: {DisplayValue(result.Version)}, 시행일: {DisplayValue(result.EffectiveDate)})");
+                sb.AppendLine($"  문서명: {DisplayValue(result.Title)}");
+                sb.AppendLine($"  문서ID: {DisplayValue(result.SourceId)}");
+                sb.AppendLine($"  조항: {DisplayValue(result.Clause)}");
+                sb.AppendLine($"  출처: {DisplayValue(result.Source)}");
+                sb.AppendLine($"  출처기관: {DisplayValue(result.SourceOrg)} / 유형: {DisplayValue(result.SourceType)}");
+                sb.AppendLine($"  상태: {DisplayValue(result.Status)} / 라이선스: {DisplayValue(result.LicenseStatus)} / 분류: {DisplayValue(result.Category)}");
+                sb.AppendLine($"  폐기일: {DisplayValue(result.RepealDate)} / 적재일: {DisplayValue(result.LoadedDate)} / 대체문서: {DisplayValue(result.SupersededBy)}");
                 sb.AppendLine($"  비고: {result.Note}");
             }
         }
@@ -135,6 +173,11 @@ public sealed class KbSearch
         return sb.ToString();
     }
 
+    private static string DisplayValue(string value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? "(미기재)" : value;
+    }
+
     private static KbSearchResult ToSearchResult(RegulationCatalogEntry entry, int score)
     {
         return new KbSearchResult(
@@ -145,6 +188,16 @@ public sealed class KbSearch
             entry.SourceType,
             entry.Status,
             entry.Note,
+            entry.Source,
+            entry.Version,
+            entry.EffectiveDate,
+            entry.RepealDate,
+            entry.FileHash,
+            entry.LoadedDate,
+            entry.ApprovalStatus,
+            entry.SupersededBy,
+            entry.LicenseStatus,
+            "catalog 단위 - 조항별 원문은 Prod 권한통제 KB에서 확인",
             score);
     }
 
