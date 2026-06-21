@@ -7,10 +7,10 @@
 ---
 
 ## ★ R1 Resume Brief (Codex 갱신 · Claude 인수)
-- **현재 상태**: WP-01 합성 한도 차단/DEMO_ONLY 구현 완료. WP-02 인코딩 인식 CSV Reader(CP949/UTF-8) 구현 완료. WP-03 XLSX 입력 Reader(인박스/NuGet 0) 구현 완료. WP-04 Risk Column Mapping(설정·승인형) 구현 완료.
-- **NEXT UP**: **WP-05**(실 Exposure-Limit Join + 공통 AnalysisResult) → WP-06 → WP-07.
+- **현재 상태**: WP-01 합성 한도 차단/DEMO_ONLY 구현 완료. WP-02 인코딩 인식 CSV Reader(CP949/UTF-8) 구현 완료. WP-03 XLSX 입력 Reader(인박스/NuGet 0) 구현 완료. WP-04 Risk Column Mapping(설정·승인형) 구현 완료. WP-05 실 Exposure-Limit Join + 공통 AnalysisResult 구현 완료.
+- **NEXT UP**: **WP-06**(대사·예외검증 9종) → WP-07.
 - **BLOCKED**: 0.
-- **재현 검증**: `git fetch origin main && git switch main && dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI.SmokeTests` (322+ PASS 유지).
+- **재현 검증**: `git fetch origin main && git switch main && dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI.SmokeTests` (335+ PASS 유지).
 - **⚠️ 확인 요망**: 비-기본 커스텀 매핑/Join Key 변경은 R1 마감 시 Data Spec Gate(docs/41) 검토 대상.
 
 ## R1 진행 원장 (Codex 갱신)
@@ -20,7 +20,7 @@
 | WP-02 | 인코딩 인식 CSV Reader(CP949/UTF-8) | DONE | `feature/wp-02-csv-encoding` | 296 PASS / 0 FAIL | `CsvReader` 공통화, CP949 Path A(UHC 전체 매핑표·SHA256 검증), UTF-8 BOM/무BOM |
 | WP-03 | XLSX 입력 Reader(인박스, NuGet 0) | DONE | `feature/wp-03-xlsx-input` | 308 PASS / 0 FAIL | `XlsxReader` → `CsvTable`, workbook 관계 기반 시트 해석, zip 안전상한 |
 | WP-04 | Risk Column Mapping(설정·승인형) | DONE | `feature/wp-04-column-mapping` | 322 PASS / 0 FAIL | 기본=현행 호환, 커스텀 all-or-nothing, Data Gate |
-| WP-05 | 실 Exposure-Limit Join + 공통 AnalysisResult | TODO | - | - | RR-03 |
+| WP-05 | 실 Exposure-Limit Join + 공통 AnalysisResult | DONE | `feature/wp-05-join-analysis-result` | 335 PASS / 0 FAIL | RR-03, GitHub Actions 기준 |
 | WP-06 | 대사·예외검증 9종 | TODO | - | - | RR-04 |
 | WP-07 | Dashboard·Report 공통화 | TODO | - | - | RR-03 |
 | WP-08 | 공통 CSV 파서 통합(3중 중복 제거) | DONE | `feature/wp-02-csv-encoding` | 296 PASS / 0 FAIL | WP-02에 흡수: DataProfiler/LimitMonitor/RegulationCatalog 공통 `CsvReader` 사용 |
@@ -114,6 +114,7 @@
 - **완료조건**: 공통 `LimitAnalysisResult` 1개를 Dashboard·Report 양쪽이 소비 가능.
 - **Branch**: `feature/wp-05-join-analysis-result` · **Commit**: `feat: real exposure-limit join + shared analysis result (WP-05)`
 - **Claude Review Checklist**: 6 상태 / 결정성 / 합성 미사용 / 기존 한도 테스트 유지·확장 / Gate A.
+- **Codex 결과(2026-06-21)**: `LimitAnalysisResult`/`LimitAnalysisKpis`/`LimitAnalysisMetadata`/`LimitException` 추가. `LimitMonitor.Analyze(CsvTable exposure, CsvTable limit, string baseDate)`를 코어 인터페이스로 승격하고 `.csv`/`.xlsx` 경로 호환 오버로드를 유지. 상태는 `NORMAL/WARNING/BREACH/NO_LIMIT/INVALID_LIMIT/MAPPING_ERROR`로 표준화했으며, 물리 컬럼 미매핑은 throw 대신 `MAPPING_ERROR` 결과/예외/finding으로 graceful 처리. Dashboard 최소 호환은 공통 결과의 KPI/상태 문자열을 표시하는 수준으로 제한(WP-07에서 Report/Dashboard 완전 공통화 예정). 6상태 분류, 결정성, CsvTable vs 경로 오버로드, CSV vs XLSX 동등성, 합성 한도 미사용 회귀를 SmokeTest에 추가.
 
 ---
 
