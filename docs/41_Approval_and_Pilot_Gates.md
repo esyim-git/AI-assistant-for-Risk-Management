@@ -23,13 +23,17 @@
 
 ## 2. RAG / NCR Approval Gate (R3)
 공개 규정·NCR 적재 및 검색 도입 게이트. (`docs/17`·`docs/08`)
-- [ ] 적재 문서가 **공개 규정/공개 FAQ/승인된 내부규정**만 (자본시장법·시행령·금융투자업규정·시행세칙·NCR 해설 등)
-- [ ] **내부규정 원문은 repo 미포함** — Prod에서 문서오너 승인·보안등급·역할권한·조회로그
-- [ ] 문서 Metadata 완비: 문서ID·문서명·출처기관·출처·버전·시행일·폐기일·**파일 Hash**·적재일·승인상태·대체문서·**라이선스 상태**
-- [ ] 검색 답변에 문서명·버전·시행일·조항·출처·검색기준일·**"검토 필요" 문구**
-- [ ] 검색 엔진 = **Keyword/Inverted Index(NuGet 0)**. **Vector DB/Embedding Runtime/외부 라이브러리 필요 시 구현 STOP** + 승인 문서(라이선스·크기·오프라인 동작·보안) 작성
-- [ ] NCR: **모델이 산식 암기로 답하는 구조 금지**. Rule Set·Rule Set Version·Effective Date·Component Map·Formula Description·Validation SQL Template·Regulation Basis·Approval History 구조로만
-- [ ] 답변은 항상 **검토용 초안** 명시
+
+> ✅ **R3 RAG/NCR Gate(코드 강제) PASS — 2026-06-21** (Claude 검증, `main` `2fd0277`, SmokeTest **460 PASS / 0 FAIL**). R3-WP-01~05 머지 완료. 코드 레벨 게이트 전부 충족. (승인된 **실** 내부규정/NCR 원문·계수 적재는 Prod 문서오너 승인 후 — repo 범위 밖.)
+
+- [x] 적재 문서가 **공개 규정/공개 FAQ/승인된 내부규정**만 (자본시장법·시행령·금융투자업규정·시행세칙·NCR 해설 등) · *증거: `KbAccessPolicy` — `CATALOG_ONLY`(공개)만 `PublicCited`, 그 외 MetadataOnly/ApprovalRequired. repo엔 공개 catalog 메타만(WP-04)*
+- [x] **내부규정 원문은 repo 미포함** — Prod에서 문서오너 승인·보안등급·역할권한·조회로그 · *증거: catalog 원문 컬럼 없음 + **`KbRepositoryGuard`**(kb/·data_sources/·samples/·`config/ncr` 스캔, 원문 의심→Blocker). 권한통제 적재는 Prod(범위 밖)*
+- [x] 문서 Metadata 완비: 문서ID·문서명·출처기관·출처·버전·시행일·폐기일·**파일 Hash**·적재일·승인상태·대체문서·**라이선스 상태** · *증거: WP-01 9필드(출처 locator≠출처기관) + placeholder(`CONFIRM_*`/`NOT_LOADED`)→`(확인 필요)`+경고(WP-03)*
+- [x] 검색 답변에 문서명·버전·시행일·조항·출처·검색기준일·**"검토 필요" 문구** · *증거: WP-03 인용 블록 전 항목, 검색기준일=주입 `IClock` 실제 날짜(placeholder 금지)*
+- [x] 검색 엔진 = **Keyword/Inverted Index(NuGet 0)**. **Vector DB/Embedding Runtime/외부 라이브러리 필요 시 구현 STOP** + 승인 문서(라이선스·크기·오프라인 동작·보안) 작성 · *증거: WP-02 `KbIndex`(역색인, substring L=32 cap + 긴쿼리 linear fallback, 결과 현행 동일). **Vector/Embedding 미도입**(STOP 규칙 명시)*
+- [x] NCR: **모델이 산식 암기로 답하는 구조 금지**. Rule Set·Rule Set Version·Effective Date·Component Map·Formula Description·Validation SQL Template·Regulation Basis·Approval History 구조로만 · *증거: WP-05 `NcrRuleSet` 8요소, 구조 기반 설명(산식값 하드코딩 0), 샘플=placeholder(`APPROVAL_REQUIRED_NO_REAL_COEFFICIENT`), Validation SQL=조회전용(`SqlSafetyChecker`)·자동실행 0, NCR 공식본 원문 repo 미포함*
+- [x] 답변은 항상 **검토용 초안** 명시 · *증거: `KbSearch` ReviewDraftNotice + `NcrRuleSet.DraftNotice`*
+> **R3 잔여(다음 단계)**: 승인된 실 내부규정/NCR 원문·계수 = Pilot/Prod 문서오너 승인 후 권한통제 KB 적재(repo 미포함 유지). Local LLM은 **R4 Model Approval Gate(§3)** 전까지 Runtime/모델 미도입(설계만).
 
 ## 3. Local LLM / Model Approval Gate (R4)
 실제 추론 Runtime·모델파일 도입 전 **반드시** 통과. (ADR-003)
