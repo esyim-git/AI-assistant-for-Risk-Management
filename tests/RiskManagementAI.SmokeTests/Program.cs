@@ -727,15 +727,20 @@ var kbIndexB = KbIndex.Build(regulationCatalog.Entries);
 AssertTrue(kbIndexA.IndexedTermCount > regulationCatalog.Entries.Count, "KbIndex should build searchable inverted terms");
 AssertTrue(kbIndexA.DeterministicSignature() == kbIndexB.DeterministicSignature(), "KbIndex build should be deterministic for the same catalog");
 AssertTrue(kbIndexA.FindCandidates("투자업").Any(entry => entry.SourceId == "FIA_REG"), "KbIndex should preserve Korean substring candidates");
-var longKbText = string.Concat(Enumerable.Range(0, 1200).Select(index => (char)('\uAC00' + index)));
+var longKbText = string.Concat(Enumerable.Range(0, 5000).Select(index => (char)('\uAC00' + index)));
 var longKbEntry = publicRegEntry with
 {
     SourceId = "LONG_NOTE",
     Note = longKbText
 };
 var longKbIndex = KbIndex.Build([longKbEntry]);
-AssertTrue(longKbIndex.PostingCount < longKbText.Length * 5, "KbIndex should bound n-gram key generation for long text");
-AssertTrue(longKbIndex.FindCandidates(longKbText.Substring(200, 12)).Any(entry => entry.SourceId == "LONG_NOTE"), "KbIndex bounded n-grams should preserve long substring candidates");
+AssertTrue(longKbIndex.PostingCount < longKbText.Length * 40, "KbIndex should cap substring key generation for long catalog fields");
+AssertTrue(longKbIndex.FindCandidates(longKbText.Substring(200, 12)).Any(entry => entry.SourceId == "LONG_NOTE"), "KbIndex bounded substrings should preserve long substring candidates");
+var longQuery = new string('가', 5000);
+AssertTrue(kbIndexA.FindCandidates(longQuery).Count == regulationCatalog.Entries.Count, "KbIndex should use full-catalog fallback for queries longer than the substring cap");
+AssertTrue(
+    ExpectedKbLinearResults(regulationCatalog, longQuery).SequenceEqual(KbSearchSignature(kbSearch.Search(longQuery, "user-smoke"))),
+    "KbSearch long-query fallback should preserve linear scoring without unbounded substring expansion");
 foreach (var query in new[]
          {
              "NCR",

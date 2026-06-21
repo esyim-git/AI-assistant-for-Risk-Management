@@ -4,7 +4,7 @@ namespace RiskManagementAI.Core.Kb;
 
 public sealed class KbIndex
 {
-    private const int MaxNGramLength = 3;
+    private const int MaxSubstringKeyLength = 32;
 
     private readonly IReadOnlyDictionary<string, IReadOnlyList<RegulationCatalogEntry>> postings;
 
@@ -54,13 +54,19 @@ public sealed class KbIndex
 
     public IReadOnlyList<RegulationCatalogEntry> FindCandidates(string query)
     {
-        if (string.IsNullOrWhiteSpace(query))
+        var normalized = query.Trim();
+        if (normalized.Length == 0)
         {
             return [];
         }
 
+        if (RequiresLinearContainsFallback(normalized))
+        {
+            return Entries;
+        }
+
         var candidates = new SortedDictionary<string, RegulationCatalogEntry>(StringComparer.Ordinal);
-        foreach (var key in QueryKeys(query))
+        foreach (var key in QueryKeys(normalized))
         {
             if (!postings.TryGetValue(key, out var entries))
             {
@@ -99,7 +105,7 @@ public sealed class KbIndex
 
     private static IEnumerable<string> QueryKeys(string query)
     {
-        return TextKeys(query.Trim());
+        return TextKeys(query);
     }
 
     private static IEnumerable<string> TextKeys(string value)
@@ -110,20 +116,31 @@ public sealed class KbIndex
             yield break;
         }
 
-        yield return normalized;
-
-        foreach (var token in Tokenize(normalized))
+        if (normalized.Length <= MaxSubstringKeyLength)
         {
-            yield return token;
+            yield return normalized;
         }
 
-        foreach (var ngram in BoundedNGrams(normalized))
+        foreach (var term in SplitTerms(normalized))
+        {
+            if (term.Length <= MaxSubstringKeyLength)
+            {
+                yield return term;
+            }
+        }
+
+        foreach (var ngram in BoundedSubstrings(normalized))
         {
             yield return ngram;
         }
     }
 
-    private static IEnumerable<string> Tokenize(string value)
+    private static bool RequiresLinearContainsFallback(string query)
+    {
+        return query.Length > MaxSubstringKeyLength;
+    }
+
+    private static IEnumerable<string> SplitTerms(string value)
     {
         var current = new StringBuilder();
         foreach (var ch in value)
@@ -147,11 +164,11 @@ public sealed class KbIndex
         }
     }
 
-    private static IEnumerable<string> BoundedNGrams(string value)
+    private static IEnumerable<string> BoundedSubstrings(string value)
     {
         for (var start = 0; start < value.Length; start++)
         {
-            var maxLength = Math.Min(MaxNGramLength, value.Length - start);
+            var maxLength = Math.Min(MaxSubstringKeyLength, value.Length - start);
             for (var length = 1; length <= maxLength; length++)
             {
                 yield return value.Substring(start, length);
