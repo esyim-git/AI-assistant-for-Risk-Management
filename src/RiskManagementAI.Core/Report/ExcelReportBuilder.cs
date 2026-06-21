@@ -5,21 +5,15 @@ using System.Text;
 using RiskManagementAI.Core.Data;
 using RiskManagementAI.Core.Excel;
 using RiskManagementAI.Core.Logging;
+using RiskManagementAI.Core.Risk;
 using RiskManagementAI.Core.Safety;
 
 namespace RiskManagementAI.Core.Report;
 
-public sealed record ExcelReportLimitRow(
-    string PortfolioId,
-    string RiskFactor,
-    decimal ExposureAmount,
-    decimal LimitAmount,
-    string? Note = null);
-
 public sealed record ExcelReportRequest(
     string ReportName,
     DataProfileResult DataProfile,
-    IReadOnlyList<ExcelReportLimitRow> LimitRows,
+    LimitAnalysisResult Analysis,
     IReadOnlyList<SafetyFinding> ValidationFindings,
     string SqlUsed,
     string Commentary,
@@ -117,7 +111,7 @@ public sealed class ExcelReportBuilder
     private WorkbookBuildResult BuildWorkbook(ExcelReportRequest request, DateTime createdAt)
     {
         var formulaRawDataRows = "=COUNTA(RAW_DATA!A:A)";
-        var formulaLimitSum = "=SUM(LIMIT_MONITORING!D:D)";
+        var formulaLimitSum = "=SUM(LIMIT_MONITORING!E:E)";
         var formulaExceptionCount = "=COUNTA(EXCEPTION_LIST!A:A)";
         var formulas = new[] { formulaRawDataRows, formulaLimitSum, formulaExceptionCount };
 
@@ -141,13 +135,25 @@ public sealed class ExcelReportBuilder
                 Row("Rows", Number(request.DataProfile.RowCount)),
                 Row("Columns", Number(request.DataProfile.ColumnCount)),
                 Row("DuplicateRows", Number(request.DataProfile.DuplicateRowCount)),
-                Row("LimitRows", Number(request.LimitRows.Count)),
+                Row("AnalysisBaseDate", request.Analysis.BaseDate),
+                Row("LimitRows", Number(request.Analysis.Rows.Count)),
+                Row("NormalCount", Number(request.Analysis.Kpis.NormalCount)),
+                Row("WarningCount", Number(request.Analysis.Kpis.WarningCount)),
+                Row("BreachCount", Number(request.Analysis.Kpis.BreachCount)),
+                Row("NoLimitCount", Number(request.Analysis.Kpis.NoLimitCount)),
+                Row("InvalidLimitCount", Number(request.Analysis.Kpis.InvalidLimitCount)),
+                Row("MappingErrorCount", Number(request.Analysis.Kpis.MappingErrorCount)),
+                Row("ExposureAmountSum", Number(request.Analysis.Kpis.ExposureAmountSum)),
+                Row("LimitAmountSum", Number(request.Analysis.Kpis.LimitAmountSum)),
+                Row("RemainingLimitSum", Number(request.Analysis.Kpis.RemainingLimitSum)),
+                Row("ReconciliationPassed", request.Analysis.Reconciliation.Passed ? "PASS" : "FAIL"),
+                Row("ReconciliationCheckCount", Number(request.Analysis.Reconciliation.CheckCount)),
                 Row("RawDataReferenceCountFormula", Formula(formulaRawDataRows)),
                 Row("LimitAmountSumFormula", Formula(formulaLimitSum)),
                 Row("ExceptionListCountFormula", Formula(formulaExceptionCount))
             ]),
-            ["LIMIT_MONITORING"] = BuildSheetData(BuildLimitRows(request.LimitRows)),
-            ["EXCEPTION_LIST"] = BuildSheetData(BuildExceptionRows(request.LimitRows, request.ValidationFindings)),
+            ["LIMIT_MONITORING"] = BuildSheetData(BuildLimitRows(request.Analysis)),
+            ["EXCEPTION_LIST"] = BuildSheetData(BuildExceptionRows(request.Analysis, request.ValidationFindings)),
             ["SQL_USED"] = BuildSheetData([
                 Row("SQL", "Review-only text. 자동 실행 금지."),
                 Row("Statement", request.SqlUsed)
@@ -219,7 +225,7 @@ public sealed class ExcelReportBuilder
         try
         {
             var validationDigest = string.Join('|', request.ValidationFindings.Select(f => $"{f.Severity}:{f.Code}:{f.Position}"));
-            var requestMaterial = $"{request.ReportName}|{request.DataProfile.SourceName}|{request.DataProfile.RowCount}|{request.DataProfile.ColumnCount}|{request.LimitRows.Count}|{validationDigest}";
+            var requestMaterial = $"{request.ReportName}|{request.DataProfile.SourceName}|{request.DataProfile.RowCount}|{request.DataProfile.ColumnCount}|{request.Analysis.BaseDate}|{request.Analysis.Rows.Count}|{request.Analysis.Kpis}|{request.Analysis.Reconciliation.Passed}|{validationDigest}";
             var outputMaterial = $"{Path.GetFileName(reportPath)}|{string.Join(',', ExpectedSheetNames)}|{string.Join(',', workbook.Formulas)}";
             taskLogWriter.Append(new TaskLogEntry(
                 $"task-{Guid.NewGuid():N}",
@@ -312,65 +318,59 @@ public sealed class ExcelReportBuilder
         }
     }
 
-    private static IEnumerable<IReadOnlyList<ReportCell>> BuildLimitRows(IReadOnlyList<ExcelReportLimitRow> limitRows)
+    private static IEnumerable<IReadOnlyList<ReportCell>> BuildLimitRows(LimitAnalysisResult analysis)
     {
-        yield return Row("PortfolioId", "RiskFactor", "ExposureAmount", "LimitAmount", "UtilizationRatio", "Status", "Note");
-        if (limitRows.Count == 0)
+        yield return Row("BaseDate", "PortfolioId", "RiskFactor", "ExposureAmount", "LimitAmount", "UtilizationRatio", "RemainingLimit", "Status", "Note");
+        if (analysis.Rows.Count == 0)
         {
-            yield return Row("NO_LIMIT_ROW", "N/A", Number(0), Number(0), Number(0), "NO_DATA", "한도 샘플 입력이 없습니다.");
+            yield return Row(analysis.BaseDate, "NO_LIMIT_ROW", "N/A", Number(0), Number(0), Number(0), Number(0), "NO_DATA", "실제 한도 분석 행이 없습니다.");
             yield break;
         }
 
-        foreach (var row in limitRows)
+        foreach (var row in analysis.MonitoringTable)
         {
             yield return Row(
+                row.BaseDate,
                 row.PortfolioId,
                 row.RiskFactor,
                 Number(row.ExposureAmount),
                 Number(row.LimitAmount),
-                Number(CalculateUtilization(row)),
-                CalculateLimitStatus(row),
-                row.Note ?? string.Empty);
+                Number(row.UsageRatio),
+                Number(row.RemainingLimit),
+                row.StatusCode,
+                row.Note);
         }
     }
 
     private static IEnumerable<IReadOnlyList<ReportCell>> BuildExceptionRows(
-        IReadOnlyList<ExcelReportLimitRow> limitRows,
+        LimitAnalysisResult analysis,
         IReadOnlyList<SafetyFinding> validationFindings)
     {
-        yield return Row("Type", "Severity", "Code", "Message");
+        yield return Row("Type", "Severity", "Code", "Message", "BaseDate", "PortfolioId", "RiskFactor");
         var emitted = false;
-        foreach (var row in limitRows.Where(row => CalculateLimitStatus(row) != "OK"))
+        foreach (var exception in analysis.ExceptionList)
         {
             emitted = true;
-            yield return Row("Limit", "High", CalculateLimitStatus(row), $"{row.PortfolioId}/{row.RiskFactor} exposure={row.ExposureAmount} limit={row.LimitAmount}");
+            yield return Row(
+                "Analysis",
+                exception.Severity.ToString(),
+                exception.Code,
+                exception.Message,
+                exception.BaseDate,
+                exception.PortfolioId,
+                exception.RiskFactor);
         }
 
         foreach (var finding in validationFindings.Where(f => f.Severity is SafetySeverity.Blocker or SafetySeverity.High))
         {
             emitted = true;
-            yield return Row("Validation", finding.Severity.ToString(), finding.Code, finding.Message);
+            yield return Row("Validation", finding.Severity.ToString(), finding.Code, finding.Message, string.Empty, string.Empty, string.Empty);
         }
 
         if (!emitted)
         {
-            yield return Row("Info", "Info", "NO_EXCEPTION", "예외 항목이 없습니다.");
+            yield return Row("Info", "Info", "NO_EXCEPTION", "예외 항목이 없습니다.", string.Empty, string.Empty, string.Empty);
         }
-    }
-
-    private static decimal CalculateUtilization(ExcelReportLimitRow row)
-    {
-        return row.LimitAmount <= 0m ? 0m : Math.Abs(row.ExposureAmount) / row.LimitAmount;
-    }
-
-    private static string CalculateLimitStatus(ExcelReportLimitRow row)
-    {
-        if (row.LimitAmount <= 0m)
-        {
-            return "NO_LIMIT";
-        }
-
-        return Math.Abs(row.ExposureAmount) > row.LimitAmount ? "BREACH" : "OK";
     }
 
     private string ReadTemplate(string fileName)
@@ -487,9 +487,9 @@ public sealed class ExcelReportBuilder
             throw new ArgumentException("DataProfile이 필요합니다.", nameof(request));
         }
 
-        if (request.LimitRows is null)
+        if (request.Analysis is null)
         {
-            throw new ArgumentException("LimitRows가 필요합니다.", nameof(request));
+            throw new ArgumentException("LimitAnalysisResult가 필요합니다.", nameof(request));
         }
 
         if (request.ValidationFindings is null)

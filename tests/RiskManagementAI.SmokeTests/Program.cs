@@ -255,6 +255,19 @@ string ReconciliationSignature(LimitAnalysisResult result)
         result.Reconciliation.Checks.Select(check => $"{check.Code}:{check.Applicable}:{check.ExceptionCount}:{check.MaxSeverity}"));
 }
 
+LimitAnalysisResult EmptyLimitAnalysis(string baseDate = "20260617")
+{
+    var rows = Array.Empty<LimitMonitorRow>();
+    return new LimitAnalysisResult(
+        baseDate,
+        rows,
+        LimitAnalysisKpis.FromRows(rows),
+        new LimitAnalysisMetadata(baseDate, "N/A", "N/A", ColumnMappingUsedFallback: false, ColumnMappingWarnings: Array.Empty<string>(), IsDeterministic: true),
+        Array.Empty<LimitException>(),
+        Array.Empty<SafetyFinding>(),
+        new ReconciliationSummary(Passed: true, CheckCount: 0, Checks: Array.Empty<ReconciliationCheck>()));
+}
+
 var loadedRuleSet = RuleLoader.LoadDefault();
 AssertTrue(!loadedRuleSet.UsedFallback, "RuleLoader should load repo rules");
 AssertTrue(loadedRuleSet.RuleVersion.StartsWith("ruleset-", StringComparison.Ordinal) && loadedRuleSet.RuleVersion.Length == 20, "RuleLoader should produce deterministic ruleset version");
@@ -763,16 +776,8 @@ AssertTrue(!mainWindowCode.Contains("1.1m", StringComparison.Ordinal), "WP-01 sh
 AssertTrue(!mainWindowCode.Contains("PROFILE_TOTAL", StringComparison.Ordinal), "WP-01 should not emit aggregate synthetic limit rows");
 AssertTrue(mainWindowCode.Contains("LIMIT_DATA_REQUIRED", StringComparison.Ordinal), "WP-01 should emit LIMIT_DATA_REQUIRED when real limit data is missing");
 AssertTrue(mainWindowCode.Contains("DEMO_ONLY", StringComparison.Ordinal), "WP-01 should mark sample/demo report flows as DEMO_ONLY");
-var buildUiLimitRowsMarker = "private static IReadOnlyList<ExcelReportLimitRow> BuildUiLimitRows()";
-var buildUiLimitRowsStart = mainWindowCode.IndexOf(buildUiLimitRowsMarker, StringComparison.Ordinal);
-var buildUiLimitRowsEnd = buildUiLimitRowsStart < 0
-    ? -1
-    : mainWindowCode.IndexOf("\n    private static IReadOnlyList<SafetyFinding> BuildUiLimitFindings", buildUiLimitRowsStart + buildUiLimitRowsMarker.Length, StringComparison.Ordinal);
-var buildUiLimitRowsBody = buildUiLimitRowsStart < 0
-    ? string.Empty
-    : mainWindowCode[buildUiLimitRowsStart..(buildUiLimitRowsEnd < 0 ? mainWindowCode.Length : buildUiLimitRowsEnd)];
-AssertTrue(buildUiLimitRowsBody.Contains("Array.Empty<ExcelReportLimitRow>()", StringComparison.Ordinal), "WP-01 should return no limit rows when no real limit source is present");
-AssertTrue(!buildUiLimitRowsBody.Contains("new ExcelReportLimitRow", StringComparison.Ordinal), "WP-01 should not synthesize ExcelReportLimitRow values");
+AssertTrue(!mainWindowCode.Contains("BuildUiLimitRows", StringComparison.Ordinal), "WP-07 should remove BuildUiLimitRows from UI code");
+AssertTrue(!mainWindowCode.Contains("ExcelReportLimitRow", StringComparison.Ordinal), "WP-07 should remove ExcelReportLimitRow from UI code");
 var retiredStubCodes = new[]
 {
     "DASHBOARD_MVP_STATUS",
@@ -1047,14 +1052,16 @@ var reportSql = "SELECT TRADE_ID FROM TRADE_SAMPLE WHERE BASE_DT = :BASE_DT";
 var reportBuilder = new ExcelReportBuilder(
     loadedRuleSet,
     new TaskLogWriter("logs", "smoke_excel_report_log.jsonl"));
+var reportValidationFindings = sqlChecker.Check(reportSql).ToList();
+reportValidationFindings.Add(new SafetyFinding(
+    "REPORT_VALIDATION_HIGH_SMOKE",
+    SafetySeverity.High,
+    "High validation smoke finding for EXCEPTION_LIST merge."));
 var reportResult = reportBuilder.BuildReport(new ExcelReportRequest(
     "smoke_m2_04_report",
     exposureProfile,
-    [
-        new ExcelReportLimitRow("PF_EQ_001", "KOSPI200", 1250000000m, 1500000000m, "dummy limit row"),
-        new ExcelReportLimitRow("PF_CR_001", "KR_CREDIT_A", 310000000m, 300000000m, "dummy breach row")
-    ],
-    sqlChecker.Check(reportSql).ToList(),
+    sixStateResult,
+    reportValidationFindings,
     reportSql,
     "NoModelMode report commentary",
     "user-smoke"));
@@ -1075,6 +1082,30 @@ using (var reportArchive = ZipFile.OpenRead(reportResult.ReportPath))
     AssertTrue(reportArchive.GetEntry("xl/_rels/workbook.xml.rels") is not null, "Excel report xlsx should include workbook relationships");
     AssertTrue(reportArchive.GetEntry("xl/styles.xml") is not null, "Excel report xlsx should include styles part");
     AssertTrue(reportArchive.GetEntry("xl/worksheets/sheet10.xml") is not null, "Excel report xlsx should include tenth worksheet");
+    var summarySheet = ReadZipEntryText(reportArchive, "xl/worksheets/sheet5.xml");
+    var limitMonitoringSheet = ReadZipEntryText(reportArchive, "xl/worksheets/sheet6.xml");
+    var exceptionSheet = ReadZipEntryText(reportArchive, "xl/worksheets/sheet7.xml");
+    AssertTrue(limitMonitoringSheet.Contains("PF_WARNING", StringComparison.Ordinal) && limitMonitoringSheet.Contains("WARNING", StringComparison.Ordinal) && limitMonitoringSheet.Contains("0.95", StringComparison.Ordinal), "WP-07 report should reuse analysis WARNING usage ratio");
+    AssertTrue(limitMonitoringSheet.Contains("PF_BREACH", StringComparison.Ordinal) && limitMonitoringSheet.Contains("BREACH", StringComparison.Ordinal), "WP-07 report should expose analysis BREACH status");
+    AssertTrue(limitMonitoringSheet.Contains("PF_NOLIMIT", StringComparison.Ordinal) && limitMonitoringSheet.Contains("NO_LIMIT", StringComparison.Ordinal), "WP-07 report should expose analysis NO_LIMIT status");
+    AssertTrue(limitMonitoringSheet.Contains("PF_ZERO", StringComparison.Ordinal) && limitMonitoringSheet.Contains("INVALID_LIMIT", StringComparison.Ordinal), "WP-07 report should expose analysis INVALID_LIMIT status");
+    AssertTrue(summarySheet.Contains("ReconciliationPassed", StringComparison.Ordinal) && summarySheet.Contains("FAIL", StringComparison.Ordinal), "WP-07 report summary should expose reconciliation PASS/FAIL");
+    AssertTrue(exceptionSheet.Contains("RECON_EXPOSURE_NO_LIMIT", StringComparison.Ordinal) && exceptionSheet.Contains("RECON_NONPOSITIVE_LIMIT", StringComparison.Ordinal), "WP-07 report exception list should include analysis RECON exceptions");
+    AssertTrue(exceptionSheet.Contains("REPORT_VALIDATION_HIGH_SMOKE", StringComparison.Ordinal), "WP-07 report exception list should merge high validation findings");
+}
+
+var mappingErrorReport = reportBuilder.BuildReport(new ExcelReportRequest(
+    "smoke_wp07_mapping_error_report",
+    exposureProfile,
+    mappingErrorResult,
+    [],
+    reportSql,
+    "NoModelMode report commentary",
+    "user-smoke"));
+using (var mappingErrorArchive = ZipFile.OpenRead(mappingErrorReport.ReportPath))
+{
+    var limitMonitoringSheet = ReadZipEntryText(mappingErrorArchive, "xl/worksheets/sheet6.xml");
+    AssertTrue(limitMonitoringSheet.Contains("MAPPING_ERROR", StringComparison.Ordinal), "WP-07 report should expose analysis MAPPING_ERROR status");
 }
 
 var limitRequiredFinding = new SafetyFinding(
@@ -1094,7 +1125,7 @@ if (File.Exists(noSyntheticLimitReportPath))
 var noSyntheticLimitReport = reportBuilder.BuildReport(new ExcelReportRequest(
     "smoke_wp_01_no_synthetic_limit",
     exposureProfile,
-    [],
+    EmptyLimitAnalysis(),
     [limitRequiredFinding, demoOnlyFinding],
     reportSql,
     "NoModelMode report commentary",
@@ -1117,11 +1148,15 @@ AssertTrue(Throws<ArgumentException>(() => new ExcelReportBuilder(loadedRuleSet,
 AssertTrue(Throws<ArgumentException>(() => reportBuilder.BuildReport(new ExcelReportRequest(
     "../bad",
     exposureProfile,
-    [],
+    EmptyLimitAnalysis(),
     [],
     reportSql,
     "commentary",
     "user-smoke"))), "ExcelReportBuilder should reject report file path traversal");
+var excelReportBuilderCode = File.ReadAllText(Path.Combine("src", "RiskManagementAI.Core", "Report", "ExcelReportBuilder.cs"));
+AssertTrue(!excelReportBuilderCode.Contains("ExcelReportLimitRow", StringComparison.Ordinal), "WP-07 should remove ExcelReportLimitRow from report builder");
+AssertTrue(!excelReportBuilderCode.Contains("CalculateLimitStatus", StringComparison.Ordinal), "WP-07 should remove three-state report status calculation");
+AssertTrue(!excelReportBuilderCode.Contains("CalculateUtilization", StringComparison.Ordinal), "WP-07 should remove report-side utilization recalculation");
 AssertTrue(Directory.Exists(Path.Combine("templates", "report")), "ExcelReportBuilder should use templates/report assets");
 AssertTrue(
     !File.ReadAllText(Path.Combine("src", "RiskManagementAI.Core", "RiskManagementAI.Core.csproj")).Contains("PackageReference", StringComparison.OrdinalIgnoreCase)
