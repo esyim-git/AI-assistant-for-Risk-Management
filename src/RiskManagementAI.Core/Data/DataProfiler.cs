@@ -1,10 +1,27 @@
 using System.Globalization;
+using RiskManagementAI.Core.Mapping;
 
 namespace RiskManagementAI.Core.Data;
 
 public sealed class DataProfiler
 {
-    private const string BaseDateColumnName = "BASE_DT";
+    private readonly ColumnMappingLoadResult columnMappingLoadResult;
+
+    public DataProfiler()
+        : this(ColumnMappingLoader.LoadDefault())
+    {
+    }
+
+    public DataProfiler(ColumnMapping mapping)
+        : this(new ColumnMappingLoadResult(mapping, UsedFallback: false, Warnings: Array.Empty<string>()))
+    {
+    }
+
+    public DataProfiler(ColumnMappingLoadResult columnMappingLoadResult)
+    {
+        ArgumentNullException.ThrowIfNull(columnMappingLoadResult);
+        this.columnMappingLoadResult = columnMappingLoadResult;
+    }
 
     public DataProfileResult ProfileCsv(string csvPath)
     {
@@ -41,9 +58,10 @@ public sealed class DataProfiler
         var baseDateDistribution = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var duplicateKeys = new HashSet<string>(StringComparer.Ordinal);
         var duplicateRowCount = 0;
-        var warnings = new List<string>();
+        var warnings = new List<string>(columnMappingLoadResult.Warnings);
         var numericCandidates = columns.ToDictionary(column => column, column => new NumericAccumulator(column), StringComparer.OrdinalIgnoreCase);
-        var baseDateIndex = Array.FindIndex(columns, column => string.Equals(column, BaseDateColumnName, StringComparison.OrdinalIgnoreCase));
+        var baseDateColumnName = columnMappingLoadResult.Mapping.Physical(LogicalColumn.BaseDate);
+        var baseDateIndex = Array.FindIndex(columns, column => string.Equals(column, baseDateColumnName, StringComparison.OrdinalIgnoreCase));
         var rowCount = 0;
         foreach (var row in table.Rows)
         {
@@ -91,7 +109,7 @@ public sealed class DataProfiler
 
         if (baseDateIndex < 0)
         {
-            warnings.Add($"{BaseDateColumnName} 컬럼이 없어 기준일 분포를 산출하지 못했습니다.");
+            warnings.Add($"{baseDateColumnName} 컬럼이 없어 기준일 분포를 산출하지 못했습니다.");
         }
 
         return new DataProfileResult(

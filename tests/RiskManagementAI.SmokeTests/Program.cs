@@ -10,6 +10,7 @@ using RiskManagementAI.Core.Feedback;
 using RiskManagementAI.Core.Generation;
 using RiskManagementAI.Core.Kb;
 using RiskManagementAI.Core.Logging;
+using RiskManagementAI.Core.Mapping;
 using RiskManagementAI.Core.Report;
 using RiskManagementAI.Core.Risk;
 using RiskManagementAI.Core.Safety;
@@ -350,6 +351,62 @@ AssertTrue(dashboardSnapshot.Rows.Any(row => row.Metric == "RuleVersion" && row.
 AssertTrue(dashboardSnapshot.Rows.Any(row => row.Metric == "Promoted Examples" && row.Value.Trim() == "2"), "DashboardSnapshot should show promoted example count");
 AssertTrue(dashboardSnapshot.Rows.Any(row => row.Metric == "Reports" && row.Value.Trim() == "3"), "DashboardSnapshot should show report count");
 AssertTrue(dashboardSnapshot.Findings.Any(f => f.Code == "DASHBOARD_READY" && f.Severity == SafetySeverity.Info), "DashboardSnapshot should emit ready finding");
+
+var columnMappingLoadResult = ColumnMappingLoader.LoadDefault();
+AssertTrue(!columnMappingLoadResult.UsedFallback, "ColumnMappingLoader should load repo default mapping");
+AssertTrue(columnMappingLoadResult.Mapping.Physical(LogicalColumn.BaseDate) == "BASE_DT", "ColumnMapping default should preserve BASE_DT");
+AssertTrue(columnMappingLoadResult.Mapping.Physical(LogicalColumn.PortfolioId) == "PORTFOLIO_ID", "ColumnMapping default should preserve PORTFOLIO_ID");
+
+var customColumnMappingPath = Path.Combine("config", "smoke_column_mapping_wp04_custom.json");
+File.WriteAllText(customColumnMappingPath, """
+{
+  "Mappings": {
+    "BaseDate": "BASE_DATE",
+    "PortfolioId": "PORT_ID",
+    "RiskFactor": "RISK_NM",
+    "ExposureAmount": "EXPOSURE",
+    "LimitAmount": "LIMIT",
+    "UseYn": "ACTIVE_YN"
+  }
+}
+""");
+var customColumnMappingResult = ColumnMappingLoader.LoadFromFile(customColumnMappingPath);
+File.Delete(customColumnMappingPath);
+AssertTrue(!customColumnMappingResult.UsedFallback, "ColumnMappingLoader should load complete custom config mapping");
+AssertTrue(customColumnMappingResult.Mapping.Physical(LogicalColumn.PortfolioId) == "PORT_ID", "ColumnMapping custom config should apply physical column names");
+
+var partialColumnMappingPath = Path.Combine("config", "smoke_column_mapping_wp04_partial.json");
+File.WriteAllText(partialColumnMappingPath, """
+{
+  "Mappings": {
+    "BaseDate": "BASE_DATE"
+  }
+}
+""");
+var partialColumnMappingResult = ColumnMappingLoader.LoadFromFile(partialColumnMappingPath);
+File.Delete(partialColumnMappingPath);
+AssertTrue(partialColumnMappingResult.UsedFallback && partialColumnMappingResult.Warnings.Count > 0, "ColumnMappingLoader should fallback for partial custom mappings");
+AssertTrue(partialColumnMappingResult.Mapping.Physical(LogicalColumn.BaseDate) == "BASE_DT", "ColumnMapping partial fallback should discard partial overrides");
+
+var duplicatePhysicalMappingPath = Path.Combine("config", "smoke_column_mapping_wp04_duplicate.json");
+File.WriteAllText(duplicatePhysicalMappingPath, """
+{
+  "Mappings": {
+    "BaseDate": "BASE_DATE",
+    "PortfolioId": "PORT_ID",
+    "RiskFactor": "RISK_NM",
+    "ExposureAmount": "DUPLICATE_AMOUNT",
+    "LimitAmount": "DUPLICATE_AMOUNT",
+    "UseYn": "ACTIVE_YN"
+  }
+}
+""");
+var duplicatePhysicalMappingResult = ColumnMappingLoader.LoadFromFile(duplicatePhysicalMappingPath);
+File.Delete(duplicatePhysicalMappingPath);
+AssertTrue(duplicatePhysicalMappingResult.UsedFallback && duplicatePhysicalMappingResult.Warnings.Count > 0, "ColumnMappingLoader should fallback on physical column collisions");
+AssertTrue(Throws<ArgumentException>(() => ColumnMappingLoader.LoadFromFile("../x.json")), "ColumnMappingLoader should reject parent traversal paths");
+AssertTrue(Throws<ArgumentException>(() => ColumnMappingLoader.LoadFromFile("artifacts/x.json")), "ColumnMappingLoader should reject paths outside config");
+AssertTrue(Throws<InvalidDataException>(() => new ColumnMapping(new Dictionary<LogicalColumn, string>()).Physical(LogicalColumn.BaseDate)), "ColumnMapping should throw when a logical column is unmapped");
 
 var noModelDraftService = new NoModelDraftService(policyLoadResult.Policy);
 var noModelDraftResponse = noModelDraftService.GenerateDraft(new DraftRequest(
@@ -834,6 +891,19 @@ var noBaseDateCsv = Path.Combine(profileSmokeDirectory, "profile_no_base_dt.csv"
 File.WriteAllText(noBaseDateCsv, "DESK_CD,AMT\nEQD,10\nFIC,20\n");
 var noBaseDateProfile = profiler.ProfileCsv(noBaseDateCsv);
 AssertTrue(noBaseDateProfile.Warnings.Any(w => w.Contains("BASE_DT", StringComparison.OrdinalIgnoreCase)), "DataProfiler should warn when BASE_DT is missing");
+
+var customMappingProfileCsv = Path.Combine(profileSmokeDirectory, "profile_custom_mapping_wp04.csv");
+File.WriteAllText(customMappingProfileCsv, "BASE_DATE,DESK_CD,EXPOSURE\n20260617,EQD,10\n20260618,FIC,20\n");
+var customMappingProfile = new DataProfiler(customColumnMappingResult).ProfileCsv(customMappingProfileCsv);
+AssertTrue(customMappingProfile.BaseDateDistribution["20260617"] == 1 && customMappingProfile.BaseDateDistribution["20260618"] == 1, "DataProfiler should use ColumnMapping for BASE_DT distribution");
+
+var customMappingExposureCsv = Path.Combine(profileSmokeDirectory, "limit_custom_mapping_exposure_wp04.csv");
+var customMappingLimitCsv = Path.Combine(profileSmokeDirectory, "limit_custom_mapping_limit_wp04.csv");
+File.WriteAllText(customMappingExposureCsv, "BASE_DATE,DESK_CD,PORT_ID,PRODUCT_TYPE,RISK_NM,CCY_CD,EXPOSURE\n20260617,EQD,PF_CUSTOM,Derivative,KOSPI200,KRW,95\n");
+File.WriteAllText(customMappingLimitCsv, "BASE_DATE,PORT_ID,RISK_NM,LIMIT,ACTIVE_YN\n20260617,PF_CUSTOM,KOSPI200,100,Y\n");
+var customMappingLimitResult = new LimitMonitor(customColumnMappingResult).Analyze(customMappingExposureCsv, customMappingLimitCsv, "20260617");
+AssertTrue(customMappingLimitResult.Rows.Count == 1, "LimitMonitor should use ColumnMapping for renamed join columns");
+AssertTrue(customMappingLimitResult.Rows.Single().Status == LimitMonitorStatus.Warning, "LimitMonitor should classify custom mapped rows with renamed amount columns");
 
 Cp949Decoder.VerifyMapping();
 AssertTrue(Cp949Decoder.MappingSha256 == Cp949Decoder.ExpectedMappingSha256, "CsvReader CP949 mapping hash should match pinned SHA256");
