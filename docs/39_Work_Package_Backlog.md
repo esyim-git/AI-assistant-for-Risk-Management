@@ -120,7 +120,7 @@
 
 ## WP-06~09 (요지, 상세는 R1 진행 중 확정)
 - **WP-06 대사·예외검증 9종** (프롬프트 `prompts/codex/WP-06_reconciliation_checks.md`): WP-05 위에 대사 패스 추가 → `ExceptionList` 9종 코드 + `ReconciliationSummary`(PASS/FAIL). 9종: ①`RECON_EXPOSURE_NO_LIMIT` ②`RECON_LIMIT_NO_EXPOSURE` ③`RECON_DUPLICATE_LIMIT` ④`RECON_BASEDATE_MISMATCH` ⑤`RECON_CURRENCY_MISMATCH`(컬럼 없으면 N/A) ⑥`RECON_UNIT_MISMATCH`(컬럼 없으면 N/A) ⑦`RECON_NONPOSITIVE_LIMIT` ⑧`RECON_ROW_AMPLIFICATION` ⑨**`RECON_SUM_BALANCE`(키스톤: 원천합계=분석합계, 증폭/누락 0)**. 기존 6상태·KPI·수치 불변(대사는 추가 필드). **Codex 결과(2026-06-21)**: `LimitAnalysisResult`에 `ReconciliationSummary` 추가. 9개 check summary와 fail-code set(`RECON_NONPOSITIVE_LIMIT`/`RECON_ROW_AMPLIFICATION`/`RECON_SUM_BALANCE`) 적용. 7개 데이터 체크 양성/음성 회귀, 통화·단위 N/A 회귀, 정상 multi-date export의 base-date mismatch 미탐지, 반복 실행 summary 결정성, duplicate limit의 row amplification 감지 추가.
-- **WP-07 Dashboard·Report 공통화**: `LimitAnalysisResult` 하나로 KPI/표/ExceptionList/Excel/History/Audit 생성. `BuildUiLimitRows` 완전 대체.
+- **WP-07 Dashboard·Report 공통화** (프롬프트 `prompts/codex/WP-07_dashboard_report_unify.md`, **R1 마지막**): 공통 `LimitAnalysisResult` 하나로 Risk Dashboard 그리드 + Excel Report(LIMIT_MONITORING·EXCEPTION_LIST·SUMMARY KPI/대사) + History/Audit를 **동일 수치**로 생성. `ExcelReportRequest`가 `LimitRows` 대신 **`LimitAnalysisResult` 입력**; Report는 6상태 `StatusCode`·`UsageRatio`를 **재계산 없이** 사용. **`BuildUiLimitRows`·`ExcelReportLimitRow`·3상태 `CalculateLimitStatus` 완전 제거**. WP-01(합성 0·`LIMIT_DATA_REQUIRED`/`DEMO_ONLY`)·10시트·Excel2021·audit 해시 전용 보존. 시스템-홈 `DashboardSnapshot`(시스템 헬스)은 제외.
 - **WP-08 공통 CSV 파서 통합**: 3중 중복 제거(WP-02에 흡수).
 - **WP-09 전일 대비 데이터모델 설계**: 기준일 N vs N-1 비교 모델(설계 산출물, 구현은 R2).
 
