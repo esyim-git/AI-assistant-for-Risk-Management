@@ -106,7 +106,8 @@
 - **작업범위**: `LimitAnalysisResult`(공통) 정의 — KPI·LimitMonitoringTable·ExceptionList·메타. `LimitMonitor` 출력을 이 타입으로. Dashboard/Report가 동일 객체 소비(WP-07에서 UI 연결).
 - **제외범위**: 대사 9종(WP-06), UI 연결(WP-07).
 - **수정예상파일**: `Core/Risk/LimitAnalysisResult.cs`(신규/기존 통합), `Risk/LimitMonitor.cs`, tests.
-- **Public Interface**: `LimitAnalysisResult LimitMonitor.Analyze(CsvTable exposure, CsvTable limit, string baseDate, ColumnMapping map)`; 상태 enum `{ NORMAL, WARNING, BREACH, NO_LIMIT, INVALID_LIMIT, MAPPING_ERROR }`.
+- **Public Interface**: 매핑은 **WP-04 생성자 주입** 유지(`ColumnMapping map` 메서드 파라미터는 생성자 주입으로 대체 — 소스 이중화 금지). 코어 `LimitAnalysisResult LimitMonitor.Analyze(CsvTable exposure, CsvTable limit, string baseDate)` + 호환 경로 오버로드 `Analyze(string exposurePath, string limitPath, string baseDate)`(.csv/.xlsx). 상태 enum(PascalCase) `{ Normal, Warning, Breach, NoLimit, InvalidLimit, MappingError }`(출력 문자열 `NORMAL/WARNING/BREACH/NO_LIMIT/INVALID_LIMIT/MAPPING_ERROR`).
+  - 상태 정렬: NoLimit=조인 미매칭, InvalidLimit=`USE_YN≠Y` 또는 한도`≤0`/숫자아님, MappingError=매핑 물리컬럼이 입력 헤더에 없음(**graceful**, 하드 throw 금지). (현 `MissingLimit`/`InactiveLimit`에서 분리.)
 - **구현세부**: 상태셋을 docs/38·docs(5절) 정의로 확장(현 `MissingLimit/InactiveLimit` → `NO_LIMIT/INVALID_LIMIT/MAPPING_ERROR`로 정렬). ABS 사용률·잔여한도 유지. 동일 입력→동일 수치 보장(결정적).
 - **보안조건**: 읽기 전용. 합성 한도 미사용(WP-01). 외부 0.
 - **테스트**: BASE_DT 조인, 6 상태 분류, 동일 입력→Dashboard/Report 동일 수치(WP-07 연계 전 단위검증).
