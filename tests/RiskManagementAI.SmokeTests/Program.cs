@@ -21,33 +21,40 @@ var failed = 0;
 var passed = 0;
 var smokeDomainPass = new SortedDictionary<string, int>(StringComparer.Ordinal);
 var smokeDomainFail = new SortedDictionary<string, int>(StringComparer.Ordinal);
+var unclassifiedNames = new List<string>();
 var smokeStopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-// STAB-WP-02: best-effort domain attribution from the test name (non-invasive; Total/PASS/FAIL stay exact,
-// per-domain is a heuristic grouping). Order = most specific first.
+// STAB-WP-02: domain attribution from existing assertion names.
+// Keep this exhaustive for the current suite; Unclassified fails the run below.
 string SmokeDomain(string name)
 {
     bool Has(params string[] keys) => keys.Any(k => name.Contains(k, StringComparison.OrdinalIgnoreCase));
-    if (Has("Xlsx")) return "Xlsx";
-    if (Has("CsvReader", "CP949", "encoding")) return "Csv";
-    if (Has("DataProfiler", "profil", "null value", "ProfileTable")) return "Profiling";
-    if (Has("ColumnMapping", "mapping")) return "Mapping";
-    if (Has("Reconcil", "RECON")) return "Reconciliation";
-    if (Has("ExcelReport", "Report", "Dashboard")) return "Report";
-    if (Has("LimitMonitor", "limit", "한도", "exposure")) return "Limit";
-    if (Has("KbIndex", "KbSearch", "Regulation", "catalog", "citation", "인용", "검색")) return "Kb";
-    if (Has("Ncr", "NCR")) return "Ncr";
-    if (Has("build/0", "VERSION", "global.json", "packaging", "source-text", "KbRepositoryGuard", "manifest", "Expand-Archive")) return "Packaging";
-    if (Has("TaskLog", "FeedbackLog", "Audit", "Feedback")) return "Audit";
-    if (Has("draft", "Generation", "NoModel", "LocalDraft")) return "Generation";
-    if (Has("SELECT", "Sql", "Vba", "Excel2021", "Excel 365", "function", "PolicyLoader", "policy", "security", "Safety", "DEMO_ONLY", "checker", "finding", "blocker", "rule")) return "Safety";
-    if (Has("navigation", "screen", "snapshot", " UI")) return "UiContract";
-    return "Other";
+    if (Has("XlsxReader", ".xlsx", "xlsx")) return "Xlsx";
+    if (Has("CsvReader", "CP949", "UTF-8", "UTF8", "BOM", "encoding", "CSV parser")) return "Csv";
+    if (Has("ColumnMapping", "mapping", "mapped", "renamed", "physical column")) return "Mapping";
+    if (Has("Reconcil", "RECON", "원천합계", "analysis balance", "sum balance", "row amplification", "orphan limit", "duplicate limit", "base-date mismatch")) return "Reconciliation";
+    if (Has("ExcelReport", "Excel report", "ReportBuilder", "report ", "report-side", "LIMIT_MONITORING", "EXCEPTION_LIST", "SUMMARY", "templates/report")) return "Report";
+    if (Has("LimitMonitor", "limit", "한도", "exposure", "BASE_DT", "6상태", "NO_LIMIT", "INVALID_LIMIT", "BREACH", "WARNING", "MAPPING_ERROR", "usage ratio")) return "Limit";
+    if (Has("Ncr", "NCR Rule", "NCR 공식", "Rule Set")) return "Ncr";
+    if (Has("KbIndex", "KbSearch", "RegulationCatalog", "Regulation", "catalog", "citation", "document", "source locator", "source text", "license", "approval", "metadata", "인용", "검색", "원문", "공개")) return "Kb";
+    if (Has("build/0", "VERSION", "global.json", "packaging", "source-text", "KbRepositoryGuard", "manifest", "Expand-Archive", "PowerShell")) return "Packaging";
+    if (Has("TaskLog", "FeedbackLog", "Audit", "Feedback", "PromotedExample", "ExamplePromotion", "user id", "request hash", "raw request")) return "Audit";
+    if (Has("NoModelDraftService", "DraftPipeline", "draft", "NoModel", "NO_MODEL", "generated draft")) return "Generation";
+    if (Has("DashboardSnapshot", "SecuritySettingsSnapshot", "SettingsSnapshot", "Offline Mode", "Local Model", "Promoted Examples", "Reports")) return "UiContract";
+    if (Has("DataProfiler", "profile", "null values", "duplicate rows", "numeric", "Small profile", "BASE_DT distribution", "source file name")) return "DataProfile";
+    if (Has("UI ", "UI shell", "Left menu", "Main tab", "MainTabKey", "navigation", "screen", "snapshot", "MVP-3", "Risk Dashboard", "History", "Settings", "Feedback Center", "read-only status refresh")) return "UiContract";
+    if (Has("RuleLoader", "RuleSet", "rules", "SQL", "SELECT", "VBA", "Option Explicit", "Excel 2021", "Excel2021", "PolicyLoader", "Security policy", "External API", "auto update", "telemetry", "auto execution", "safe fallback", "checker", "finding", "DEMO_ONLY")) return "Safety";
+    return "Unclassified";
 }
 
 void AssertTrue(bool condition, string name)
 {
     var domain = SmokeDomain(name);
+    if (domain == "Unclassified")
+    {
+        unclassifiedNames.Add(name);
+    }
+
     if (condition)
     {
         Console.WriteLine($"PASS: {name}");
@@ -1723,7 +1730,6 @@ var smokeTotal = passed + failed;
 Console.WriteLine();
 Console.WriteLine("=== SmokeTest Summary ===");
 Console.WriteLine($"Total={smokeTotal} PASS={passed} FAIL={failed} Duration={smokeStopwatch.Elapsed.TotalSeconds:F2}s");
-Console.WriteLine("(Total/PASS/FAIL is authoritative; per-domain below is a heuristic grouping by test name)");
 foreach (var domain in smokeDomainPass.Keys.Union(smokeDomainFail.Keys).OrderBy(k => k, StringComparer.Ordinal))
 {
     var p = smokeDomainPass.TryGetValue(domain, out var pv) ? pv : 0;
@@ -1731,6 +1737,19 @@ foreach (var domain in smokeDomainPass.Keys.Union(smokeDomainFail.Keys).OrderBy(
     Console.WriteLine($"  {domain}: PASS={p} FAIL={f}");
 }
 Console.WriteLine("=========================");
+
+var unclassified = (smokeDomainPass.TryGetValue("Unclassified", out var up) ? up : 0)
+    + (smokeDomainFail.TryGetValue("Unclassified", out var uf) ? uf : 0);
+if (unclassified > 0)
+{
+    Console.WriteLine($"SmokeTest domain classification failed: Unclassified={unclassified}");
+    foreach (var name in unclassifiedNames.OrderBy(name => name, StringComparer.Ordinal))
+    {
+        Console.WriteLine($"  UNCLASSIFIED: {name}");
+    }
+
+    Environment.Exit(1);
+}
 
 if (failed > 0)
 {

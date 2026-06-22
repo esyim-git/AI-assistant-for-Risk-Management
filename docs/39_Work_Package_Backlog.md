@@ -7,12 +7,12 @@
 ---
 
 ## ★ Resume Brief (Codex 인수 — v0.6.0 기준선)
-- **현재 main**: `272309a`, VERSION **0.6.0** — R1(WP-01~08)·R3(R3-WP-01~05)·REL-v0.6 패키징 가드(#54)·**STAB-WP-01 Build/Version 재현성(#56)** 까지 **DONE/병합**. **STAB-WP-02 정본 테스트 합계 = 이 PR #57**(아직 main 미반영 — 병합 시 main 갱신). SmokeTest **513 PASS / 0 FAIL** (STAB-WP-02 CI 요약 `Total=513`).
-- **NEXT UP (Codex가 집을 단 하나의 WP)**: **`STAB-WP-03` Release Security + Integrity Manifest** → 프롬프트 `prompts/codex/STAB-WP-03_integrity_manifest.md`. **선행: STAB-WP-02(#57) 병합 후 시작.** (Release 보안 PDB/경로 0 + manifest fail-closed/독립 앵커/앱 DLL 포함 — RR-13/RR-14. 봇 리뷰 반영 완료.)
+- **현재 기준선**: main **after PR #57 merge**, VERSION **0.6.0**. R1(WP-01~08) **DONE**, R3(R3-WP-01~05) **DONE**, REL-v0.6 패키징 가드(#54) **DONE**, **STAB-WP-01 Build/Version 재현성(#56) DONE**, **STAB-WP-02 정본 테스트 합계(#57) DONE**. SmokeTest **513 PASS / 0 FAIL** (정본 합계 — STAB-WP-02 CI 요약 `Total=513`).
+- **NEXT UP (Codex가 집을 단 하나의 WP)**: **`STAB-WP-03` Release Security + Integrity Manifest** → 프롬프트 `prompts/codex/STAB-WP-03_integrity_manifest.md`. (Release 보안 PDB/경로 0 + manifest fail-closed/독립 앵커/앱 DLL 포함 — RR-13/RR-14. 봇 리뷰 반영 완료.)
 - **그 다음 후보(순서, NEXT UP 아님)**: STAB-WP-04(테스트 구조 분리) → R2-WP-01(Risk Semantic Hardening) → R2-WP-02~04.
 - **BLOCKED**: PILOT Gate B/C(실 Test PC 증거 대기 — `docs/45`). 신규 기능과 분리해 user/Test PC가 병행.
-- **재현 검증**: `git fetch origin main && git switch main && dotnet build RiskManagementAI.sln -c Release && dotnet run --project tests/RiskManagementAI.SmokeTests` → 종료부 요약 확인(정본 합계). 출력은 **여러 줄**: `=== SmokeTest Summary ===` 다음 줄에 `Total=N PASS=N FAIL=0 Duration=…s` (그 다음 도메인별 = 휴리스틱). CI/로그 grep은 **`Total=`** 사용.
-- **테스트 수 변경 규약**: 총수 감소 시 사유·매핑 기록(삭제·약화 금지). STAB-WP-02가 합계·도메인 요약·실행시간 출력.
+- **재현 검증**: `git fetch origin main && git switch main && dotnet build RiskManagementAI.sln -c Release && dotnet run --project tests/RiskManagementAI.SmokeTests` → 종료부의 두 줄 `=== SmokeTest Summary ===` 및 `Total=N PASS=N FAIL=0 Duration=...s` 확인(정본 합계). CI/로그 grep은 **`Total=`** 사용.
+- **테스트 수 변경 규약**: 총수 감소 시 사유·매핑 기록(삭제·약화 금지). STAB-WP-02가 합계·도메인 요약·실행시간을 출력하고, 미분류 도메인(`Unclassified`)이 남으면 실패한다.
 - **⚠️ Archived(재실행 금지) 프롬프트**: `prompts/codex_mvp1_implementation_prompt.md`, `prompts/codex_mvp2_*`, `prompts/codex_mvp3_ui_prompt.md`, `prompts/codex_goal_mode_prompt.md`, `prompts/claude_bootstrap_v2_prompt.md`, `prompts/codex/WP-01~07_*`, `prompts/codex/R3-WP-01~05_*`, `prompts/codex/REL-v0.6-packaging-guard.md`, `prompts/codex/STAB-WP-01_*`, `prompts/codex/STAB-WP-02_*` — 모두 **완료/Starter** 단계. 신규 작업은 본 Resume Brief의 NEXT UP만 따른다.
 
 ## R1 진행 원장 (Codex 갱신)

@@ -1,6 +1,6 @@
 # 38. v1.0 Master Roadmap & Release Train (v0.6.0 → v1.0.0)
 
-> **현재 기준선 = v0.6.0** (main `3dfa80b`). 본 문서는 v0.6.0 다음 단계부터 v1.0 Team Pilot까지의 통합 실행 로드맵이다.
+> **현재 기준선 = v0.6.0 + STAB-WP-01/02** (main after PR #57 merge). 본 문서는 v0.6.0 다음 단계부터 v1.0 Team Pilot까지의 통합 실행 로드맵이다.
 > 개념 로드맵은 `docs/10`, WP 상세는 `docs/39`, 아키텍처 결정은 `docs/40`, 게이트는 `docs/41`, Gate 증거는 `docs/44`(v0.5)·`docs/45`(v0.6).
 
 ## 0. 기준선 (재설계 금지)
@@ -40,7 +40,8 @@ Offline · 외부 NuGet 0 · 외부 API/Telemetry/AutoUpdate 0 · SQL/VBA/Golden
 | 합성 한도 제거·DEMO_ONLY · CP949/UTF-8/XLSX 입력 · Column Mapping · Exposure-Limit Join+6상태 · 대사 9종 · Dashboard=Report | R1(v0.5.0) | **VERIFIED** |
 | 공개 규정 KB Metadata · Keyword/Inverted Index · 인용형 답변 · KbAccessPolicy · KbRepositoryGuard(+build/03) | R3(v0.6.0) | **VERIFIED** |
 | NCR Rule Set 8요소 구조 | R3(v0.6.0) | **SCAFFOLD_ONLY** (승인 Rule Pack·계수 미적재) |
-| 빌드/버전 재현성 · Release 보안 · Integrity Manifest · 정본 테스트 베이스라인 | STAB(v0.6.1) | NOT_IMPLEMENTED → NEXT |
+| 빌드/버전 재현성 · 정본 테스트 베이스라인 | STAB(v0.6.1) | VERIFIED |
+| Release 보안 · Integrity Manifest | STAB(v0.6.1) | NOT_IMPLEMENTED → NEXT |
 | Risk Semantic Hardening(중복키/통화·단위 매핑/RECON_UNIT) | R2 | NOT_IMPLEMENTED |
 | Streaming/대용량 · 전일 대비 · 차트/Heatmap/TopN/집중도 · Excel Report 강화 | R2 | NOT_IMPLEMENTED |
 | 공개 규정 **원문 Clause/Chunk 검색** | KB | NOT_IMPLEMENTED (현재 Catalog/Metadata까지) |
@@ -66,7 +67,7 @@ R1(DONE) ─► R3(DONE) ─► STAB(v0.6.1) ─► R2(v0.7) ─► KB(v0.8) ─
 | C-01~08 | R1 데이터·한도·대사·일원화 | WP-01~08 | 6상태·대사 9종·동일수치 | Data | VERIFIED |
 | C-10 | KB Metadata·역색인·인용·접근정책·원문가드 | R3-WP-01~04 | 검색 결정성·인용·Blocker 스캔 | RAG | VERIFIED |
 | C-11 | NCR Rule Set 8요소 구조 | R3-WP-05 | 구조·조회전용 SQL·검토용초안 | NCR | SCAFFOLD_ONLY |
-| C-12 | 빌드/버전 재현성·무결성·정본 테스트 | STAB-WP-01~04 | VERSION 단일원천·manifest 검증·정본 합계 | — | NEXT |
+| C-12 | 빌드/버전 재현성·무결성·정본 테스트 | STAB-WP-01~04 | VERSION 단일원천·manifest 검증·정본 합계 | — | PARTIAL (STAB-WP-01/02 DONE, STAB-WP-03 NEXT) |
 | C-13 | Risk Semantic Hardening | R2-WP-01 | 중복키 차단·RECON_UNIT·BASE_DT 정규화 | Data | TODO |
 | C-14 | Streaming/Perf | R2-WP-02 | 상한·Welford·벤치 | Data | TODO |
 | C-15 | 전일 대비 | R2-WP-03 | Current/Prev/Δ·TopN | Data | TODO |
@@ -86,8 +87,8 @@ R1(DONE) ─► R3(DONE) ─► STAB(v0.6.1) ─► R2(v0.7) ─► KB(v0.8) ─
 | RR-03 | Dashboard≠Report | 高 | WP-07 공통 결과 | 해소(R1) |
 | RR-05 | RAG vector 요구 | 中 | keyword index·STOP | 통제(R3) |
 | RR-07 | 내부규정 원문 repo 유입 | 高(보안) | repo 미포함·`KbRepositoryGuard`+build/03 스캔 | 통제(R3) |
-| **RR-11** | **빌드 기본 `-Version 0.2.0` ≠ VERSION 0.6.0 → 오버전 산출물** | 高(릴리스) | STAB-WP-01 VERSION 단일원천·불일치 시 실패 | NEXT |
-| **RR-12** | **정본 테스트 수 불명(484/502 혼재)** | 中 | STAB-WP-02 합계+도메인 요약 출력 | NEXT |
+| **RR-11** | **빌드 기본 `-Version 0.2.0` ≠ VERSION 0.6.0 → 오버전 산출물** | 高(릴리스) | STAB-WP-01 VERSION 단일원천·불일치 시 실패 | 해소 |
+| **RR-12** | **정본 테스트 수 불명(484/502 혼재)** | 中 | STAB-WP-02 합계+도메인 요약 출력 | 해소 |
 | **RR-13** | **Release ZIP에 PDB/개인경로/Debug 자산 포함 가능** | 中(보안) | STAB-WP-03 Release 보안·allowlist·manifest | NEXT |
 | **RR-14** | **핵심 파일(policy/rules/template/KB) 변조 미탐지** | 中 | STAB-WP-03 Integrity Manifest + 시작 검증(운영 Fail-Closed) | NEXT |
 | RR-06 | Local LLM 무단 도입 | 高(원칙) | R4 설계만·STOP·Model Approval Gate | 통제 |
