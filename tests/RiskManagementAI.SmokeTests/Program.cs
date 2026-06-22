@@ -18,17 +18,44 @@ using RiskManagementAI.Core.Risk;
 using RiskManagementAI.Core.Safety;
 
 var failed = 0;
+var passed = 0;
+var smokeDomainPass = new SortedDictionary<string, int>(StringComparer.Ordinal);
+var smokeDomainFail = new SortedDictionary<string, int>(StringComparer.Ordinal);
+var smokeStopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+// STAB-WP-02: best-effort domain attribution from the test name (non-invasive; Total/PASS/FAIL stay exact).
+string SmokeDomain(string name)
+{
+    bool Has(params string[] keys) => keys.Any(k => name.Contains(k, StringComparison.OrdinalIgnoreCase));
+    if (Has("Xlsx")) return "Xlsx";
+    if (Has("CsvReader", "CP949", "encoding")) return "Csv";
+    if (Has("ColumnMapping", "mapping")) return "Mapping";
+    if (Has("Reconcil", "RECON")) return "Reconciliation";
+    if (Has("ExcelReport", "Report", "Dashboard")) return "Report";
+    if (Has("LimitMonitor", "limit", "한도", "exposure", "status")) return "Limit";
+    if (Has("KbIndex", "KbSearch", "Regulation", "catalog", "citation", "인용", "검색")) return "Kb";
+    if (Has("Ncr", "NCR")) return "Ncr";
+    if (Has("build/0", "VERSION", "global.json", "packaging", "source-text", "KbRepositoryGuard", "manifest", "Expand-Archive")) return "Packaging";
+    if (Has("TaskLog", "FeedbackLog", "Audit", "Feedback")) return "Audit";
+    if (Has("Sql", "Vba", "Excel2021", "Safety", "DEMO_ONLY", "checker", "finding")) return "Safety";
+    if (Has("navigation", "screen", "snapshot", " UI")) return "UiContract";
+    return "Other";
+}
 
 void AssertTrue(bool condition, string name)
 {
+    var domain = SmokeDomain(name);
     if (condition)
     {
         Console.WriteLine($"PASS: {name}");
+        passed++;
+        smokeDomainPass[domain] = smokeDomainPass.TryGetValue(domain, out var p) ? p + 1 : 1;
     }
     else
     {
         Console.WriteLine($"FAIL: {name}");
         failed++;
+        smokeDomainFail[domain] = smokeDomainFail.TryGetValue(domain, out var f) ? f + 1 : 1;
     }
 }
 
@@ -1688,13 +1715,26 @@ var missingAuditResult = auditLogReader.Read(Path.Combine("logs", "smoke_history
 AssertTrue(missingAuditResult.Records.Count == 0 && missingAuditResult.Findings.Any(f => f.Code == "AUDIT_LOG_FILE_MISSING"), "AuditLogReader should gracefully report missing log files");
 AssertTrue(Throws<ArgumentException>(() => auditLogReader.Read("logs/../reports")), "AuditLogReader should reject paths outside logs");
 
+smokeStopwatch.Stop();
+var smokeTotal = passed + failed;
+Console.WriteLine();
+Console.WriteLine("=== SmokeTest Summary ===");
+Console.WriteLine($"Total={smokeTotal} PASS={passed} FAIL={failed} Duration={smokeStopwatch.Elapsed.TotalSeconds:F2}s");
+foreach (var domain in smokeDomainPass.Keys.Union(smokeDomainFail.Keys).OrderBy(k => k, StringComparer.Ordinal))
+{
+    var p = smokeDomainPass.TryGetValue(domain, out var pv) ? pv : 0;
+    var f = smokeDomainFail.TryGetValue(domain, out var fv) ? fv : 0;
+    Console.WriteLine($"  {domain}: PASS={p} FAIL={f}");
+}
+Console.WriteLine("=========================");
+
 if (failed > 0)
 {
     Console.WriteLine($"SmokeTests failed: {failed}");
     Environment.Exit(1);
 }
 
-Console.WriteLine("All SmokeTests passed.");
+Console.WriteLine($"All SmokeTests passed. (Total={smokeTotal})");
 
 sealed class StubDraftService : ILocalDraftService
 {

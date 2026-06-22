@@ -7,12 +7,13 @@
 ---
 
 ## ★ Resume Brief (Codex 인수 — v0.6.0 기준선)
-- **현재 기준선**: main `3dfa80b`, VERSION **0.6.0**. R1(WP-01~08) **DONE**, R3(R3-WP-01~05) **DONE**, REL-v0.6 패키징 가드(#54) **DONE**. SmokeTest **ALL PASS / 0 FAIL** (CI `27926096336`, windows-latest).
-- **NEXT UP (Codex가 집을 단 하나의 WP)**: **`STAB-WP-01` Build/Version Reproducibility** → 프롬프트 `prompts/codex/STAB-WP-01_build_version_reproducibility.md`. (이유: `build/01~03` 기본 `-Version`이 `0.2.0`으로 남아 VERSION 0.6.0과 불일치 → 오버전 산출물 위험 RR-11. 모든 후속 Release/Gate 신뢰의 선행.)
-- **그 다음 후보(순서, NEXT UP 아님)**: STAB-WP-02(정본 테스트 베이스라인) → STAB-WP-03(Release 보안+Integrity Manifest) → STAB-WP-04(테스트 구조 분리) → R2-WP-01(Risk Semantic Hardening).
+- **현재 기준선**: main `272309a`, VERSION **0.6.0**. R1(WP-01~08) **DONE**, R3(R3-WP-01~05) **DONE**, REL-v0.6 패키징 가드(#54) **DONE**, **STAB-WP-01 Build/Version 재현성(#56) DONE**, **STAB-WP-02 정본 테스트 합계(이 PR) DONE**. SmokeTest **ALL PASS / 0 FAIL** (정본 합계는 STAB-WP-02 적용 후 CI 로그의 `Total=` 값으로 `docs/38 §0`에 고정).
+- **NEXT UP (Codex가 집을 단 하나의 WP)**: **`STAB-WP-03` Release Security + Integrity Manifest** → 프롬프트 `prompts/codex/STAB-WP-03_integrity_manifest.md`. (Release 보안 PDB/경로 0 + manifest fail-closed/독립 앵커/앱 DLL 포함 — RR-13/RR-14. 봇 리뷰 반영 완료.)
+- **그 다음 후보(순서, NEXT UP 아님)**: STAB-WP-04(테스트 구조 분리) → R2-WP-01(Risk Semantic Hardening) → R2-WP-02~04.
 - **BLOCKED**: PILOT Gate B/C(실 Test PC 증거 대기 — `docs/45`). 신규 기능과 분리해 user/Test PC가 병행.
-- **재현 검증**: `git fetch origin main && git switch main && dotnet build RiskManagementAI.sln -c Release && dotnet run --project tests/RiskManagementAI.SmokeTests` → ALL PASS 확인. (정본 합계 출력은 STAB-WP-02에서 추가.)
-- **⚠️ Archived(재실행 금지) 프롬프트**: `prompts/codex_mvp1_implementation_prompt.md`, `prompts/codex_mvp2_*`, `prompts/codex_mvp3_ui_prompt.md`, `prompts/codex_goal_mode_prompt.md`, `prompts/claude_bootstrap_v2_prompt.md`, `prompts/codex/WP-01~07_*`, `prompts/codex/R3-WP-01~05_*`, `prompts/codex/REL-v0.6-packaging-guard.md` — 모두 **완료/Starter** 단계. 신규 작업은 본 Resume Brief의 NEXT UP만 따른다.
+- **재현 검증**: `git fetch origin main && git switch main && dotnet build RiskManagementAI.sln -c Release && dotnet run --project tests/RiskManagementAI.SmokeTests` → 종료부 `=== SmokeTest Summary === Total=N PASS=N FAIL=0` 확인(정본 합계).
+- **테스트 수 변경 규약**: 총수 감소 시 사유·매핑 기록(삭제·약화 금지). STAB-WP-02가 합계·도메인 요약·실행시간 출력.
+- **⚠️ Archived(재실행 금지) 프롬프트**: `prompts/codex_mvp1_implementation_prompt.md`, `prompts/codex_mvp2_*`, `prompts/codex_mvp3_ui_prompt.md`, `prompts/codex_goal_mode_prompt.md`, `prompts/claude_bootstrap_v2_prompt.md`, `prompts/codex/WP-01~07_*`, `prompts/codex/R3-WP-01~05_*`, `prompts/codex/REL-v0.6-packaging-guard.md`, `prompts/codex/STAB-WP-01_*`, `prompts/codex/STAB-WP-02_*` — 모두 **완료/Starter** 단계. 신규 작업은 본 Resume Brief의 NEXT UP만 따른다.
 
 ## R1 진행 원장 (Codex 갱신)
 | WP | 목표 | 상태 | PR/커밋 | SmokeTest | 비고 |
