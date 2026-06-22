@@ -21,6 +21,21 @@ $SourceTextAllowlist = @(
     "kb/public_regulation_catalog.csv",
     "kb/ncr_placeholder.md"
 )
+
+function New-StringFromCodeUnits {
+    param([int[]]$CodeUnits)
+
+    $chars = New-Object char[] $CodeUnits.Length
+    for ($i = 0; $i -lt $CodeUnits.Length; $i++) {
+        $chars[$i] = [char]$CodeUnits[$i]
+    }
+
+    return -join $chars
+}
+
+$InternalRegulationOriginalText = New-StringFromCodeUnits @(0xB0B4, 0xBD80, 0xADDC, 0xC815, 0x0020, 0xC6D0, 0xBB38)
+$NcrOfficialOriginalText = New-StringFromCodeUnits @(0x004E, 0x0043, 0x0052, 0x0020, 0xACF5, 0xC2DD, 0xBCF8, 0x0020, 0xC6D0, 0xBB38)
+
 $SuspiciousNameTokens = @(
     "internal_rule_original",
     "internal_regulation_original",
@@ -29,8 +44,8 @@ $SuspiciousNameTokens = @(
     "full_text"
 )
 $SuspiciousContentTokens = @(
-    "내부규정 원문",
-    "NCR 공식본 원문",
+    $InternalRegulationOriginalText,
+    $NcrOfficialOriginalText,
     "official text",
     "full text"
 )
@@ -45,14 +60,35 @@ function Test-ContainsOrdinalIgnoreCase {
     return $Text.IndexOf($Value, [System.StringComparison]::OrdinalIgnoreCase) -ge 0
 }
 
+function Get-ZipRelativePath {
+    param(
+        [string]$Root,
+        [string]$FullName
+    )
+
+    $rootFullPath = [System.IO.Path]::GetFullPath($Root)
+    $fileFullPath = [System.IO.Path]::GetFullPath($FullName)
+    $separator = [System.IO.Path]::DirectorySeparatorChar.ToString()
+    if (-not $rootFullPath.EndsWith($separator, [System.StringComparison]::Ordinal)) {
+        $rootFullPath = $rootFullPath + $separator
+    }
+
+    if (-not $fileFullPath.StartsWith($rootFullPath, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "Extracted file path is outside scan root: $fileFullPath"
+    }
+
+    return $fileFullPath.Substring($rootFullPath.Length).Replace('\', '/')
+}
+
 function Get-DecodedTextVariants {
     param([string]$Path)
 
     $bytes = [System.IO.File]::ReadAllBytes($Path)
     $variants = New-Object System.Collections.Generic.List[string]
+    $utf8Encoding = New-Object System.Text.UTF8Encoding -ArgumentList $false, $false
 
     foreach ($encoding in @(
-        [System.Text.UTF8Encoding]::new($false, $false),
+        $utf8Encoding,
         [System.Text.Encoding]::Unicode,
         [System.Text.Encoding]::BigEndianUnicode,
         [System.Text.Encoding]::Default
@@ -60,16 +96,21 @@ function Get-DecodedTextVariants {
         try {
             $variants.Add($encoding.GetString($bytes))
         } catch {
-            # Try the next in-box decoder.
+            # Try the next decoder.
         }
     }
 
     try {
         Add-Type -AssemblyName System.Text.Encoding.CodePages -ErrorAction SilentlyContinue
         [System.Text.Encoding]::RegisterProvider([System.Text.CodePagesEncodingProvider]::Instance)
+    } catch {
+        # Windows PowerShell/.NET Framework may support code page 949 without this provider.
+    }
+
+    try {
         $variants.Add([System.Text.Encoding]::GetEncoding(949).GetString($bytes))
     } catch {
-        # CodePages may be unavailable on a minimal host; UTF-8/ASCII tokens still run.
+        # Code page 949 may be unavailable on a minimal host; UTF-8/ASCII tokens still run.
     }
 
     return $variants
@@ -107,7 +148,7 @@ function Find-ForbiddenSourceText {
 
         $files = Get-ChildItem -LiteralPath $scanRoot -Recurse -File -ErrorAction SilentlyContinue
         foreach ($file in $files) {
-            $relativePath = [System.IO.Path]::GetRelativePath($ExtractedRoot, $file.FullName).Replace('\', '/')
+            $relativePath = Get-ZipRelativePath -Root $ExtractedRoot -FullName $file.FullName
             if ($SourceTextAllowlist -contains $relativePath) {
                 continue
             }

@@ -809,7 +809,17 @@ AssertTrue(suspiciousNcrFindings.Any(finding => finding.Code == "KB_FORBIDDEN_SO
 var build03ScriptText = File.ReadAllText(Path.Combine("build", "03_verify-package.ps1"));
 foreach (var token in PrivateGuardStrings("SuspiciousContentTokens"))
 {
-    AssertTrue(build03ScriptText.Contains(token, StringComparison.Ordinal), $"build/03 source-text scan should mirror content token '{token}'");
+    if (token.All(ch => ch <= 0x7F))
+    {
+        AssertTrue(build03ScriptText.Contains(token, StringComparison.Ordinal), $"build/03 source-text scan should mirror ASCII content token '{token}'");
+    }
+    else
+    {
+        foreach (var codeUnit in token.Select(ch => $"0x{(int)ch:X4}").Distinct())
+        {
+            AssertTrue(build03ScriptText.Contains(codeUnit, StringComparison.OrdinalIgnoreCase), $"build/03 source-text scan should mirror non-ASCII content token '{token}' via code unit {codeUnit}");
+        }
+    }
 }
 
 foreach (var token in PrivateGuardStrings("SuspiciousNameTokens"))
@@ -833,6 +843,10 @@ foreach (var scanDirectory in new[] { "kb", "config", "samples", "data_sources" 
 }
 
 AssertTrue(build03ScriptText.Contains("Expand-Archive", StringComparison.Ordinal), "build/03 source-text scan should inspect extracted ZIP contents");
+AssertTrue(build03ScriptText.Contains("New-StringFromCodeUnits", StringComparison.Ordinal), "build/03 source-text scan should avoid BOM-dependent non-ASCII PowerShell literals");
+AssertTrue(build03ScriptText.Contains("Get-ZipRelativePath", StringComparison.Ordinal), "build/03 source-text scan should use a Windows PowerShell compatible relative path helper");
+AssertTrue(!build03ScriptText.Contains("GetRelativePath", StringComparison.Ordinal), "build/03 source-text scan should not use .NET Core-only Path.GetRelativePath");
+AssertTrue(build03ScriptText.Contains("GetEncoding(949)", StringComparison.Ordinal), "build/03 source-text scan should attempt CP949 decoding independently");
 AssertTrue(build03ScriptText.Contains("PACKAGE SOURCE-TEXT VERIFICATION FAILED", StringComparison.Ordinal), "build/03 source-text scan should fail packaging on suspicious source text");
 
 var ncrRuleSetLoadResult = NcrRuleSetLoader.LoadDefault();
