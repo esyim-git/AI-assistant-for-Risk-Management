@@ -39,4 +39,46 @@
   3. 입력 형식·인코딩 판별 결과는 finding/메타로 **감사 가능**하게 노출.
 - **대안/기각**: 외부 인코딩/엑셀 라이브러리(ExcelDataReader 등) → NuGet 도입 → 기각(원칙 위반, 승인 대상).
 
-> 관련: `docs/39`(WP-01~05), `docs/41`(Model/Data Gate), `docs/11`(ADR-001), `CLAUDE.md §3`.
+## ADR-005. .NET 8 (LTS) 유지 vs .NET 10 전환
+
+- **상태**: 채택 — **v1.0까지 .NET 8 LTS 유지**, R4/Pilot 이후 재검토.
+- **맥락**: self-contained win-x64는 런타임을 동봉하므로 **보안 패치 책임이 우리에게** 있다. .NET 8 = LTS(지원 ~2026-11). .NET 10 = LTS(2025-11 GA, 더 긴 지원). 전환은 빌드/패키지/테스트/백신 재검증 비용 + Excel/WPF 호환 재확인을 요구.
+- **결정**: 안정 기준선(v0.6.0)을 흔들지 않기 위해 **STAB~R2 구간은 .NET 8 유지**. 단 (1) `global.json`로 SDK를 고정해 재현성 확보(ADR-006), (2) .NET 8 지원종료(2026-11) 전 **v1.0 Pilot 전후로 .NET 10 LTS 전환 ADR 재평가**(지원기간·self-contained 패치·win-x64 크기·Excel/WPF 회귀). 전환 자체는 별도 WP+게이트.
+- **대안/기각**: 즉시 .NET 10 전환 → 기준선 리스크·재검증 비용 과다 → 현 단계 기각(예약).
+
+## ADR-006. Build/Version Reproducibility (VERSION 단일 원천)
+
+- **상태**: 채택 (STAB-WP-01)
+- **맥락**: `build/01~03` 기본 `-Version="0.2.0"` ≠ `VERSION`(0.6.0) → 무인자 시 오버전 산출물(RR-11). 버전 원천 분산.
+- **결정**: **`VERSION` 파일이 유일한 버전 원천**. 빌드 스크립트는 VERSION을 읽고, `-Version` 명시 시 **불일치하면 실패(exit 1)**. Release Note/ZIP/SHA/DependencyList 동일 Version. **`global.json`로 .NET SDK 고정**(재현성). Release Note에 **Build Commit SHA·정본 Test 총수·SDK·Runtime·Build Date** 기록. `LangVersion`/`TreatWarningsAsErrors`는 재현성·경고억제 관점에서 STAB에서 명시.
+- **대안/기각**: 스크립트 인자 기본값 유지 → 휴먼에러 지속 → 기각.
+
+## ADR-007. Knowledge Pack Contract (App ↔ Pack 분리, keyword-only)
+
+- **상태**: 채택(계약 설계) — 원문 적재 **APPROVAL_REQUIRED** (KB-WP-01/02)
+- **맥락**: 현 RAG는 **Catalog/Metadata 검색**까지(원문 Clause/Chunk 미구현). 공개 규정 원문·내부규정 원문을 Application Source Repository에 넣을 수 없다(보안·라이선스·크기).
+- **결정**:
+  1. **3계층 분리**: ① Application Release(실행파일·검색엔진·접근통제·인용검증·**Empty/Public Catalog**) ② **Public Knowledge Pack**(공개 규정 원문·Clause/Chunk·Metadata·Source Locator·Version·Effective/Superseded·File Hash·License·Pack Manifest/Version/Approval) ③ **Internal Knowledge Pack**(회사 환경에서만 생성·repo 미포함·문서오너 승인·ACL·보안등급·조회로그·Pack Hash·폐기/교체 이력).
+  2. **원문은 repo 미포함** — 별도 **Offline Ingestion Package/승인 Data Pack**으로만. PDF/HWP 원문 직접 커밋 금지.
+  3. **Deterministic Chunk ID** + Source Text Hash + 검색결과↔원문위치 연결 + Metadata-only 결과 vs 실 Clause 결과 구분 + 적용기준일별 유효문서 선택 + 인용 검증.
+  4. **Vector DB/Embedding 미도입 — Keyword/Inverted Index로 먼저 완성**(STOP 규칙). 필요 시 승인.
+- **대안/기각**: 원문을 repo에 직접 포함 + 외부 vector DB → 보안·원칙 위반 → 기각.
+
+## ADR-008. Release Integrity Manifest + Fail-Closed (운영)
+
+- **상태**: 채택 (STAB-WP-03)
+- **맥락**: ZIP SHA만으로는 운영 중 **핵심 파일 변조**(security_policy/rules/template/mapping/KB/NCR placeholder)를 못 잡는다(RR-14). Release에 PDB/개인경로/Debug 자산 유입 위험(RR-13).
+- **결정**:
+  1. **`approved_manifest.json`**(path·size·SHA256·version·required/optional·security class) 생성 + ZIP 동봉. 필수 대상은 **apphost(`*.exe`) + 관리 앱 어셈블리(`RiskManagementAI.dll`, `PublishSingleFile=false`이므로 시작/검증 코드 실체) + `*.Core.dll` + policy/rules/mapping/KB/NCR placeholder/templates**. CP949 매핑표는 Core DLL 임베디드 리소스이므로 loose 파일로 넣지 않고 **Core DLL 해시로 커버**(런타임은 `Cp949Decoder` 임베디드 해시).
+  2. **앱 시작 시 핵심 파일 Hash 검증**: **운영=Fail-Closed** — policy 불일치→기동/기능 차단, rules→검사 차단, template→Report 차단, KB→검색 차단. **manifest 부재/판독실패도 운영에서는 Fail-Closed**(부재로 우회 불가). 개발 Fallback은 **패키지 릴리스에 없는 명시적 dev 전용 스위치/환경**으로만. **manifest 자체는 독립 신뢰 앵커로 검증**(기대 해시를 서명된 관리 어셈블리에 임베드 또는 공개키 서명) — 같은 폴더의 manifest만으로는 폴더 동시 변조에 무력(post-release 변조 미탐지) → 불충분.
+  3. Release 보안: `DebugSymbols=false`/`DebugType=none`(PDB 제거), 개인경로/SourceLink 0, Unsafe BinaryFormatter 명시 false, Dev/Test config 미포함, **Production assets allowlist**. **Code Signing은 운영 절차 Placeholder**(자동서명 미구현), Rollback 절차·Release Approval 기록.
+- **대안/기각**: ZIP SHA만 유지 → 부분 변조·Debug 유출 미탐지 → 기각.
+
+## ADR-009. Model Approval Package (LLM Runtime 승인 요건 · STOP 게이트)
+
+- **상태**: 채택(요건 정의) — Runtime 도입 **MODEL_APPROVAL_REQUIRED** (ADR-003 보강, LLM-WP-01)
+- **맥락**: ADR-003가 Adapter 계약·Out-of-process 방향을 정함. 실 Runtime/Model 도입 직전 STOP 시 **무엇을 승인받아야 하는가**를 사전 정의.
+- **결정 — 승인 문서 필수 항목**: 후보 Runtime · 후보 Model · License · 배포 크기 · RAM/CPU/GPU · 응답시간 · SQL/VBA 한국어 성능 · 규정답변 성능 · 환각률 · **인용 준수율** · 보안성 · 반입 방식 · Model Pack 업데이트 방식 · App↔Model Pack 분리 배포 · Runtime/Model Integrity Hash. 승인 전 Dependency 추가 0. (게이트: `docs/41 §3`.)
+- **대안/기각**: 승인 없이 PoC로 런타임 선반입 → 원칙·보안 위반 → 기각.
+
+> 관련: `docs/39`(WP 백로그)·`docs/41`(Data/Model/Pilot Gate)·`docs/11`(ADR-001)·`docs/17`(RAG)·`docs/08`(NCR)·`CLAUDE.md §3·§11`.

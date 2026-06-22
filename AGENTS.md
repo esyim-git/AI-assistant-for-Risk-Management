@@ -1,119 +1,79 @@
 # AGENTS.md
 
-Codex 및 구현 Agent는 이 파일을 반드시 읽고 따른다.
+Codex 및 구현 Agent는 이 파일을 반드시 읽고 따른다. **충돌 시 우선순위: AGENTS.md > 지정 Work Package(`docs/39`) > Codex Prompt.**
+
+---
+
+## 0. 현재 기준선 (재설계 금지)
+
+현재 main = **v0.6.0**. R1(Data & Limit Foundation)과 R3(Regulation/NCR 구조)가 완료되어 있다. **완료된 MVP-1~3, R1, R3를 재구현하지 않는다.** 새 작업은 v0.6.0 다음 단계부터, **하나의 Work Package(WP) 단위**로만 수행한다.
+
+작업 시작 전 반드시 읽는다:
+1. `docs/38_v1_Master_Roadmap.md` — Release Train / 현재 상태
+2. `docs/39_Work_Package_Backlog.md` — WP 백로그 + **Resume Brief의 NEXT UP**(집어야 할 WP 1개)
+3. `docs/40_ADR_Architecture_Evolution.md` — 아키텍처 결정
+4. `docs/41`(게이트), 해당 WP의 `prompts/codex/<WP-ID>_*.md`
+5. 보안 게이트 A: `docs/28_Security_Review_Checklist.md`
+
+> `docs/39` Resume Brief에서 **NEXT UP으로 지정된 단 하나의 WP**만 집는다. 여러 WP를 한 번에 구현하지 않는다.
 
 ---
 
 ## 1. 역할
 
-Codex는 이 프로젝트에서 **Implementation Engineer / Test Engineer** 역할을 수행한다.
+Codex = **Implementation Engineer / Test Engineer**. Claude(Architecture Lead/PM/Reviewer)가 작성한 WP를 작은 Diff로 구현·테스트하고, **Claude 승인 전에는 main에 Merge하지 않는다.**
 
-Claude Code가 정리한 문서, 아키텍처, 백로그를 기준으로 작은 단위로 구현한다.
+작업 루프: Claude Planning → **Codex Implementation(1 WP)** → Claude Review → Codex Fix → Claude Final Gate → PR.
 
 ---
 
 ## 2. 구현 우선순위
-
-1. 안전성
-2. 감사 가능성
-3. 유지보수성
-4. 테스트 가능성
-5. 성능
-6. UI 미려함
+1. 안전성 2. 감사 가능성 3. 유지보수성 4. 테스트 가능성 5. 성능 6. UI
 
 ---
 
-## 3. 환경 요구사항
+## 3. 절대 원칙 (불변)
 
-운영환경은 실행 전용이다.
-
-```text
-Prod PC에 없어야 하는 것:
-- .NET SDK
-- Visual Studio
-- VS Code
-- Python
-- pip
-- Git
-- NuGet
-- 인터넷 연결
-```
-
-따라서 구현물은 self-contained release ZIP으로 동작해야 한다.
+- **외부 NuGet PackageReference = 0** (※ "최소화"가 아니라 **0**). 추가가 필요해지면 **즉시 STOP**하고 승인 문서를 작성한다(아래 §6).
+- 외부 API 호출 0 · Telemetry 0 · 자동 업데이트 0
+- SQL/VBA/Golden6 자동실행 0 · 운영 DB 접속문자열 포함 0
+- 해시 기반 Audit Log(원문 미저장) · **NoModelMode 유지**
+- 실데이터 / 실 테이블·컬럼명 / 내부규정 원문 / NCR 공식본 원문 / 모델파일·Runtime **repo 미포함**
+- 모델 가중치 자동학습 0
+- **기존 테스트 삭제·약화 금지** (총 테스트 수 감소 시 사유·매핑 필수)
+- 운영환경은 Portable Release ZIP 실행 전용
+- C# nullable enable 유지 · 쓰기 경로는 `logs/`/`reports/`/`config/`만 · 경로는 상대경로·경로 가드 우선
 
 ---
 
-## 4. 코딩 표준
+## 4. STOP 규칙 (Dependency / Runtime)
 
-- C# nullable enable 유지
-- 외부 NuGet 의존성 최소화
-- 예외 메시지는 사용자 친화적으로 작성
-- 로그에는 민감정보 저장 금지
-- 파일 경로는 상대경로 우선
-- 운영환경에서 쓰기 경로는 logs/reports/config만 사용
-- 모든 위험 검사 결과는 코드/심각도/메시지/위치 정보를 포함
+다음이 필요해지는 순간 **구현 STOP** → 승인 문서 작성 전까지 Dependency 추가 금지:
+외부 라이브러리 · NuGet · Vector DB · Embedding Runtime · Local LLM Runtime · 모델파일.
+
+STOP 문서에 포함: 필요 구성요소 · 도입 이유 · 라이선스 · 배포 크기 · 보안 영향 · 오프라인 가능성 · 메모리/CPU/GPU · 반입 방식 · 대안 · 승인 필요사항. (게이트: `docs/41`)
 
 ---
 
-## 5. 초기 MVP-1 구현 대상
+## 5. 코딩/테스트 표준
 
-> 주의: 아래 중 다수는 **이미 구현되어 있다.** 재구현하지 말고 `docs/21_Implementation_Backlog.md`의 현재 상태표를 먼저 확인한다.
-> 미구현 갭(RuleLoader, DataProfiler 로직, Log 저장기, PolicyLoader)에 집중한다.
-
-- SqlSafetyChecker (구현됨)
-- VbaSafetyChecker (구현됨)
-- Excel2021FunctionChecker (구현됨)
-- TaskLog 모델 (정의됨), FeedbackLog 모델 (정의됨), SafetyRule/RulePattern 모델 (정의됨)
-- RuleLoader (미구현 — 최우선)
-- DataProfiler (모델만 존재 — 로직 구현 필요)
-- SmokeTest 콘솔 (구현됨, 신규 기능 케이스 추가)
+- 예외 메시지는 사용자 친화적, 로그에 민감정보 금지
+- 모든 위험 검사 결과는 코드/심각도/메시지/위치 포함
+- **SmokeTest**(외부 테스트 프레임워크 0)에 WP별 양성/음성 회귀 추가. 기존 단언 보존.
+- WP 완료 시 보고: build 결과 · SmokeTest 결과(가능하면 합계) · Gate A 결과 · 변경 파일 · 양성 케이스.
 
 ---
 
-## 6. 금지 사항
+## 6. Release / Branch
 
-- 실제 Golden6 자동 접속 구현 금지
-- 실제 운영 DB 접속 문자열 포함 금지
-- VBA 자동 실행 구현 금지
-- 외부 API 호출 구현 금지
-- 자동 업데이트 구현 금지
-- telemetry 구현 금지
-- 모델 파일 Repository 포함 금지
-- 회사 실데이터 포함 금지
+1. `build/00_check-prereqs.ps1` → `01_publish` → `02_package` → `03_verify-package`
+2. `deploy/release_checklist.md` 확인. 운영 반입 대상 = portable release ZIP(소스 ZIP 아님).
+3. Branch governance(`docs/32`·`docs/35`): PR 필수 · CI 필수 · Squash · main 직접 push 금지 · force push 금지 · Commit Subject에 `(#PR)`.
+4. 작업 브랜치: `feature/<WP-ID>-*`. 작은 Diff.
 
 ---
 
-## 7. 테스트 원칙
+## 7. 금지 (재확인)
+실제 Golden6 자동접속 · 운영 DB 접속문자열 · VBA 자동실행 · 외부 API · 자동 업데이트 · telemetry · 모델파일 repo 포함 · 회사 실데이터 · 내부규정/NCR 원문.
 
-초기에는 외부 NuGet 테스트 프레임워크에 의존하지 않는 SmokeTest를 제공한다.
-
-필수 테스트:
-
-- SQL 금지 명령 탐지
-- SQL SELECT 정상 통과
-- VBA Shell 탐지
-- VBA Option Explicit 누락 탐지
-- Excel 365 전용 함수 탐지
-- 더미 CSV 프로파일링
-
----
-
-## 8. Release 원칙
-
-Release는 다음 과정을 통과해야 한다.
-
-1. build/00_check-prereqs.ps1
-2. build/01_publish-win-x64.ps1
-3. build/02_package-release.ps1
-4. build/03_verify-package.ps1
-5. deploy/release_checklist.md 확인
-
-운영환경 반입 대상은 source ZIP이 아니라 portable release ZIP이다.
-
----
-
-## 9. 적용 우선순위 및 참조 문서
-
-- **AGENTS.md의 지침은 모든 구현에서 최우선으로 적용한다.** 충돌 시 AGENTS.md > 백로그 > 프롬프트 순.
-- 작업 시작 전 반드시 확인: `docs/21_Implementation_Backlog.md`(백로그·현재 상태), `docs/26_Codex_MVP1_Implementation_Guide.md`(절차), `prompts/codex_mvp1_implementation_prompt.md`(시작 프롬프트).
-- 커밋/푸시 전 `docs/28_Security_Review_Checklist.md` 게이트 A, 동기화는 `docs/29_GitHub_Sync_Guide.md`를 따른다.
+> 과대표기 금지: 실제 AI/RAG/NCR 능력을 실제보다 크게 적지 않는다. 구조만 있으면 SCAFFOLD_ONLY, 미적재면 PLACEHOLDER/APPROVAL_REQUIRED로 표기한다.

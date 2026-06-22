@@ -1,6 +1,7 @@
 # CLAUDE.md
 
-Claude Code는 이 프로젝트에서 **Tech Lead / Architect / Documentation Owner** 역할을 수행한다.
+Claude Code는 이 프로젝트에서 **Architecture Lead / Program Manager / Security Reviewer / Release Reviewer / Documentation Owner** 역할을 수행한다.
+(상세 역할·반복 워크플로는 §11. 현재 기준선 = **v0.6.0**, main `3dfa80b`. 완료된 MVP-1~3·R1·R3는 재설계하지 않는다.)
 
 ---
 
@@ -192,3 +193,29 @@ VBA
 - 공개 규정(금융투자업규정/시행세칙/자본시장법 등) catalog만 Repository에 둔다.
 - 내부규정 원문/NCR 공식본 원문은 Repository에 절대 포함하지 않으며, 운영환경에서 문서오너 승인 후 권한통제형 KB로만 적재한다.
 - Agent 답변은 공식 법규 해석이 아니라 **검토용 초안**임을 항상 명시한다.
+
+---
+
+## 11. Claude 역할 & v0.6.0 이후 Claude↔Codex Workflow
+
+### 11.1 Claude 책임
+Claude는 **Architecture Lead / Program Manager / Security Reviewer / Release Reviewer / Documentation Owner**다. 구현은 Codex가 한다. Claude는:
+1. Truth Sync(문서 ↔ 실제 main 일치) 유지
+2. Roadmap(`docs/38`) · ADR(`docs/40`) · Work Package(`docs/39`) 작성·갱신
+3. WP별 Codex Prompt(`prompts/codex/<WP-ID>_*.md`) 작성
+4. Codex 결과 **Diff 검토 + Security Review + Test Review + 문서 정합성 검토**
+5. **Traceability**(Capability ↔ WP ↔ Test ↔ Gate, `docs/38 §5`) 갱신
+6. 다음 WP(NEXT UP) 1개 지정
+- **Claude는 main을 직접 수정/병합하지 않는다.** 계획 작업 브랜치는 `planning/*`.
+
+### 11.2 Codex 책임
+한 번에 **WP 1개만** Feature Branch(`feature/<WP-ID>-*`)에서 구현·테스트 → build + SmokeTest + Gate A + Self Review → 보고. **Claude 승인 전 Merge 금지.**
+
+### 11.3 반복 루프
+`Claude Planning → Codex Implementation(1 WP) → Claude Review → Codex Fix → Claude Final Gate → PR → 다음 WP`.
+
+### 11.4 과대표기 금지 (상태 어휘 정본)
+기능 상태는 다음 어휘만 사용한다: **VERIFIED**(코드+CI) · **PARTIAL** · **SCAFFOLD_ONLY**(구조만) · **PLACEHOLDER** · **BLOCKED**(실 Test PC 증거 대기) · **NOT_IMPLEMENTED** · **APPROVAL_REQUIRED**. 실제 AI/RAG/NCR/Local LLM 능력을 실제보다 크게 적지 않는다. **실 오프라인 Test PC 증거가 없으면 Gate를 PASS로 적지 않는다.**
+
+### 11.5 STOP 규칙
+외부 NuGet/라이브러리·Vector DB·Embedding·Local LLM Runtime·모델파일이 필요해지면 **STOP** → 승인 문서(`docs/41`·`docs/40`) 후에만 진행.

@@ -1,4 +1,4 @@
-# 39. Work Package Backlog & R1 Specs
+# 39. Work Package Backlog (R1 DONE · R3 DONE · post-v0.6 NEXT)
 
 > `docs/38` Release Train의 실행 단위(Work Package). Codex는 WP 단위로 구현하고, Claude는 WP별 Review Checklist로 검증한다.
 > WP 형식: 목표·선행조건·작업범위·제외범위·읽을문서·수정예상파일·Public Interface·구현세부·보안조건·테스트·완료조건·Branch·Commit·Claude Review Checklist.
@@ -6,12 +6,13 @@
 
 ---
 
-## ★ R1 Resume Brief (Codex 갱신 · Claude 인수)
-- **현재 상태**: WP-01 합성 한도 차단/DEMO_ONLY 구현 완료. WP-02 인코딩 인식 CSV Reader(CP949/UTF-8) 구현 완료. WP-03 XLSX 입력 Reader(인박스/NuGet 0) 구현 완료. WP-04 Risk Column Mapping(설정·승인형) 구현 완료. WP-05 실 Exposure-Limit Join + 공통 AnalysisResult 구현 완료. WP-06 대사·예외검증 9종 구현 완료. WP-07 Dashboard·Report 공통화 구현 완료.
-- **NEXT UP**: R1 Data Spec Gate(`docs/41 §1`) 점검 → WP-09(전일 대비 데이터모델 설계).
-- **BLOCKED**: 0.
-- **재현 검증**: `git fetch origin main && git switch main && dotnet build RiskManagementAI.sln && dotnet run --project tests/RiskManagementAI.SmokeTests` (368 PASS / 0 FAIL 기준).
-- **⚠️ 확인 요망**: 비-기본 커스텀 매핑/Join Key 변경은 R1 마감 시 Data Spec Gate(docs/41) 검토 대상.
+## ★ Resume Brief (Codex 인수 — v0.6.0 기준선)
+- **현재 기준선**: main `3dfa80b`, VERSION **0.6.0**. R1(WP-01~08) **DONE**, R3(R3-WP-01~05) **DONE**, REL-v0.6 패키징 가드(#54) **DONE**. SmokeTest **ALL PASS / 0 FAIL** (CI `27926096336`, windows-latest).
+- **NEXT UP (Codex가 집을 단 하나의 WP)**: **`STAB-WP-01` Build/Version Reproducibility** → 프롬프트 `prompts/codex/STAB-WP-01_build_version_reproducibility.md`. (이유: `build/01~03` 기본 `-Version`이 `0.2.0`으로 남아 VERSION 0.6.0과 불일치 → 오버전 산출물 위험 RR-11. 모든 후속 Release/Gate 신뢰의 선행.)
+- **그 다음 후보(순서, NEXT UP 아님)**: STAB-WP-02(정본 테스트 베이스라인) → STAB-WP-03(Release 보안+Integrity Manifest) → STAB-WP-04(테스트 구조 분리) → R2-WP-01(Risk Semantic Hardening).
+- **BLOCKED**: PILOT Gate B/C(실 Test PC 증거 대기 — `docs/45`). 신규 기능과 분리해 user/Test PC가 병행.
+- **재현 검증**: `git fetch origin main && git switch main && dotnet build RiskManagementAI.sln -c Release && dotnet run --project tests/RiskManagementAI.SmokeTests` → ALL PASS 확인. (정본 합계 출력은 STAB-WP-02에서 추가.)
+- **⚠️ Archived(재실행 금지) 프롬프트**: `prompts/codex_mvp1_implementation_prompt.md`, `prompts/codex_mvp2_*`, `prompts/codex_mvp3_ui_prompt.md`, `prompts/codex_goal_mode_prompt.md`, `prompts/claude_bootstrap_v2_prompt.md`, `prompts/codex/WP-01~07_*`, `prompts/codex/R3-WP-01~05_*`, `prompts/codex/REL-v0.6-packaging-guard.md` — 모두 **완료/Starter** 단계. 신규 작업은 본 Resume Brief의 NEXT UP만 따른다.
 
 ## R1 진행 원장 (Codex 갱신)
 | WP | 목표 | 상태 | PR/커밋 | SmokeTest | 비고 |
@@ -124,4 +125,104 @@
 - **WP-08 공통 CSV 파서 통합**: 3중 중복 제거(WP-02에 흡수).
 - **WP-09 전일 대비 데이터모델 설계**: 기준일 N vs N-1 비교 모델(설계 산출물, 구현은 R2).
 
-> R2~R6 WP는 본 백로그에 이어서 추가한다. 관련: `docs/38`(Train·Traceability), `docs/40`(ADR), `docs/41`(게이트).
+> R1 WP-01~09는 위 기록을 **DONE 원본**으로 보존한다(재구현 금지). R3-WP-01~05 + REL-v0.6 패키징 가드도 DONE(상세는 `docs/17`·`docs/41 §2`·`docs/43`). 아래는 **v0.6.0 이후 신규 백로그**.
+
+---
+
+# B. post-v0.6 Work Package Backlog (v0.6.1 STAB → v1.0)
+
+> 각 WP는 **하나의 목표**만. Codex는 Resume Brief의 NEXT UP 1개만 집는다. 프롬프트 경로 = `prompts/codex/<WP-ID>_*.md`. 절대원칙·STOP 규칙(`AGENTS.md`) 전부 유지.
+
+## STAB-WP-01. Build / Version Reproducibility — **NEXT UP** (RR-11)
+- **현재 문제**: `build/01~03` 기본 `[string]$Version="0.2.0"` ≠ `VERSION`(0.6.0). 무인자 실행 시 0.2.0 산출물 생성 위험. VERSION이 단일 원천이 아님.
+- **목표**: `VERSION` 파일을 **단일 버전 원천**으로. 빌드 스크립트가 VERSION을 읽고, `-Version` 전달 시 **불일치하면 실패(exit 1)**. Release Note/ZIP/SHA/DependencyList가 동일 Version 사용. Build metadata(Commit SHA·Test 총수·SDK·Runtime·Build Date)를 Release Note에 기록.
+- **선행조건**: 없음.
+- **작업범위**: `build/01_publish`·`02_package`·`03_verify`의 `-Version` 기본값을 VERSION 파일 읽기로 대체(+불일치 실패), `global.json`로 .NET SDK 고정 여부 결정(ADR-006, `docs/40`), Release Note 템플릿에 build metadata 행 추가.
+- **제외범위**: 기능 코드, 패키지 추가, .NET 메이저 전환(ADR만 — `docs/40` ADR-005).
+- **읽을문서**: `AGENTS.md`, `docs/40`(ADR-005/006), `docs/24`, `build/00~03`, `VERSION`.
+- **수정예상파일**: `build/01~03*.ps1`, (선택) `global.json`(신규), Release Note 생성부.
+- **Public Interface**: 스크립트 동작 — 무인자 시 VERSION 사용, `-Version X`가 VERSION과 다르면 명확 메시지 후 exit 1.
+- **보안조건**: 외부 0·결정적·읽기 전용(빌드 산출 외 쓰기 없음).
+- **테스트**: (Windows) `build/01~03` 무인자 → 0.6.0 산출. `-Version 9.9.9` → 실패. SmokeTest 유지. PowerShell 5.1+pwsh 7 양쪽(`docs/40` ADR-004 교훈).
+- **완료조건**: 코드베이스에 하드코딩 `0.2.0` 0개(샘플/문서 제외), 불일치 실패 동작 확인.
+- **Branch**: `feature/stab-wp-01-build-version` · **Commit**: `build: VERSION single-source + fail on version mismatch (STAB-WP-01)`
+- **Claude Review Checklist**: VERSION 단일원천 / 불일치 실패 / 산출물 버전 일치 / build metadata 기록 / 양쪽 셸 / NuGet 0 / Gate A.
+
+## STAB-WP-02. Authoritative Test Baseline (RR-12)
+- **현재 문제**: SmokeTest 하니스가 합계를 출력하지 않아 484/502 혼재. 정본 수치 부재.
+- **목표**: SmokeTest 종료 시 **정본 합계 + 도메인별 PASS/FAIL Summary + 실행시간**을 출력. main에서 1회 실행해 정본 수치를 `docs/38 §0`·Release Note에 고정.
+- **작업범위**: 하니스(러너)에 카운터/요약 출력 추가(기존 단언·이름 보존). 실패 시 비0 종료 유지. 추가/감소 테스트 수 사유 기록 규약.
+- **제외범위**: 테스트 분리(STAB-WP-04), 기능 변경.
+- **수정예상파일**: `tests/RiskManagementAI.SmokeTests/Program.cs`(러너 부분).
+- **테스트**: 합계 출력 일치, 도메인 요약 정확, 실패 시 exit≠0. 기존 전부 PASS 유지.
+- **Branch**: `feature/stab-wp-02-test-baseline` · **Commit**: `test: emit authoritative SmokeTest total + per-domain summary (STAB-WP-02)`
+- **Claude Review Checklist**: 합계/요약 정확 / 기존 단언 불변 / exit code / 정본 수치 docs 반영.
+
+## STAB-WP-03. Release Security + Integrity Manifest (RR-13, RR-14)
+- **목표**: (a) Release 산출물에서 **PDB/개인 경로/SourceLink/Debug·Test config/Unsafe BinaryFormatter** 부재 보장(`DebugSymbols=false`, `DebugType=none`, allowlist), (b) **`approved_manifest.json`**(핵심 파일 path·size·SHA256·version·required·security class) 생성 + **앱 시작 시 무결성 검증**(개발=Fallback 경고, 운영=Fail-Closed: policy 불일치→기동/기능 차단, rules→검사 차단, template→Report 차단, KB→검색 차단).
+- **선행조건**: STAB-WP-01.
+- **작업범위**: `build/01`/`03`에 Release 보안 검증 추가, manifest 생성·검증 모듈(인박스, NuGet 0), 시작 시 검증 + 모드 분기. Code Signing은 **운영 절차 Placeholder**(자동서명 미구현).
+- **제외범위**: 실제 Code Signing 인증서, 기능 로직.
+- **수정예상파일**: `build/01~03`, `Core/Integrity/*`(신규), App 시작부, `config/approved_manifest.json`(생성물 또는 placeholder).
+- **보안조건**: 운영 Fail-Closed/개발 Fallback 명확 분리. 해시 전용. 외부 0.
+- **테스트**: 정상=PASS, 변조 파일=차단(도메인별), PDB/개인경로/Debug config 0 검증, ZIP에 manifest 포함.
+- **Branch**: `feature/stab-wp-03-integrity` · **Commit**: `feat: release security guard + integrity manifest with fail-closed verify (STAB-WP-03)`
+- **Claude Review Checklist**: PDB/개인경로/Debug 0 / manifest 검증 / 운영 Fail-Closed·개발 Fallback / 핵심파일 분류 / NuGet 0 / 기존 테스트 유지.
+
+## STAB-WP-04. SmokeTest Suite Structure (RR-10 보호)
+- **목표**: 비대한 단일 `Program.cs`를 **외부 프레임워크 0**으로 내부 Suite(SafetyTests/CsvTests/XlsxTests/MappingTests/LimitTests/ReconciliationTests/ReportTests/KbTests/NcrTests/PackagingTests/UiContractTests + TestRunner)로 분리. **테스트 삭제·약화 금지**, 총수 보존(감소 시 사유·매핑).
+- **선행조건**: STAB-WP-02.
+- **테스트**: 분리 전후 총수·이름 동일(매핑표), 도메인 Summary, Golden File 유지, 실패 exit code 유지.
+- **Branch**: `feature/stab-wp-04-test-suites` · **Commit**: `test: split SmokeTest into internal suites without loss (STAB-WP-04)`
+- **Claude Review Checklist**: 총수 보존+매핑 / 단언 불변 / 도메인 Summary / 외부 0.
+
+## PILOT-WP-01. v0.6 Offline Gate B/C Evidence (BLOCKED, user/Test PC)
+- **목표**: `docs/45` v0.6 Gate B/C 증거 시트를 실 오프라인 Test PC에서 채워 봉인. **실 PC 증거 없으면 PASS 금지(BLOCKED 유지).**
+- **성격**: Codex 코드 작업 아님(문서/운영). Claude는 증거 회신 시 항목별 PASS/BLOCKED 재판정. 신규 기능과 분리·병행.
+
+## R2-WP-01. Risk Semantic Hardening (RR-15)
+- **목표**: 중복 Limit Key를 `group.Last()`로 임의 선택하지 않고 **명시 차단/상태화**, 통화·단위 컬럼을 ColumnMapping으로 관리, **`RECON_UNIT_MISMATCH` 활성화**, BASE_DT 형식 검증·정규화, Join 선택 규칙을 Audit Metadata에 기록.
+- **선행조건**: STAB-WP-01~02.
+- **수정예상파일**: `Core/Risk/LimitMonitor.cs`, `Core/Mapping/ColumnMapping*`, `Core/Risk/LimitAnalysisResult.cs`, tests.
+- **테스트**: 중복키 양성/차단, 통화·단위 매핑, RECON_UNIT 양성/음성, BASE_DT 비정상 정규화, Audit 기록.
+- **Branch**: `feature/r2-wp-01-semantic-hardening` · **Commit**: `feat: risk semantic hardening (dup key, unit recon, base_dt) (R2-WP-01)`
+- **Claude Review Checklist**: 임의선택 제거 / RECON_UNIT / 매핑 일원화 / 결정성 / 기존 6상태·대사 불변 / Gate A.
+
+## R2-WP-02. Streaming / Performance (RR-08)
+- **목표**: 전량 메모리 적재 제거 — 파일/행 상한, Streaming CSV, Progress/Cancellation/Timeout, 메모리 Peak 측정, **Welford 평균·분산**(전체 List 저장 제거), CSV 강화(quoted multiline/escaped quote/delimiter/CRLF·LF/Formula Injection/빈·중복 헤더/과대 cell), 대용량 샘플 Generator + 10K/100K/1M 벤치. **STOP**: 외부 의존 필요 시.
+- **Branch**: `feature/r2-wp-02-streaming` · **Commit**: `perf: streaming csv + bounded memory (R2-WP-02)`.
+- **Claude Review Checklist**: 상한/스트리밍 / Welford / Injection 탐지 / 벤치 / NuGet 0 / 기존 결과 동일.
+
+## R2-WP-03. Prior-Day Analytics
+- **목표**: 공통 Domain Model(Exposure/Limit Usage/VaR/Delta/Gamma/Vega/DV01/CS01/P&L/Exception)로 Current·Previous·Δ·%·New/Resolved/Increased/Decreased·TopN. **Data Fact / Methodology / User Validation / Hidden Risk 분리.**
+- **Branch**: `feature/r2-wp-03-prior-day` · **Commit**: `feat: prior-day comparison model (R2-WP-03)`.
+- **Claude Review Checklist**: 공통 결과 재사용 / 분리표기 / 결정성.
+
+## R2-WP-04. Visualization / Excel Report (NuGet 0)
+- **목표**: 인박스(WPF Canvas/Shape 또는 Excel OOXML Chart/조건부서식)로 한도사용률 Bar·전일대비 Trend·TopN·Desk×RiskFactor Heatmap·집중도·통화별·만기 Bucket·예외현황. 임의 데이터 생성 금지(공통 AnalysisResult만). Excel: RAW_DATA 명칭=내용 일치, Source Metadata 분리, MARKET/HEDGE/VALUATION/LIQUIDITY/REG_BASIS, 정확 Formula/Exception Count(Header/NO_EXCEPTION 제외). 외부 차트 필요 시 **STOP**.
+- **Branch**: `feature/r2-wp-04-visualization` · **Commit**: `feat: in-box visualization + report sections (R2-WP-04)`.
+- **Claude Review Checklist**: NuGet 0 / 공통 결과만 / 정확 카운트 / Excel 2021 호환.
+
+## KB-WP-01. Knowledge Pack Contract (설계 우선)
+- **목표**: Application Source ↔ Knowledge Pack 분리 계약 — Pack Manifest/Version/Hash, Document Metadata, **Clause/Chunk Schema(Deterministic Chunk ID)**, As-of Date, Superseded, License/Approval Status, Access Classification, Source Text Hash, Upgrade/Rollback. **원문 repo 미포함**(별도 승인 Data Pack). **Vector/Embedding 미도입 — keyword/inverted index만.**
+- **Branch**: `feature/kb-wp-01-pack-contract` · **Commit**: `feat: knowledge pack contract + chunk schema (KB-WP-01)`.
+- **Claude Review Checklist**: 원문 미포함 / 결정적 Chunk ID / 인용검증 / NuGet 0 / Vector STOP.
+
+## KB-WP-02. Public Document Ingestion (승인형, 원문 repo 미포함)
+- **목표**: 승인된 공개자료만 Offline Ingestion Package로 적재(PDF/HWP 원문 repo 직접포함 금지), 문서/조항 Hash, 검색결과↔원문위치 연결, Metadata 결과 vs 실 Clause 결과 구분, 적용기준일별 유효문서 선택. **APPROVAL_REQUIRED**(라이선스·출처·버전 승인 — `docs/41`).
+- **Claude Review Checklist**: 원문 미포함 / 인용검증 / 기준일 선택 / 승인 게이트.
+
+## NCR-WP-01. Approved NCR Rule Pack Contract (계수 미포함)
+- **목표**: Rule Set ID/Version/Effective/Expiry, Component(Map), Formula Definition, Coefficient/Unit/Sign/Rounding, Regulation Basis, Validation SQL(조회전용), Approval History, Pack Hash, Reviewer, Rollback. **실 계수·내부기준 repo 미포함** → Prod 승인 Rule Pack 적재. **Pack 없으면: 계산 차단·설명 구조만·`APPROVAL_REQUIRED`·공식 산출 출력 금지.**
+- **현재 상태 근거**: NCR Rule Set = **SCAFFOLD_ONLY**(구조만). 본 WP는 승인형 Pack 계약.
+- **Claude Review Checklist**: 계수 미포함 / Pack 부재 시 계산 차단 / 조회전용 SQL / 검토용 초안.
+
+## LLM-WP-01. Model Adapter Contract (설계 전용, Runtime STOP)
+- **목표**: `ILocalModelProvider`/`NoModelProvider`(유지)/`ModelProviderFactory`/Availability/HealthCheck/Request/Response/Timeout/Cancellation/Max IO/Audit Metadata/Output Safety Pipeline/Model Pack Manifest/Runtime·Model Hash/License/Hardware/Known Limitations. Architecture = **Out-of-process Runtime·App↔Model Pack 분리·Local IPC·외부 Network 차단·Crash 격리·Memory 제한·Health Check·NoModel Fallback**. **실 Runtime/Library/Model 도입 직전 `MODEL_APPROVAL_REQUIRED`로 STOP**(승인 문서 `docs/40` **ADR-003**(Process Boundary 설계)+**ADR-009**(Model Approval Package 요건)/`docs/41 §3`).
+- **Claude Review Checklist**: NoModel 유지 / 인터페이스만(런타임 0) / ProcessBoundary 설계 / STOP 문서.
+
+## FEEDBACK-WP-01. Approved Example Retrieval (가중치 불변)
+- **목표**: Original Task/Output↔Corrected Final↔Reviewer/Approval/Version/Effective/Deprecated/Usage·Success·Error/Duplicate/Retrieval Score. 흐름: User Feedback→저장→Reviewer 승인→Approved Example Store→유사요청 검색→Prompt Context 반영→사용 Example ID Audit. **모델 가중치 변경 0.**
+- **Claude Review Checklist**: 승인 Example만 사용 / 가중치 불변 / Audit / 결정적 검색.
+
+> WP 형식 정본: `docs/39 §0`(목표·선행·범위·제외·읽을문서·수정파일·Interface·구현세부·보안·성능·테스트·완료·Rollback·Branch·Commit·Claude Review Checklist). 관련: `docs/38`(Train·Traceability)·`docs/40`(ADR)·`docs/41`(게이트)·`docs/45`(Gate 증거).
