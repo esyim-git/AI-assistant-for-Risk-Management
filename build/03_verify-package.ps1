@@ -253,6 +253,40 @@ try {
         $sourceTextProblems | ForEach-Object { Write-Host " - $_" }
         exit 1
     }
+
+    # --- 4) Integrity manifest verification (STAB-WP-03a, ADR-008) ---
+    $integrityProblems = @()
+    $manifestFile = Join-Path $extractRoot "approved_manifest.json"
+    if (!(Test-Path $manifestFile)) {
+        $integrityProblems += "approved_manifest.json missing from package"
+    } else {
+        $manifestJson = Get-Content -LiteralPath $manifestFile -Raw | ConvertFrom-Json
+        if ($manifestJson.version -ne $Version) {
+            $integrityProblems += "manifest version '$($manifestJson.version)' != package version '$Version'"
+        }
+        foreach ($entry in $manifestJson.files) {
+            $entryFull = Join-Path $extractRoot $entry.path
+            if (!(Test-Path $entryFull)) {
+                if ($entry.required) { $integrityProblems += "required file missing: $($entry.path)" }
+                continue
+            }
+            if ((Get-FileHash -LiteralPath $entryFull -Algorithm SHA256).Hash -ne $entry.sha256) {
+                $integrityProblems += "hash mismatch [$($entry.class)]: $($entry.path)"
+            }
+            if ((Get-Item -LiteralPath $entryFull).Length -ne $entry.size) {
+                $integrityProblems += "size mismatch: $($entry.path)"
+            }
+        }
+    }
+    # No debug symbols in a release package.
+    $pdbFiles = Get-ChildItem -LiteralPath $extractRoot -Recurse -File -Filter "*.pdb" -ErrorAction SilentlyContinue
+    if ($pdbFiles) { $pdbFiles | ForEach-Object { $integrityProblems += "PDB present in package: $($_.Name)" } }
+    if ($integrityProblems.Count -gt 0) {
+        Write-Host "PACKAGE INTEGRITY VERIFICATION FAILED:"
+        $integrityProblems | ForEach-Object { Write-Host " - $_" }
+        exit 1
+    }
+    Write-Host "Package integrity OK: manifest matches, no PDB."
 } finally {
     if (Test-Path $extractRoot) {
         Remove-Item $extractRoot -Recurse -Force

@@ -39,6 +39,9 @@ dotnet publish $Project `
     -p:PublishSingleFile=false `
     -p:IncludeNativeLibrariesForSelfExtract=true `
     -p:Version=$Version `
+    -p:DebugType=none `
+    -p:DebugSymbols=false `
+    -p:EnableUnsafeBinaryFormatterSerialization=false `
     -o $PublishDir
 if ($LASTEXITCODE -ne 0) {
     throw "dotnet publish failed with exit code $LASTEXITCODE."
@@ -92,5 +95,65 @@ if ($Forbidden) {
     $Forbidden | ForEach-Object { Write-Host "FORBIDDEN IN PUBLISH: $($_.FullName)" }
     throw "Publish output contains forbidden files (model/secret/real-data). Aborting before packaging."
 }
+
+# --- Integrity manifest (STAB-WP-03a, ADR-008) ---
+# Integrity-critical core files. Runtime tamper detection (fail-closed) is STAB-WP-03b.
+# The CP949 UHC map is embedded in RiskManagementAI.Core.dll (not a loose file) -> covered by the Core DLL hash.
+# WinPS 5.1-safe: no Path.GetRelativePath (compute via Substring), no BOM-dependent literals.
+Write-Host "Generating integrity manifest..."
+$ManifestPath = Join-Path $PublishDir "approved_manifest.json"
+if (Test-Path $ManifestPath) { Remove-Item $ManifestPath -Force }
+$publishFull = [System.IO.Path]::GetFullPath($PublishDir)
+$manifestEntries = New-Object System.Collections.Generic.List[object]
+
+# Explicit core files (apphost + managed app DLL + Core DLL + policy/mapping).
+foreach ($spec in @(
+    @{ p = "RiskManagementAI.exe";        c = "App";     r = $true },
+    @{ p = "RiskManagementAI.dll";        c = "App";     r = $true },
+    @{ p = "RiskManagementAI.Core.dll";   c = "App";     r = $true },
+    @{ p = "config/security_policy.json"; c = "Policy";  r = $true },
+    @{ p = "config/column_mapping.json";  c = "Mapping"; r = $true }
+)) {
+    $full = Join-Path $PublishDir $spec.p
+    if (!(Test-Path $full)) {
+        if ($spec.r) { throw "Integrity manifest: required file missing in publish output: $($spec.p)" }
+        continue
+    }
+    $item = Get-Item -LiteralPath $full
+    $manifestEntries.Add([pscustomobject]@{
+        path = $spec.p; size = $item.Length
+        sha256 = (Get-FileHash -LiteralPath $full -Algorithm SHA256).Hash
+        class = $spec.c; required = $spec.r
+    })
+}
+
+# Globbed core asset folders (each file integrity-critical for its domain).
+foreach ($glob in @(
+    @{ dir = "rules";      c = "Rules";    pattern = "*"     },
+    @{ dir = "templates";  c = "Template"; pattern = "*"     },
+    @{ dir = "config/ncr"; c = "Ncr";      pattern = "*.json"},
+    @{ dir = "kb";         c = "Kb";       pattern = "*.csv" }
+)) {
+    $globRoot = Join-Path $PublishDir $glob.dir
+    if (-not (Test-Path $globRoot)) { continue }
+    Get-ChildItem -LiteralPath $globRoot -Recurse -File -Filter $glob.pattern -ErrorAction SilentlyContinue | ForEach-Object {
+        $rel = $_.FullName.Substring($publishFull.Length).TrimStart([char]92, [char]47).Replace('\', '/')
+        $manifestEntries.Add([pscustomobject]@{
+            path = $rel; size = $_.Length
+            sha256 = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash
+            class = $glob.c; required = $true
+        })
+    }
+}
+
+$manifest = [pscustomobject]@{
+    version        = $Version
+    generatedAtUtc = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
+    files          = @($manifestEntries)
+}
+$manifest | ConvertTo-Json -Depth 5 | Set-Content -Path $ManifestPath -Encoding UTF8
+$ManifestHash = (Get-FileHash -LiteralPath $ManifestPath -Algorithm SHA256).Hash
+Write-Host "Integrity manifest written: $($manifestEntries.Count) entries, sha256=$ManifestHash"
+Write-Host "  (STAB-WP-03b will anchor this manifest hash in the signed assembly for runtime fail-closed verification.)"
 
 Write-Host "Publish completed: $PublishDir"
