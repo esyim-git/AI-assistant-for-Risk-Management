@@ -72,6 +72,11 @@ foreach ($folder in $OptionalAssetFolders) {
     }
 }
 
+# Release packages must not include development/test/debug configuration.
+Get-ChildItem -LiteralPath $PublishDir -Recurse -File -ErrorAction SilentlyContinue | Where-Object {
+    ($_.Name -like "*.Development.json") -or ($_.Name -like "*.Test.json") -or ($_.Name -like "*.Debug.json")
+} | Remove-Item -Force
+
 New-Item -ItemType Directory -Path (Join-Path $PublishDir "logs") -Force | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $PublishDir "reports") -Force | Out-Null
 "" | Set-Content -Path (Join-Path $PublishDir "logs\.keep") -Encoding ASCII
@@ -150,7 +155,7 @@ foreach ($glob in @(
 $manifest = [pscustomobject]@{
     version        = $Version
     generatedAtUtc = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
-    files          = @($manifestEntries)
+    files          = $manifestEntries.ToArray()
 }
 $manifest | ConvertTo-Json -Depth 5 | Set-Content -Path $ManifestPath -Encoding UTF8
 $ManifestHash = (Get-FileHash -LiteralPath $ManifestPath -Algorithm SHA256).Hash
