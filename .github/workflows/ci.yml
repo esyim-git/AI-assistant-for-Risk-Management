@@ -1,13 +1,35 @@
 name: ci
 
+# GitHub Actions minutes (Free plan: 2,000/month on this private repo) are exhausted.
+# Operating model (repo-owner direction): Claude = development + code review only;
+# build / test / packaging are run LOCALLY (Windows + .NET 8 SDK) and reported.
+# Gate during this period = local `dotnet build` + SmokeTest (Total=N PASS / 0 FAIL) + Claude code review.
+#
+# CI here is MANUAL ONLY (workflow_dispatch) so pushes/PRs do not auto-consume or attempt minutes.
+# Jobs are split so a manual (or post-reset) run is cheap: tests on ubuntu (1x), WPF compile on windows (2x).
+# To restore automatic CI after the monthly minutes reset, add back under `on:`:
+#   pull_request:
+#     branches: [ main ]
 on:
-  push:
-    branches: [ main, develop, 'feature/**' ]
-  pull_request:
-    branches: [ main, develop, 'feature/**' ]
+  workflow_dispatch:
 
 jobs:
-  build:
+  test:
+    # SmokeTests target net8.0 and reference only RiskManagementAI.Core (cross-platform),
+    # so the authoritative test gate runs on ubuntu-latest (1x multiplier vs windows 2x).
+    # (CP949 map is LF-pinned via .gitattributes, so the embedded-resource hash matches on Linux.)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Smoke Tests (builds Core + runs SmokeTests; prints authoritative Total=N)
+        run: dotnet run --project tests/RiskManagementAI.SmokeTests/RiskManagementAI.SmokeTests.csproj -c Release
+
+  wpf-build:
+    # The WPF app targets net8.0-windows and only compiles on Windows (2x multiplier).
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,9 +37,5 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-      - name: Restore
-        run: dotnet restore src/RiskManagementAI.App/RiskManagementAI.App.csproj
-      - name: Build
-        run: dotnet build src/RiskManagementAI.App/RiskManagementAI.App.csproj -c Release --no-restore
-      - name: Smoke Tests
-        run: dotnet run --project tests/RiskManagementAI.SmokeTests/RiskManagementAI.SmokeTests.csproj -c Release
+      - name: Build WPF App (compile check)
+        run: dotnet build src/RiskManagementAI.App/RiskManagementAI.App.csproj -c Release
