@@ -45,7 +45,7 @@ artifacts/release/RiskManagementAI-v0.6.0-win-x64-portable.zip(.sha256)
 artifacts/release/ReleaseNote-v0.6.0.md / DependencyList-v0.6.0.csv
 ```
 
-**④ 패키징 원문 미포함 스캔 (이번 릴리스 신규)**: `prompts/codex/REL-v0.6-packaging-guard.md`로 `build/03`에 스캔을 연결한다 — `build/03`이 portable ZIP을 **임시 추출**해 그 안의 `kb/`·`config/`(incl `config/ncr`)·`samples/`·`data_sources/`를 **`KbRepositoryGuard`와 동일 토큰 세트**(내용 4 + 파일명 5)로 검사, allowlist(`kb/README.md`·`kb/public_regulation_catalog.csv`·`kb/ncr_placeholder.md`) 외 **원문 의심 파일** 발견 시 패키징 **실패**. ZIP **entry 이름만** 보던 기존 검증의 빈틈(중립 이름 원문)을 닫는다. 드리프트 방지: guard 재사용 또는 토큰 미러+SmokeTest 회귀. (현재는 SmokeTest/CI에서만 실행 — docs/41 §2 후속①.)
+**④ 패키징 원문 미포함 스캔 (이번 릴리스 신규)**: `prompts/codex/REL-v0.6-packaging-guard.md`로 `build/03`에 스캔을 연결한다 — `build/03`이 portable ZIP을 **임시 추출**해 그 안의 `kb/`·`config/`(incl `config/ncr`)·`samples/`·`data_sources/`를 **`KbRepositoryGuard`와 동일 토큰 세트**(내용 4 + 파일명 5)로 검사, allowlist(`kb/README.md`·`kb/public_regulation_catalog.csv`·`kb/ncr_placeholder.md`) 외 **원문 의심 파일** 발견 시 패키징 **실패**. ZIP **entry 이름만** 보던 기존 검증의 빈틈(중립 이름 원문)을 닫는다. 드리프트 방지: 토큰 mirror + SmokeTest 회귀로 `KbRepositoryGuard`와 `build/03`의 토큰/allowlist 불일치를 CI에서 차단한다.
 
 ---
 

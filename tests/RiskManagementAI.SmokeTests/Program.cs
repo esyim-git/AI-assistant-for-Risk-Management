@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Reflection;
 using System.Security;
 using System.Text;
 using System.Xml.Linq;
@@ -43,6 +44,21 @@ bool Throws<TException>(Action action)
     {
         return true;
     }
+}
+
+IReadOnlyList<string> PrivateGuardStrings(string fieldName)
+{
+    var field = typeof(KbRepositoryGuard).GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Static)
+        ?? throw new InvalidOperationException($"KbRepositoryGuard private field not found: {fieldName}");
+    var value = field.GetValue(null)
+        ?? throw new InvalidOperationException($"KbRepositoryGuard private field is null: {fieldName}");
+
+    if (value is IEnumerable<string> strings)
+    {
+        return strings.ToArray();
+    }
+
+    throw new InvalidOperationException($"KbRepositoryGuard private field is not string collection: {fieldName}");
 }
 
 int ExpectedKbLinearScore(RegulationCatalogEntry entry, string query)
@@ -790,6 +806,34 @@ Directory.CreateDirectory(Path.Combine(suspiciousNcrRoot, "config", "ncr"));
 File.WriteAllText(Path.Combine(suspiciousNcrRoot, "config", "ncr", "ncr_official_original.json"), "official text", Encoding.UTF8);
 var suspiciousNcrFindings = KbRepositoryGuard.Scan(suspiciousNcrRoot);
 AssertTrue(suspiciousNcrFindings.Any(finding => finding.Code == "KB_FORBIDDEN_SOURCE_TEXT" && finding.Severity == SafetySeverity.Blocker), "KbRepositoryGuard should scan config/ncr and block suspicious NCR originals");
+var build03ScriptText = File.ReadAllText(Path.Combine("build", "03_verify-package.ps1"));
+foreach (var token in PrivateGuardStrings("SuspiciousContentTokens"))
+{
+    AssertTrue(build03ScriptText.Contains(token, StringComparison.Ordinal), $"build/03 source-text scan should mirror content token '{token}'");
+}
+
+foreach (var token in PrivateGuardStrings("SuspiciousNameTokens"))
+{
+    AssertTrue(build03ScriptText.Contains(token, StringComparison.Ordinal), $"build/03 source-text scan should mirror filename token '{token}'");
+}
+
+foreach (var allowlistPath in PrivateGuardStrings("MetadataAllowlist"))
+{
+    AssertTrue(build03ScriptText.Contains(allowlistPath, StringComparison.Ordinal), $"build/03 source-text scan should mirror allowlist path '{allowlistPath}'");
+}
+
+foreach (var extension in new[] { ".csv", ".json", ".jsonl", ".md", ".txt", ".sql" })
+{
+    AssertTrue(build03ScriptText.Contains(extension, StringComparison.Ordinal), $"build/03 source-text scan should include text extension '{extension}'");
+}
+
+foreach (var scanDirectory in new[] { "kb", "config", "samples", "data_sources" })
+{
+    AssertTrue(build03ScriptText.Contains(scanDirectory, StringComparison.Ordinal), $"build/03 source-text scan should include scan directory '{scanDirectory}'");
+}
+
+AssertTrue(build03ScriptText.Contains("Expand-Archive", StringComparison.Ordinal), "build/03 source-text scan should inspect extracted ZIP contents");
+AssertTrue(build03ScriptText.Contains("PACKAGE SOURCE-TEXT VERIFICATION FAILED", StringComparison.Ordinal), "build/03 source-text scan should fail packaging on suspicious source text");
 
 var ncrRuleSetLoadResult = NcrRuleSetLoader.LoadDefault();
 AssertTrue(!ncrRuleSetLoadResult.UsedFallback, "NcrRuleSetLoader should load repo sample structure");
