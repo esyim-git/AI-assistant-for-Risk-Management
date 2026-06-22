@@ -256,6 +256,10 @@ try {
 
     # --- 4) Integrity manifest verification (STAB-WP-03a, ADR-008) ---
     $integrityProblems = @()
+    $rootNorm = [System.IO.Path]::GetFullPath($extractRoot)
+    if (-not $rootNorm.EndsWith([System.IO.Path]::DirectorySeparatorChar.ToString(), [System.StringComparison]::Ordinal)) {
+        $rootNorm += [System.IO.Path]::DirectorySeparatorChar
+    }
     $manifestFile = Join-Path $extractRoot "approved_manifest.json"
     if (!(Test-Path $manifestFile)) {
         $integrityProblems += "approved_manifest.json missing from package"
@@ -264,9 +268,22 @@ try {
         if ($manifestJson.version -ne $Version) {
             $integrityProblems += "manifest version '$($manifestJson.version)' != package version '$Version'"
         }
+        # 4a) Mandatory core entries must be declared (an empty/partial manifest must not pass — RR-14).
+        $manifestPaths = @($manifestJson.files | ForEach-Object { $_.path })
+        foreach ($m in @(
+            "RiskManagementAI.exe", "RiskManagementAI.dll", "RiskManagementAI.Core.dll",
+            "config/security_policy.json", "config/column_mapping.json", "kb/ncr_placeholder.md"
+        )) {
+            if ($manifestPaths -notcontains $m) { $integrityProblems += "manifest missing mandatory entry: $m" }
+        }
+        # 4b) Verify each entry; reject path traversal / rooted paths (manifest path must stay under the package root).
         foreach ($entry in $manifestJson.files) {
-            $entryFull = Join-Path $extractRoot $entry.path
-            if (!(Test-Path $entryFull)) {
+            $entryFull = [System.IO.Path]::GetFullPath((Join-Path $extractRoot $entry.path))
+            if (-not $entryFull.StartsWith($rootNorm, [System.StringComparison]::OrdinalIgnoreCase)) {
+                $integrityProblems += "manifest path escapes package root: $($entry.path)"
+                continue
+            }
+            if (!(Test-Path -LiteralPath $entryFull)) {
                 if ($entry.required) { $integrityProblems += "required file missing: $($entry.path)" }
                 continue
             }
@@ -278,15 +295,19 @@ try {
             }
         }
     }
-    # No debug symbols in a release package.
+    # 4c) No debug symbols / Dev-Test config in a release package (RR-13).
     $pdbFiles = Get-ChildItem -LiteralPath $extractRoot -Recurse -File -Filter "*.pdb" -ErrorAction SilentlyContinue
     if ($pdbFiles) { $pdbFiles | ForEach-Object { $integrityProblems += "PDB present in package: $($_.Name)" } }
+    $devTestConfig = Get-ChildItem -LiteralPath $extractRoot -Recurse -File -ErrorAction SilentlyContinue | Where-Object {
+        ($_.Name -like "*.Development.json") -or ($_.Name -like "*.Test.json") -or ($_.Name -like "*.Debug.json")
+    }
+    if ($devTestConfig) { $devTestConfig | ForEach-Object { $integrityProblems += "Dev/Test config present in package: $($_.Name)" } }
     if ($integrityProblems.Count -gt 0) {
         Write-Host "PACKAGE INTEGRITY VERIFICATION FAILED:"
         $integrityProblems | ForEach-Object { Write-Host " - $_" }
         exit 1
     }
-    Write-Host "Package integrity OK: manifest matches, no PDB."
+    Write-Host "Package integrity OK: manifest matches (mandatory entries present), no PDB / Dev-Test config."
 } finally {
     if (Test-Path $extractRoot) {
         Remove-Item $extractRoot -Recurse -Force

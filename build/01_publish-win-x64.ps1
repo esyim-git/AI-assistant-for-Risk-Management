@@ -132,7 +132,8 @@ foreach ($glob in @(
     @{ dir = "rules";      c = "Rules";    pattern = "*"     },
     @{ dir = "templates";  c = "Template"; pattern = "*"     },
     @{ dir = "config/ncr"; c = "Ncr";      pattern = "*.json"},
-    @{ dir = "kb";         c = "Kb";       pattern = "*.csv" }
+    @{ dir = "kb";         c = "Kb";       pattern = "*.csv" },
+    @{ dir = "kb";         c = "Kb";       pattern = "*.md"  }
 )) {
     $globRoot = Join-Path $PublishDir $glob.dir
     if (-not (Test-Path $globRoot)) { continue }
