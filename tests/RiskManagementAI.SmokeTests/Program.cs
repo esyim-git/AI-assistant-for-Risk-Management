@@ -23,21 +23,24 @@ var smokeDomainPass = new SortedDictionary<string, int>(StringComparer.Ordinal);
 var smokeDomainFail = new SortedDictionary<string, int>(StringComparer.Ordinal);
 var smokeStopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-// STAB-WP-02: best-effort domain attribution from the test name (non-invasive; Total/PASS/FAIL stay exact).
+// STAB-WP-02: best-effort domain attribution from the test name (non-invasive; Total/PASS/FAIL stay exact,
+// per-domain is a heuristic grouping). Order = most specific first.
 string SmokeDomain(string name)
 {
     bool Has(params string[] keys) => keys.Any(k => name.Contains(k, StringComparison.OrdinalIgnoreCase));
     if (Has("Xlsx")) return "Xlsx";
     if (Has("CsvReader", "CP949", "encoding")) return "Csv";
+    if (Has("DataProfiler", "profil", "null value", "ProfileTable")) return "Profiling";
     if (Has("ColumnMapping", "mapping")) return "Mapping";
     if (Has("Reconcil", "RECON")) return "Reconciliation";
     if (Has("ExcelReport", "Report", "Dashboard")) return "Report";
-    if (Has("LimitMonitor", "limit", "한도", "exposure", "status")) return "Limit";
+    if (Has("LimitMonitor", "limit", "한도", "exposure")) return "Limit";
     if (Has("KbIndex", "KbSearch", "Regulation", "catalog", "citation", "인용", "검색")) return "Kb";
     if (Has("Ncr", "NCR")) return "Ncr";
     if (Has("build/0", "VERSION", "global.json", "packaging", "source-text", "KbRepositoryGuard", "manifest", "Expand-Archive")) return "Packaging";
     if (Has("TaskLog", "FeedbackLog", "Audit", "Feedback")) return "Audit";
-    if (Has("Sql", "Vba", "Excel2021", "Safety", "DEMO_ONLY", "checker", "finding")) return "Safety";
+    if (Has("draft", "Generation", "NoModel", "LocalDraft")) return "Generation";
+    if (Has("SELECT", "Sql", "Vba", "Excel2021", "Excel 365", "function", "PolicyLoader", "policy", "security", "Safety", "DEMO_ONLY", "checker", "finding", "blocker", "rule")) return "Safety";
     if (Has("navigation", "screen", "snapshot", " UI")) return "UiContract";
     return "Other";
 }
@@ -1720,6 +1723,7 @@ var smokeTotal = passed + failed;
 Console.WriteLine();
 Console.WriteLine("=== SmokeTest Summary ===");
 Console.WriteLine($"Total={smokeTotal} PASS={passed} FAIL={failed} Duration={smokeStopwatch.Elapsed.TotalSeconds:F2}s");
+Console.WriteLine("(Total/PASS/FAIL is authoritative; per-domain below is a heuristic grouping by test name)");
 foreach (var domain in smokeDomainPass.Keys.Union(smokeDomainFail.Keys).OrderBy(k => k, StringComparer.Ordinal))
 {
     var p = smokeDomainPass.TryGetValue(domain, out var pv) ? pv : 0;
