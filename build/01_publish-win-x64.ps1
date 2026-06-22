@@ -14,7 +14,7 @@ $FileVersion = (Get-Content $VersionFile -Raw).Trim()
 if ([string]::IsNullOrWhiteSpace($FileVersion)) { throw "VERSION file is empty: $VersionFile" }
 if ([string]::IsNullOrWhiteSpace($Version)) {
     $Version = $FileVersion
-} elseif ($Version -ne $FileVersion) {
+} elseif ($Version -cne $FileVersion) {
     throw "Requested version '$Version' does not match VERSION file '$FileVersion'. VERSION is the single source of truth; update VERSION or omit -Version."
 }
 Write-Host "Version: $Version (source: VERSION file)"

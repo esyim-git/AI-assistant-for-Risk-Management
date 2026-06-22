@@ -13,7 +13,7 @@ $FileVersion = (Get-Content $VersionFile -Raw).Trim()
 if ([string]::IsNullOrWhiteSpace($FileVersion)) { throw "VERSION file is empty: $VersionFile" }
 if ([string]::IsNullOrWhiteSpace($Version)) {
     $Version = $FileVersion
-} elseif ($Version -ne $FileVersion) {
+} elseif ($Version -cne $FileVersion) {
     throw "Requested version '$Version' does not match VERSION file '$FileVersion'. VERSION is the single source of truth; update VERSION or omit -Version."
 }
 Write-Host "Version: $Version (source: VERSION file)"
@@ -43,6 +43,8 @@ $Hash = Get-FileHash -Path $ZipPath -Algorithm SHA256
 # Build metadata for reproducibility (ADR-006). Native-command lookups are best-effort.
 $BuildCommit = "unknown"
 try { $c = (& git -C $Root rev-parse --short HEAD 2>$null) -join ""; if (-not [string]::IsNullOrWhiteSpace($c)) { $BuildCommit = $c.Trim() } } catch { $BuildCommit = "unknown" }
+# Mark a dirty working tree: the recorded commit alone cannot reproduce the ZIP otherwise.
+try { $dirty = (& git -C $Root status --porcelain 2>$null) -join "`n"; if ((-not [string]::IsNullOrWhiteSpace($dirty)) -and ($BuildCommit -ne "unknown")) { $BuildCommit = "$BuildCommit-dirty" } } catch { }
 $SdkVersion = "unknown"
 try { $s = (& dotnet --version 2>$null) -join ""; if (-not [string]::IsNullOrWhiteSpace($s)) { $SdkVersion = $s.Trim() } } catch { $SdkVersion = "unknown" }
 $BuildDateUtc = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
@@ -83,7 +85,7 @@ $BuildDateUtc = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
 - .NET SDK: $SdkVersion
 - Runtime: win-x64 self-contained (.NET 8)
 - Build Date (UTC): $BuildDateUtc
-- SmokeTest: ALL PASS / 0 FAIL (CI; authoritative total via STAB-WP-02)
+- SmokeTest: not run by this packaging script — verify CI for this commit (authoritative total via STAB-WP-02)
 
 ## SHA256
 
