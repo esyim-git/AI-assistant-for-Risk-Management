@@ -27,13 +27,13 @@
 > ✅ **R3 RAG/NCR Gate — 코드/테스트(CI) 레벨 PASS — 2026-06-21** (Claude 검증, `main` `2fd0277`, SmokeTest **460 PASS / 0 FAIL**). R3-WP-01~05 머지 완료. **항목별 정밀 범위·후속을 그대로 명시**(과대표기 금지). 승인된 **실** 내부규정/NCR 원문·계수 적재는 Prod 문서오너 승인 후(repo 범위 밖).
 
 - [x] 적재 문서가 **공개 규정/공개 FAQ/승인된 내부규정**만 · *증거: `KbAccessPolicy` — 공개 status(`CATALOG_ONLY`·`PUBLIC_APPROVED`·`APPROVED_PUBLIC`)만 `PublicCited`, 그 외 `MetadataOnly`/`ApprovalRequired`. repo엔 공개 catalog 메타만(WP-04)*
-- [x] **내부규정 원문은 repo 미포함** — Prod에서 문서오너 승인·보안등급·역할권한·조회로그 · *증거: catalog 원문 컬럼 없음 + **`KbRepositoryGuard`**(kb/·data_sources/·samples/·`config/ncr` 스캔→Blocker), **SmokeTest/CI에서 실행**(릴리스는 CI-green main 컷). ⚠️ **release 패키징(`build/03`)엔 guard 미연결** → 패키징 단계 연결은 후속(아래 ①). 권한통제 적재는 Prod*
+- [x] **내부규정 원문은 repo 미포함** — Prod에서 문서오너 승인·보안등급·역할권한·조회로그 · *증거: catalog 원문 컬럼 없음 + **`KbRepositoryGuard`**(kb/·data_sources/·samples/·`config/ncr` 스캔→Blocker), **SmokeTest/CI에서 실행** + **release 패키징(`build/03`) ZIP 추출 스캔**(동일 토큰 mirror + SmokeTest drift guard)로 원문 의심 파일명/내용 차단. 권한통제 적재는 Prod*
 - [~] 문서 Metadata **스키마 완비** + 완비-경고 (문서ID·문서명·출처기관·출처·버전·시행일·폐기일·**파일 Hash**·적재일·승인상태·대체문서·**라이선스 상태**) · *증거: WP-01 9필드(출처 locator≠출처기관). ⚠️ **`file_hash`/실 version/effective_date 값은 repo에 비어있음**(원문 미포함 → 해시할 artifact 없음) → `(확인 필요)`+경고(WP-03)로 노출. **실 hash·시행일은 Prod 승인 적재 시** 채움(아래 ②)*
 - [x] 검색 답변에 문서명·버전·시행일·조항·출처·검색기준일·**"검토 필요" 문구** · *증거: WP-03 인용 블록 전 항목, 검색기준일=주입 `IClock` 실제 날짜(placeholder 금지)*
 - [x] 검색 엔진 = **Keyword/Inverted Index(NuGet 0)**. **Vector/Embedding 필요 시 STOP** · *증거: WP-02 `KbIndex`(역색인, substring L=32 cap + 긴쿼리 linear fallback, 결과 현행 동일). **Vector/Embedding 미도입**(STOP 규칙)*
 - [x] NCR: **모델이 산식 암기로 답하는 구조 금지**. Rule Set 8요소(Version·Effective Date·Component Map·Formula Description·Validation SQL·Regulation Basis·Approval History) · *증거: WP-05 `NcrRuleSet` 8요소, 구조 기반(산식값 하드코딩 0), 샘플=placeholder(`APPROVAL_REQUIRED_NO_REAL_COEFFICIENT`), Validation SQL=조회전용(`SqlSafetyChecker`)·자동실행 0, NCR 공식본 원문 repo 미포함*
 - [x] 답변은 항상 **검토용 초안** 명시 · *증거: `KbSearch` ReviewDraftNotice + `NcrRuleSet.DraftNotice`*
-> **R3 잔여(후속·다음 단계)**: ① **`KbRepositoryGuard`를 release 패키징 검증(`build/03`)에 연결**(현재 SmokeTest/CI만 — 패키징 단계 방어 추가) ② 실 `file_hash`·version·시행일은 **Prod 승인 적재 시** 채움(repo는 스키마+경고까지) ③ 승인된 실 내부규정/NCR 원문·계수 = Pilot/Prod 문서오너 승인 후 권한통제 KB(repo 미포함 유지). Local LLM은 **R4 Model Approval Gate(§3)** 전까지 설계만.
+> **R3 후속 상태**: ① **DONE - `KbRepositoryGuard` 원문 미포함 토큰을 release 패키징 검증(`build/03`)에 연결**(`build/03`이 portable ZIP을 임시 추출해 `kb/`·`config/`·`samples/`·`data_sources/`의 의심 파일명/내용을 차단, SmokeTest drift guard 포함). ② 실 `file_hash`·version·시행일은 **Prod 승인 적재 시** 채움(repo는 스키마+경고까지) ③ 승인된 실 내부규정/NCR 원문·계수 = Pilot/Prod 문서오너 승인 후 권한통제 KB(repo 미포함 유지). Local LLM은 **R4 Model Approval Gate(§3)** 전까지 설계만.
 
 ## 3. Local LLM / Model Approval Gate (R4)
 실제 추론 Runtime·모델파일 도입 전 **반드시** 통과. (ADR-003)
