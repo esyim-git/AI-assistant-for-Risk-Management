@@ -1,11 +1,24 @@
 param(
-    [string]$Version = "0.2.0",
+    [string]$Version = "",
     [string]$Configuration = "Release"
 )
 
 $ErrorActionPreference = "Stop"
 
 $Root = Split-Path -Parent $PSScriptRoot
+
+# VERSION is the single source of truth (ADR-006). Resolve/validate before any version-derived path.
+$VersionFile = Join-Path $Root "VERSION"
+if (!(Test-Path $VersionFile)) { throw "VERSION file not found: $VersionFile" }
+$FileVersion = (Get-Content $VersionFile -Raw).Trim()
+if ([string]::IsNullOrWhiteSpace($FileVersion)) { throw "VERSION file is empty: $VersionFile" }
+if ([string]::IsNullOrWhiteSpace($Version)) {
+    $Version = $FileVersion
+} elseif ($Version -ne $FileVersion) {
+    throw "Requested version '$Version' does not match VERSION file '$FileVersion'. VERSION is the single source of truth; update VERSION or omit -Version."
+}
+Write-Host "Version: $Version (source: VERSION file)"
+
 $Project = Join-Path $Root "src\RiskManagementAI.App\RiskManagementAI.App.csproj"
 $PublishDir = Join-Path $Root "artifacts\publish\RiskManagementAI-v$Version-win-x64"
 

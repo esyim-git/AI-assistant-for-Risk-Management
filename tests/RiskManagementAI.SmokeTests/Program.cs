@@ -849,6 +849,17 @@ AssertTrue(!build03ScriptText.Contains("GetRelativePath", StringComparison.Ordin
 AssertTrue(build03ScriptText.Contains("GetEncoding(949)", StringComparison.Ordinal), "build/03 source-text scan should attempt CP949 decoding independently");
 AssertTrue(build03ScriptText.Contains("PACKAGE SOURCE-TEXT VERIFICATION FAILED", StringComparison.Ordinal), "build/03 source-text scan should fail packaging on suspicious source text");
 
+// STAB-WP-01: VERSION is the single source of truth; build scripts must read it and fail on mismatch (RR-11, ADR-006).
+foreach (var buildScript in new[] { "01_publish-win-x64.ps1", "02_package-release.ps1", "03_verify-package.ps1" })
+{
+    var scriptText = File.ReadAllText(Path.Combine("build", buildScript));
+    AssertTrue(!scriptText.Contains("0.2.0", StringComparison.Ordinal), $"build/{buildScript} should not hardcode default version 0.2.0 (VERSION is single source)");
+    AssertTrue(scriptText.Contains("VERSION file", StringComparison.Ordinal), $"build/{buildScript} should resolve version from the VERSION file");
+    AssertTrue(scriptText.Contains("does not match VERSION file", StringComparison.Ordinal), $"build/{buildScript} should fail when -Version mismatches the VERSION file");
+}
+AssertTrue(File.ReadAllText("VERSION").Trim() == "0.6.0", "VERSION file should be the single source of truth at 0.6.0");
+AssertTrue(File.Exists("global.json") && File.ReadAllText("global.json").Contains("8.0", StringComparison.Ordinal), "global.json should pin the .NET 8 SDK band (ADR-005/006)");
+
 var ncrRuleSetLoadResult = NcrRuleSetLoader.LoadDefault();
 AssertTrue(!ncrRuleSetLoadResult.UsedFallback, "NcrRuleSetLoader should load repo sample structure");
 AssertTrue(ncrRuleSetLoadResult.RuleSet.Components.Count > 0, "NcrRuleSet should include Components");
