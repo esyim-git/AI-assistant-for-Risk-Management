@@ -8,7 +8,7 @@
 - **v0.5.0 = R1 Data & Limit Foundation — DONE** (CP949/UTF-8/XLSX 입력, Column Mapping, 실 Exposure-Limit Join + 공통 `LimitAnalysisResult`, 6상태, 대사 9종, Dashboard=Report 일원화).
 - **v0.6.0 = R3 Regulation/NCR 구조 — DONE** (공개 규정 KB Metadata, Keyword/Inverted Index, 인용형 답변, `KbAccessPolicy`+`KbRepositoryGuard`(+build/03 패키징 스캔), NCR Rule Set 8요소 **구조**).
 - **완료 기능(MVP-1~3, R1, R3)은 재설계하지 않는다.**
-- **SmokeTest**: main `3dfa80b`에서 **ALL PASS / 0 FAIL** (CI `27926096336`, windows-latest, 2026-06-22). 하니스가 합계를 출력하지 않아 과거 484/502는 미집계 추정치 — **정본 합계 출력은 STAB-WP-02**에서 추가.
+- **SmokeTest**: **513 PASS / 0 FAIL** (정본 합계 — STAB-WP-02 적용 후 CI 요약 `Total=513`, windows-latest, 2026-06-22). 과거 484/502는 하니스가 합계를 안 찍던 시절의 미집계 추정치였고, STAB-WP-02가 **합계·도메인별 PASS/FAIL·실행시간**을 출력한다.
 - ⚠️ R2(Risk Analytics)는 R3보다 뒤로 밀렸다(R3 먼저 출시). R2는 v0.6.1 STAB 이후.
 
 ## 1. 절대 원칙 (전 릴리스 유지)

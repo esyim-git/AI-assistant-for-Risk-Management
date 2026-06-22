@@ -39,8 +39,7 @@ Local 실행 PC         = Test (Release ZIP 검증·더미데이터·Gate B)
 | 승인 Example 검색·Prompt 반영 | NOT_IMPLEMENTED | R5 |
 | 오프라인 Test PC Gate B/C · Team Pilot | BLOCKED | 실 Test PC 증거 대기(`docs/44`·`docs/45`) |
 
-**SmokeTest**: main `3dfa80b`에서 **ALL PASS / 0 FAIL** (CI `27926096336`, windows-latest, 2026-06-22).
-> 현재 하니스는 단언별 `PASS:`만 출력하고 **합계 수치를 찍지 않는다**(과거 기록의 484/502는 미집계 추정치). 정본 합계 출력은 STAB 단계에서 추가한다(`docs/39`).
+**SmokeTest**: **513 PASS / 0 FAIL** (정본 합계 — STAB-WP-02가 종료부에 `Total=513` + 도메인별 요약 출력, windows-latest CI). 과거 484/502는 합계 미출력 시절의 추정치.
 
 ---
 
