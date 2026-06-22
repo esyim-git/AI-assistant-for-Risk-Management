@@ -1,249 +1,136 @@
 # Risk Management AI Assistant
 
-금융회사 리스크관리 업무를 위한 **오프라인 실행형 Local AI Assistant** 프로젝트입니다.
+금융회사 리스크관리 업무를 위한 **오프라인 실행형 Local AI Assistant**.
 
-이 v2 Starter는 환경을 명확히 분리합니다.
+현재 기준선: **v0.6.0** (main `3dfa80b`). R1 Data & Limit Foundation + R3 Regulation/NCR 구조가 코드/CI 레벨로 완료된 상태이며, 실 오프라인 Test PC Gate(B/C)와 R2 Risk Analytics 이후가 남아 있습니다.
+
+> 운영환경에는 소스코드·개발도구를 가져가지 않고 **Self-contained Release ZIP**만 반입합니다.
 
 ```text
-GitHub / 개발 PC      = 개발환경 Dev
-Local 실행 PC         = 테스트환경 Test
-회사 업무망 PC         = 운영환경 Prod
-회사 개발망 PC 포함    = 운영환경처럼 취급
+GitHub / 개발 PC      = Dev (설계·구현·빌드·Release ZIP 생성)
+Local 실행 PC         = Test (Release ZIP 검증·더미데이터·Gate B)
+회사 업무망/개발망 PC  = Prod (승인 Release ZIP 실행 전용·Gate C)
 ```
 
-핵심 원칙은 단순합니다.
+---
 
-> 운영환경에는 소스코드와 개발도구를 가져가지 않고, **Self-contained Release ZIP**만 반입한다.
+## 1. 현재 구현 상태 (v0.6.0 정본)
+
+상태 표기: **VERIFIED**(코드+CI 검증) · **PARTIAL** · **SCAFFOLD_ONLY**(구조만) · **PLACEHOLDER** · **BLOCKED**(실 Test PC 증거 대기) · **NOT_IMPLEMENTED** · **APPROVAL_REQUIRED**.
+
+| 기능 | 상태 | 비고 |
+|---|---|---|
+| SQL/VBA/Excel2021 Safety Checker | VERIFIED | 조회·검사 전용, 자동실행 0 |
+| 해시 전용 Audit Log (TaskLog/FeedbackLog/Reader) | VERIFIED | 원문 미저장, SHA256 |
+| CP949(UHC 전체)/UTF-8 CSV 입력 | VERIFIED | repo 내장 매핑표(SHA256·LF 고정), NuGet 0 |
+| XLSX 입력 (인박스 OOXML, NuGet 0) | VERIFIED | zip 안전상한·관계기반 시트해석 |
+| Risk Column Mapping (설정·승인형) | VERIFIED | `config/column_mapping.json`, safe fallback |
+| 실 Exposure-Limit Join + 공통 `LimitAnalysisResult` | VERIFIED | 6상태(NORMAL/WARNING/BREACH/NO_LIMIT/INVALID_LIMIT/MAPPING_ERROR) |
+| 대사·예외검증 9종 (`RECON_*`) | VERIFIED | 키스톤=원천합계=분석합계 |
+| Dashboard = Excel Report 수치 일원화 | VERIFIED | 단일 AnalysisResult |
+| 공개 규정 KB Metadata + Keyword/Inverted Index 검색 | VERIFIED | NuGet 0, Vector/Embedding 미도입(STOP) |
+| 인용형 검색 답변 (문서명·버전·시행일·조항·출처·검색기준일·검토필요) | VERIFIED | placeholder 메타 `(확인 필요)` |
+| KB 접근정책(`KbAccessPolicy`) + repo/패키지 원문 가드(`KbRepositoryGuard`+build/03) | VERIFIED | 공개 status만 인용, 원문 의심파일 Blocker |
+| NCR Rule Set 8요소 **구조** | SCAFFOLD_ONLY | 샘플=placeholder(실 계수 0), 승인 Rule Pack 미적재 |
+| 실제 공개 규정 **원문 Clause/Chunk 검색** | NOT_IMPLEMENTED | 현재는 Catalog/Metadata 검색까지 (KB-WP) |
+| 승인된 NCR Rule Pack / 내부규정 Knowledge Pack | APPROVAL_REQUIRED | Prod 문서오너 승인 후 권한통제 KB, repo 미포함 |
+| 전일 대비 / 차트·Heatmap·TopN·집중도 / 대용량 Streaming | NOT_IMPLEMENTED | R2 |
+| Local LLM Runtime | APPROVAL_REQUIRED | NoModelMode 유지, Adapter 계약만(R4) |
+| 승인 Example 검색·Prompt 반영 | NOT_IMPLEMENTED | R5 |
+| 오프라인 Test PC Gate B/C · Team Pilot | BLOCKED | 실 Test PC 증거 대기(`docs/44`·`docs/45`) |
+
+**SmokeTest**: main `3dfa80b`에서 **ALL PASS / 0 FAIL** (CI `27926096336`, windows-latest, 2026-06-22).
+> 현재 하니스는 단언별 `PASS:`만 출력하고 **합계 수치를 찍지 않는다**(과거 기록의 484/502는 미집계 추정치). 정본 합계 출력은 STAB 단계에서 추가한다(`docs/39`).
 
 ---
 
-## 1. 목표
+## 2. 절대 원칙 (전 릴리스 유지)
 
-초기 MVP는 다음 기능을 대상으로 합니다.
+Offline First · 외부 NuGet PackageReference **0** · 외부 API/Telemetry/AutoUpdate **0** · SQL/VBA/Golden6 자동실행 **0** · 해시 기반 Audit Log · **NoModelMode 유지** · 실데이터/실 테이블·컬럼명/내부규정 원문/NCR 공식본 원문/모델파일·Runtime **repo 미포함** · 모델 가중치 자동학습 금지 · **기존 테스트 삭제·약화 금지** · 운영환경은 Portable Release ZIP 실행 전용.
 
-1. Golden6용 SQL 초안 생성 및 위험 구문 검사
-2. Excel 2021 VBA 초안 생성 및 위험 API 검사
-3. Excel 2021 함수 호환성 검사
-4. Golden6 Export CSV/XLSX 데이터 프로파일링
-5. 리스크 한도 모니터링 템플릿
-6. Excel 2021 보고서 생성 템플릿
-7. 규정/NCR Knowledge Base 구조
-8. 승인형 피드백 학습 구조
-9. 운영환경 오프라인 실행 패키징
-
-초기 버전은 SQL/VBA를 자동 실행하지 않습니다.
-
----
-
-## 2. 환경별 역할
-
-| 구분 | 위치 | 역할 | 허용 | 금지 |
-|---|---|---|---|---|
-| Dev | GitHub + 개발 PC | 설계, 구현, 빌드, Release ZIP 생성 | Claude Code, Codex, Git, .NET SDK | 회사 실데이터, 내부규정 원문 |
-| Test | Local PC | Release ZIP 검증, 더미 데이터 테스트 | Portable ZIP 실행, 해시 검증 | 운영 데이터 사용 |
-| Prod | 회사 업무망/개발망 PC | 업무 실행 | 승인된 Release ZIP 실행 | 소스 빌드, 외부 API, 자동 업데이트 |
+> 외부 라이브러리·Vector DB·Embedding Runtime·Local LLM Runtime·모델파일·추가 NuGet이 필요해지는 순간 **구현 STOP** → 승인 문서 작성 후에만 진행(`docs/41`·`docs/40`).
 
 ---
 
 ## 3. 배포 모델
 
-개발환경에서 다음 산출물을 만듭니다.
-
 ```text
-RiskManagementAI-v0.2.0-win-x64-portable.zip
-RiskManagementAI-v0.2.0-win-x64-portable.zip.sha256
-ReleaseNote-v0.2.0.md
-DependencyList-v0.2.0.csv
+artifacts/release/RiskManagementAI-v0.6.0-win-x64-portable.zip(.sha256)
+artifacts/release/ReleaseNote-v0.6.0.md / DependencyList-v0.6.0.csv
 ```
+운영환경 PC에는 Windows 11 + Excel 2021 + 승인된 Release ZIP만 필요합니다(.NET SDK·Python·Git·NuGet·인터넷 불필요).
 
-운영환경에는 위 Release ZIP만 반입합니다.
-
-운영환경 PC에는 아래가 없어도 됩니다.
-
-```text
-Visual Studio
-VS Code
-.NET SDK
-Python
-pip
-Git
-NuGet
-Claude Code
-Codex
-인터넷 연결
-```
-
-운영환경 PC에는 아래만 필요합니다.
-
-```text
-Windows 11
-Excel 2021
-승인된 Release ZIP
-```
+**왜 C#/.NET/WPF인가**: 운영환경이 실행 전용이라 별도 도구 없이 동작하는 self-contained win-x64 portable이 필요. Python 계열은 의존성 복원·패키징·백신 오탐·외부 라이브러리 보안검토 부담으로 반입성이 불리. (근거: `docs/11`, `docs/40`)
 
 ---
 
-## 4. 기술 스택
-
-초기 추천 스택:
-
-```text
-UI          : C# WPF
-Runtime     : .NET self-contained win-x64
-Local Store : JSON / CSV / SQLite 후보
-Excel       : Excel 2021 VBA / Interop 후보
-SQL Tool    : Golden6 수동 실행
-AI Model    : 초기 MVP에서는 optional
-```
-
-초기 MVP는 Local LLM이 없어도 실행됩니다.
-모델이 없으면 AI 생성 기능은 비활성화되고, 룰 엔진/데이터 프로파일링/샘플 분석은 동작합니다.
-
-### 왜 C#/.NET/WPF인가 (Python을 기본 구현에서 제외한 이유)
-
-운영환경(회사 업무망/개발망 PC)은 **실행 전용**이며 .NET SDK·Python·pip·Git·인터넷이 없어도 동작해야 합니다.
-Python(pip/pandas/openpyxl/pywin32/PyInstaller) 기반은 의존성 복원, 패키징, 백신 오탐, 외부 라이브러리 보안검토 부담 측면에서 운영환경 반입성이 불리합니다.
-따라서 별도 도구 없이 실행되는 **self-contained win-x64 portable release**를 만들 수 있는 C#/.NET/WPF를 기본 스택으로 선택했습니다. (근거: `docs/11_ADR_Initial_Architecture.md`)
-Python은 필요 시 Dev/Test의 보조 분석 용도로만 사용합니다.
-
----
-
-## 5. 빠른 시작 Dev
+## 4. 빌드 (Dev / Windows + .NET 8 SDK)
 
 ```powershell
 git clone https://github.com/esyim-git/AI-assistant-for-Risk-Management.git
 cd AI-assistant-for-Risk-Management
+dotnet build RiskManagementAI.sln -c Release
+dotnet run --project tests/RiskManagementAI.SmokeTests   # ALL PASS 확인
 
-# Claude Code로 문서/아키텍처 정리
-# Codex로 MVP-1 구현
-
+Get-Content VERSION                                # -> 0.6.0
 ./build/00_check-prereqs.ps1
-./build/01_publish-win-x64.ps1 -Version 0.2.0
-./build/02_package-release.ps1 -Version 0.2.0
+./build/01_publish-win-x64.ps1  -Version 0.6.0
+./build/02_package-release.ps1  -Version 0.6.0
+./build/03_verify-package.ps1   -Version 0.6.0     # 해시·금지파일·원문 미포함 스캔
+```
+> 태그·GitHub Release 발행은 로컬에서(`git tag v0.6.0`). 웹/Linux 세션 git proxy는 태그 push 403.
+> ⚠️ 현재 `build/01~03` 기본 `-Version`이 `0.2.0`으로 남아 있습니다 — VERSION 단일 원천화는 STAB-WP-01(`docs/39`)에서 처리.
+
+---
+
+## 5. 운영환경 실행 (Prod)
+
+```text
+1. Release ZIP 반입 → 2. SHA256 확인 → 3. 백신/EDR → 4. 압축 해제 → 5. run.bat / RiskManagementAI.exe
+```
+세부: `docs/22`~`docs/25`. 게이트: `docs/41`(Approval/Pilot), 증거: `docs/44`(v0.5), `docs/45`(v0.6 Gate B/C).
+
+---
+
+## 6. Claude / Codex 역할 (v0.6.0 이후)
+
+```text
+Claude Code  = Architecture Lead / Program Manager / Security & Release Reviewer
+             - 큰 그림·문서·ADR·Work Package·Codex Prompt·코드 리뷰·Traceability·다음 WP 지정
+             - main 직접 수정/병합 금지. 작업 브랜치: planning/*
+
+Codex        = Implementation / Test Engineer
+             - Claude가 작성한 WP 1개만 Feature Branch에서 구현·테스트
+             - build + SmokeTest + Gate A + Self Review → 보고 → Claude 승인 전 Merge 금지
+```
+
+작업 루프: **Claude Planning → Codex Implementation → Claude Review → Codex Fix → Claude Final Gate → PR → 다음 WP**.
+
+지침/계획 문서:
+```text
+CLAUDE.md   : Claude 헌법 + 역할/워크플로
+AGENTS.md   : Codex 구현 규칙 (현재 우선 = docs/38·39 + 지정 WP)
+docs/38     : v1.0 Master Roadmap & Release Train (현재화)
+docs/39     : Work Package Backlog + Resume Brief(NEXT UP)
+docs/40     : ADR (아키텍처 결정)
+docs/41/44/45: 게이트·Gate 증거
+prompts/codex/<WP-ID>_*.md : WP별 Codex Prompt
 ```
 
 ---
 
-## 6. 운영환경 실행
-
-운영환경에서는 다음만 수행합니다.
+## 7. 보안 원칙 (Repository 미포함)
 
 ```text
-1. Release ZIP 반입
-2. SHA256 해시 확인
-3. 압축 해제
-4. run.bat 실행 또는 RiskManagementAI.exe 실행
+회사 실데이터 · 실제 테이블/컬럼 사전 · 내부규정 원문 · NCR 공식본 원문
+계정정보 · 비밀번호 · 토큰 · 모델파일/Runtime · 고객정보 · 운영 로그 원문
 ```
-
-자세한 내용은 아래 문서를 참고합니다.
-
-- `docs/22_Environment_Strategy.md`
-- `docs/23_Offline_Deployment_Guide.md`
-- `docs/24_Release_Packaging_Guide.md`
-- `docs/25_Work_Network_Operating_Guide.md`
+Repository는 **공개자료/더미데이터/구조/룰/템플릿/문서/소스코드**만 관리합니다.
 
 ---
 
-## 7. 보안 원칙
+## 8. 다음 단계
 
-절대 Repository에 포함하지 않습니다.
-
-```text
-회사 실데이터
-내부규정 원문
-실제 테이블 사전
-계정정보
-비밀번호
-토큰
-대용량 모델 파일
-고객정보
-운영 로그 원문
-```
-
-이 프로젝트의 Repository는 **공개자료/더미데이터/구조/룰/템플릿/문서/소스코드**만 관리합니다.
-
----
-
-## 8. Claude Code / Codex 역할
-
-```text
-Claude Code
-- 프로젝트 구조 설계
-- 문서/아키텍처 정리
-- 개발 표준 정비
-- 백로그 분해
-- 리뷰 체크리스트 작성
-
-Codex
-- 실제 코드 구현
-- 테스트 작성
-- 버그 수정
-- 리팩토링
-- Release 빌드 스크립트 정비
-```
-
-각 지침 파일:
-
-```text
-CLAUDE.md  : Claude Code용 프로젝트 헌법
-AGENTS.md  : Codex 구현 규칙
-prompts/   : 초기 명령 프롬프트
-```
-
----
-
-## 9. 현재 구현 상태
-
-이 Repository는 v2 Starter 상태이며, MVP-1 룰 엔진 핵심은 **이미 구현**되어 있습니다.
-
-이미 구현됨:
-
-```text
-SQL/VBA/Excel2021 Safety Checker (동작)
-SafetyFinding/SafetySeverity/RulePattern 모델
-TaskLog/FeedbackLog 모델 (정의)
-WPF MainWindow (3개 Checker 호출, 오프라인 표시)
-SmokeTest 콘솔 (SQL/VBA/Excel 기본 케이스)
-빌드/배포 스크립트, 더미 데이터, SQL/VBA 템플릿, 환경별 설정 템플릿, 반입 가이드
-```
-
-미구현(다음 작업 = Codex MVP-1):
-
-```text
-RuleLoader (rules/*.txt -> Checker 주입; 현재 하드코딩)
-DataProfiler 로직 (모델만 존재)
-TaskLog/FeedbackLog 저장기 (해시 기반)
-security_policy.json 런타임 로딩/강제
-```
-
-미포함(설계상 제외):
-
-```text
-실제 Local LLM 모델 / 실제 Golden6 연결 / 실제 내부규정 / 실제 NCR 공식본 / 실제 회사 데이터
-```
-
-## 10. Codex MVP-1 시작 방법
-
-```powershell
-# Dev PC에서
-dotnet build
-dotnet run --project tests/RiskManagementAI.SmokeTests   # 전부 PASS 확인
-```
-
-이후 Codex는 다음 순서로 작업합니다.
-
-1. `prompts/codex_mvp1_implementation_prompt.md`를 시작 프롬프트로 사용
-2. `docs/21_Implementation_Backlog.md`의 B-01(RuleLoader)부터 구현
-3. `docs/26_Codex_MVP1_Implementation_Guide.md` 절차 준수
-4. 단위마다 빌드/SmokeTest, 작은 단위 커밋
-
-> 백로그/가이드: `docs/21`, `docs/26` · 환경/배포: `docs/22`~`docs/25` · 보안/동기화: `docs/28`, `docs/29` · 데모: `docs/30`
-
-### 10-1. 목표 추진(Goal) 모드로 Codex 실행 시
-
-Codex를 자율 추진 모드로 돌리고, 그 결과를 Git Sync로 Claude Code가 인지하게 하려면:
-
-1. 시작 프롬프트: `prompts/codex_goal_mode_prompt.md`
-2. 상태 원장/결정/핸드백 규약: `docs/31_Codex_Goal_Mode_Worklog.md`
-
-Codex는 `feature/mvp1-rule-engine`에서 작업하며 단위마다 `docs/31`을 갱신·push하고, Claude는 `git fetch`로 동일 문서를 읽어 진행 상태를 파악한다.
+- **NEXT UP (Codex)**: `prompts/codex/STAB-WP-01_build_version_reproducibility.md` (VERSION 단일 원천화 + Release 재현성).
+- 로드맵 v0.6.1~v1.0: `docs/38` · WP 백로그: `docs/39`.
+- 실 Test PC Gate B/C는 신규 기능과 분리하여 우선 추진(현재 BLOCKED, 증거 대기).
