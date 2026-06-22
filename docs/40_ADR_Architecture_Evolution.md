@@ -69,8 +69,8 @@
 - **상태**: 채택 (STAB-WP-03)
 - **맥락**: ZIP SHA만으로는 운영 중 **핵심 파일 변조**(security_policy/rules/template/mapping/KB/NCR placeholder)를 못 잡는다(RR-14). Release에 PDB/개인경로/Debug 자산 유입 위험(RR-13).
 - **결정**:
-  1. **`approved_manifest.json`**(path·size·SHA256·version·required/optional·security class) 생성 + ZIP 동봉.
-  2. **앱 시작 시 핵심 파일 Hash 검증**: **개발=Fallback(경고 후 진행)**, **운영=Fail-Closed** — policy 불일치→기동/기능 차단, rules→검사 차단, template→Report 차단, KB→검색 차단.
+  1. **`approved_manifest.json`**(path·size·SHA256·version·required/optional·security class) 생성 + ZIP 동봉. 필수 대상은 **apphost(`*.exe`) + 관리 앱 어셈블리(`RiskManagementAI.dll`, `PublishSingleFile=false`이므로 시작/검증 코드 실체) + `*.Core.dll` + policy/rules/mapping/KB/NCR placeholder/templates**. CP949 매핑표는 Core DLL 임베디드 리소스이므로 loose 파일로 넣지 않고 **Core DLL 해시로 커버**(런타임은 `Cp949Decoder` 임베디드 해시).
+  2. **앱 시작 시 핵심 파일 Hash 검증**: **운영=Fail-Closed** — policy 불일치→기동/기능 차단, rules→검사 차단, template→Report 차단, KB→검색 차단. **manifest 부재/판독실패도 운영에서는 Fail-Closed**(부재로 우회 불가). 개발 Fallback은 **패키지 릴리스에 없는 명시적 dev 전용 스위치/환경**으로만. **manifest 자체는 독립 신뢰 앵커로 검증**(기대 해시를 서명된 관리 어셈블리에 임베드 또는 공개키 서명) — 같은 폴더의 manifest만으로는 폴더 동시 변조에 무력(post-release 변조 미탐지) → 불충분.
   3. Release 보안: `DebugSymbols=false`/`DebugType=none`(PDB 제거), 개인경로/SourceLink 0, Unsafe BinaryFormatter 명시 false, Dev/Test config 미포함, **Production assets allowlist**. **Code Signing은 운영 절차 Placeholder**(자동서명 미구현), Rollback 절차·Release Approval 기록.
 - **대안/기각**: ZIP SHA만 유지 → 부분 변조·Debug 유출 미탐지 → 기각.
 

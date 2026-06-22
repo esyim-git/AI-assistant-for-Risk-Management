@@ -41,7 +41,7 @@ v0.6.0 portable ZIP을 **실 오프라인 Test PC(Gate B)** 및 **운영 반입(
 | C1 | Excel 2021에서 Report Open · **Formula Error 0** | ⬜ | 캡처 |
 | C2 | **External Link 0 · Macro 0 · Formula Injection 0** | ⬜ | 검사 |
 | C3 | 백신/EDR 통과 | ⬜ | 로그 |
-| C4 | **PDB/개인경로 0** (STAB-WP-03 검증) | ⬜ | 스캔 |
+| C4 | **PDB/개인경로 0** (v0.6.0=**수동 ZIP 검사**로 확인 가능; 자동 가드/Integrity Manifest는 STAB-WP-03=v0.6.1) | ⬜ / 자동분 N/A until STAB | 스캔 |
 | C5 | Code Signing 상태(운영 절차 Placeholder) | ⬜ | 기록 |
 | C6 | Performance / Memory 측정 | ⬜ | 측정값 |
 | C7 | Rollback 절차 확인 | ⬜ | 기록 |

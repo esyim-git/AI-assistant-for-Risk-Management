@@ -218,7 +218,7 @@
 - **Claude Review Checklist**: 계수 미포함 / Pack 부재 시 계산 차단 / 조회전용 SQL / 검토용 초안.
 
 ## LLM-WP-01. Model Adapter Contract (설계 전용, Runtime STOP)
-- **목표**: `ILocalModelProvider`/`NoModelProvider`(유지)/`ModelProviderFactory`/Availability/HealthCheck/Request/Response/Timeout/Cancellation/Max IO/Audit Metadata/Output Safety Pipeline/Model Pack Manifest/Runtime·Model Hash/License/Hardware/Known Limitations. Architecture = **Out-of-process Runtime·App↔Model Pack 분리·Local IPC·외부 Network 차단·Crash 격리·Memory 제한·Health Check·NoModel Fallback**. **실 Runtime/Library/Model 도입 직전 `MODEL_APPROVAL_REQUIRED`로 STOP**(승인 문서 `docs/40` ADR-007/`docs/41 §3`).
+- **목표**: `ILocalModelProvider`/`NoModelProvider`(유지)/`ModelProviderFactory`/Availability/HealthCheck/Request/Response/Timeout/Cancellation/Max IO/Audit Metadata/Output Safety Pipeline/Model Pack Manifest/Runtime·Model Hash/License/Hardware/Known Limitations. Architecture = **Out-of-process Runtime·App↔Model Pack 분리·Local IPC·외부 Network 차단·Crash 격리·Memory 제한·Health Check·NoModel Fallback**. **실 Runtime/Library/Model 도입 직전 `MODEL_APPROVAL_REQUIRED`로 STOP**(승인 문서 `docs/40` **ADR-003**(Process Boundary 설계)+**ADR-009**(Model Approval Package 요건)/`docs/41 §3`).
 - **Claude Review Checklist**: NoModel 유지 / 인터페이스만(런타임 0) / ProcessBoundary 설계 / STOP 문서.
 
 ## FEEDBACK-WP-01. Approved Example Retrieval (가중치 불변)
