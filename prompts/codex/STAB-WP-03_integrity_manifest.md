@@ -2,7 +2,7 @@
 
 > 권위 스펙: `docs/39 §B`(STAB-WP-03), `docs/40`(ADR-008), `docs/38`(RR-13, RR-14). 선행: STAB-WP-01.
 >
-> **분할 상태**: **03a(build측 — Release 보안 PDB/Debug 제거 + `approved_manifest.json` 생성(build/01)·검증(build/03))는 구현 완료**(local-gate 검증 대기). 본 프롬프트의 **NEXT UP = 03b(runtime)**: 앱 시작 시 Fail-Closed 검증 + manifest 독립 신뢰 앵커(서명 어셈블리에 expected-hash 임베드/공개키) + 운영 모드 분기(아래 작업범위 3). 03b는 C#/App·Core 변경이라 **로컬 build+run 검증** 필수.
+> **분할 상태**: **03a(build측)= DONE(#59, local-gate PASS)**. **03b(runtime)= 구현완료·검토중**(branch `feature/stab-wp-03b-runtime-integrity`, **Design 3 interim** by Claude — 재구현 금지). 03b는 `Core/Integrity/`(IntegrityStatus·IntegrityResult·IntegrityVerifier·IntegrityGate)가 build/03 §4를 in-process 포팅 + `App.OnStartup` 최상단 FailClosed 차단(Shutdown 2) + dev 스위치 강화(`RMAI_DEV_ALLOW_UNVERIFIED=1`+`Debugger.IsAttached`). **manifest 독립 신뢰 앵커(서명)는 본 WP에서 제외 → STAB-WP-05(APPROVAL_REQUIRED·STOP)** 로 이관. 남은 일 = **로컬 build+run 검증(`Total=N PASS/0 FAIL`)** 후 머지. 03b 잔여위험(co-tamper·런타임 DLL 미해시)은 ADR-008 §결정5에 명시.
 
 ## 현재 문제
 ZIP SHA만으로는 운영 중 **핵심 파일 변조**(security_policy/rules/template/column_mapping/KB catalog/NCR placeholder/CP949 매핑)를 못 잡는다(RR-14). Release에 **PDB·개인경로·Debug/Test config**가 섞일 위험(RR-13).

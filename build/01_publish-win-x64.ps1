@@ -160,6 +160,6 @@ $manifest = [pscustomobject]@{
 $manifest | ConvertTo-Json -Depth 5 | Set-Content -Path $ManifestPath -Encoding UTF8
 $ManifestHash = (Get-FileHash -LiteralPath $ManifestPath -Algorithm SHA256).Hash
 Write-Host "Integrity manifest written: $($manifestEntries.Count) entries, sha256=$ManifestHash"
-Write-Host "  (STAB-WP-03b will anchor this manifest hash in the signed assembly for runtime fail-closed verification.)"
+Write-Host "  (Runtime verifies this manifest at startup; independent trust anchor is deferred to STAB-WP-05 code signing.)"
 
 Write-Host "Publish completed: $PublishDir"
