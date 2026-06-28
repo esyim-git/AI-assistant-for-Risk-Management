@@ -17,7 +17,7 @@
 - [x] **원천합계 = 분석합계 대사 PASS**(증폭/누락 0) (WP-06) · *증거: `RECON_SUM_BALANCE`=합계일치 AND 누락0(비숫자/MappingError 누락 시 FAIL), `RECON_ROW_AMPLIFICATION`=기준일-필터 모집단 대비. fail-code 기반 PASS/FAIL*
 - [x] CP949/UTF-8/XLSX 입력 검증 (WP-02/03) — CP949는 **경로 A(내장 Windows-949/UHC 디코더)**, **EUC-KR 범위 밖 UHC 확장 음절 라운드트립 포함** · *증거: `cp949-uhc-map.txt`(17,236 entries·SHA256 `ca2d8cb6…` **byte-stable**: `.gitattributes` `text eol=lf`로 EOL 고정 → 플랫폼 무관 동일 해시)·`힣` 라운드트립, `XlsxReader`(workbook-rels 시트해석·zip 안전상한·XXE 차단)*
 - [x] Dashboard·Report **동일 입력→동일 수치** (WP-07, 공통 AnalysisResult) · *증거: `ExcelReportRequest`가 `LimitAnalysisResult` 소비, LIMIT_MONITORING=`MonitoringTable`(6상태·사용률 재계산 없음), EXCEPTION_LIST=분석 `ExceptionList`(`RECON_*`)+High validation*
-- [x] 기존 SmokeTest 유지 + 신규 회귀 · *증거: 268→**368 PASS**, 삭제·약화 0(각 WP additive)*
+- [x] 기존 SmokeTest 유지 + 신규 회귀 · *증거: R1 마감 시점 **368 PASS**(현재 정본은 STAB suite 분리 후 **572 PASS / 0 FAIL**), 삭제·약화 0(각 WP additive)*
 > CP949 결정(2026-06-20): **경로 A(repo 내장 Windows-949/UHC 디코더, NuGet 0)** 채택 — `System.Text.Encoding.CodePages` 패키지 **미도입**(불변식 유지). 향후 인코딩 코드페이지 확장 패키지가 필요하면 여기서 **승인** 후에만.
 > **R1 잔여(다음 단계)**: ① 실 Test PC 오프라인 검증(§4 Gate B/C) ② v0.5 릴리스 ZIP/태그 ③ WP-09(전일대비 설계, R2). Local LLM은 R4 Model Approval Gate(§3) 전까지 Runtime/모델 미도입(설계만).
 
@@ -45,7 +45,7 @@
 - [ ] 상태: **MODEL_APPROVAL_REQUIRED** (승인 전까지)
 
 ## 4. Pilot Gate B/C (R6) — 실행 계획 + 결과 양식
-실제 Test PC 오프라인 검증. 현재 실 PC 미가용 시 **BLOCKED 표기 + 체크리스트/결과양식 선완성**.
+실제 Test PC 오프라인 검증. **실 오프라인 Test PC 증거가 없으면 Gate B/C는 PASS로 적지 않고 BLOCKED를 유지한다**(§11.4). 현재 R6 Team Pilot은 실 Test PC 미가용으로 **BLOCKED** — 체크리스트/결과양식만 선완성한다. (R1/R3 Capability 게이트의 PASS는 §1·§2의 **코드/CI(local-gate) 레벨**이며 실 PC Gate B/C를 대체하지 않는다.)
 
 ### Gate B (Test PC, 오프라인 실행)
 - [ ] Release ZIP **SHA256 확인**(릴리스 본문 값과 `Get-FileHash` 대조)
@@ -55,7 +55,7 @@
 
 ### Gate C (Excel 2021 + 환경)
 - [ ] Excel 2021에서 리포트 열기 — **수식 오류 없음 / 외부 링크 없음 / Macro 없음 / Formula Injection 없음**
-- [ ] 대용량 파일 처리 / **성능·메모리 측정** / 백신·EDR 확인 / **Code Signing** 확인 / Rollback 확인
+- [ ] 대용량 파일 처리 / **성능·메모리 측정** / 백신·EDR 확인 / **Code Signing** 확인(현재 placeholder — STAB-WP-05 **APPROVAL_REQUIRED**) / Rollback 확인
 
 ### 결과 기록 양식 (각 항목)
 ```text
@@ -64,7 +64,7 @@
 > 실 PC 미가용 단계: 상태 **BLOCKED(Pilot PC 대기)**, 본 체크리스트·양식은 선완성.
 
 ## 5. Team Pilot Readiness Checklist (R6, `docs/10` 연계)
-- **테스트**: 기존 268 유지 / 신규 기능 테스트 / Test Matrix / Golden File / 대용량 / CP949 / XLSX 손상 / RAG 인용 / 접근권한 / NoModel Fallback / Release Hash / 성능 / Memory / Offline Startup
+- **테스트**: 현재 정본 SmokeTest **572 PASS / 0 FAIL** 유지 / 신규 기능 테스트 / Test Matrix / Golden File / 대용량 / CP949 / XLSX 손상 / RAG 인용 / 접근권한 / NoModel Fallback / Release Hash / 성능 / Memory / Offline Startup
 - **문서**: 데모 스크립트 / 사용자·운영·관리자 가이드 / KB 업데이트 가이드 / Model Pack 가이드 / Incident Response / Rollback / Known Limitations / Pilot Feedback Form / Release Checklist
 - **산출**: Release Candidate → Gate B/C PASS → v1.0.0
 
