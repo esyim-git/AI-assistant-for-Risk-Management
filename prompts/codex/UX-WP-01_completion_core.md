@@ -18,10 +18,11 @@ git fetch origin && git switch -c feature/ux-wp-01-completion-core origin/main
 ## 작업 범위 (`RiskManagementAI.Core.Assist`)
 1. enum `CompletionLanguage { Sql, Vba, Excel, RiskComment }`, `CompletionItemKind { Keyword, Snippet, Function, Phrase, SafetyHint, BlockedHint }`.
 2. record `CompletionContext(CompletionLanguage Language, string Text, int CaretIndex, string Prefix, string Mode)` — `Text`는 휘발성(로그 미저장).
-3. record `CompletionItem(string Label, string InsertText, CompletionItemKind Kind, string Source, bool RequiresReview, string? SafetyNote, int SortKey)`, record `CompletionResult(IReadOnlyList<CompletionItem> Items, string Mode, IReadOnlyList<string> Warnings)`.
+3. record `CompletionItem(string Label, string InsertText, CompletionItemKind Kind, string Source, bool RequiresReview, bool Insertable, SafetyFinding? Finding, string? SafetyNote, int SortKey)`, record `CompletionResult(IReadOnlyList<CompletionItem> Items, string Mode, IReadOnlyList<string> Warnings)`. **불변식**: 전 항목 `RequiresReview=true`; `Kind∈{SafetyHint,BlockedHint} ⇒ Insertable=false & InsertText="" & Finding(구조화 SafetyFinding) 보존`; 그 외 `Insertable=true`.
 4. `interface ICompletionProvider { string ProviderId; bool Supports(CompletionLanguage); IReadOnlyList<CompletionItem> GetCompletions(CompletionContext); }` — 순수·결정적·I/O 0.
 5. `CompletionProviderRegistry`(등록/언어별 결정적 조회) + `CompletionEngine.GetCompletions(CompletionContext)` — provider 호출→병합→중복제거(ProviderId+Label)→결정적 정렬(SortKey, then Label Ordinal)→개수 상한(예 50). `Mode="NoModel"`.
-6. **Accepted Suggestion Audit**: `SuggestionLogEntry(SuggestionId, ProviderId, Language, Mode, UserHash, AcceptedAtUtc)` + writer(`TaskLogWriter` 패턴, JSONL, `logs/`). `SuggestionId`=provider+Label 결정적 해시. `UserHash`=`LogHash.Sha256Hex`. **입력 원문/삽입 본문 저장 금지**.
+6. **Accepted Suggestion Audit**: `SuggestionLogEntry(SuggestionId, ProviderId, Language, Kind, Mode, UserHash, InsertTextHash, AcceptedAtUtc)` + writer(`TaskLogWriter` 패턴, JSONL, `logs/`). `SuggestionId`=provider+Label 결정적 해시. **`InsertTextHash`=`LogHash.Sha256Hex(InsertText)`**(삽입 내용도 해시로 감사). `UserHash`=`LogHash.Sha256Hex`. **입력 원문/삽입 본문 저장 금지**(전부 해시). 삽입(`Insertable=true`) 이벤트만 audit.
+7. **SmokeTest 도메인**: 분류기(`SmokeDomain`)에 **`Assist` 도메인** 추가(키워드 `completion`·`smart assist`·`suggestion`·`provider`·`popup`·`assist`).
 - **제외**: 실제 provider 콘텐츠(UX-WP-02), WPF(UX-WP-03), LLM(R4), 새 NuGet.
 
 ## 구현 세부 / 보안
@@ -29,10 +30,10 @@ git fetch origin && git switch -c feature/ux-wp-01-completion-core origin/main
 - 더미 provider(테스트용)는 일반 토큰만(실데이터/실 테이블명/원문 0).
 
 ## 테스트 (SmokeTest, 외부 프레임워크 0)
-- 동일 Context→동일 `CompletionResult`(결정성). 언어별 라우팅(SQL provider가 VBA Context에 미동작). 개수 상한. `Mode=="NoModel"`. accept 시 audit 1건 + **로그에 입력 원문 문자열 부재** 단언 + `UserHash`≠원문. `Total` 보존+신규(미분류 도메인 0 — 이름에 "completion"/"smart assist"/"suggestion" 등 분류 키워드 포함).
+- 동일 Context→동일 `CompletionResult`(결정성). 언어별 라우팅(SQL provider가 VBA Context에 미동작). 개수 상한. `Mode=="NoModel"`. **전 항목 `RequiresReview=true`** 단언. **`SafetyHint/BlockedHint`는 `Insertable=false`·`InsertText=""`** 단언. accept 시 audit 1건 + **`InsertTextHash` 기록 + 로그에 입력/삽입 원문 문자열 부재** 단언 + `UserHash`≠원문. `Total` 보존+신규(이름에 `Assist`/`completion` 등 분류 키워드 → **`Unclassified=0`**).
 
 ## 완료/보고
-계약+코어+NoModel+해시 audit. build 0/0·SmokeTest `Total=N PASS/0 FAIL`·Gate A·NuGet 0 보고. `docs/39` UX-WP-01 DONE 요청.
+계약(Insertable·Finding 포함)+코어+NoModel+해시 audit(InsertTextHash)+`Assist` 도메인. build 0/0·SmokeTest `Total=N PASS/0 FAIL`·Gate A·NuGet 0 보고. `docs/39` UX-WP-01 DONE 요청.
 
 ## Claude Review Checklist
-계약 명확(Engine/Context/Item/ICompletionProvider/Registry) / 결정성 / NoModel 동작 / accept 해시 audit(**원문 미저장**) / NuGet 0 / 기존 테스트 불변 / Gate A.
+계약 명확(Engine/Context/Item[Insertable·Finding]/ICompletionProvider/Registry) / 결정성 / NoModel / **전항목 RequiresReview** / **힌트 비삽입** / accept 해시 audit(**InsertTextHash·원문 미저장**) / **`Assist` 도메인·Unclassified 0** / NuGet 0 / 기존 테스트 불변 / Gate A.

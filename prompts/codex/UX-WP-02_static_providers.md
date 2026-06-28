@@ -18,19 +18,20 @@ git fetch origin && git switch -c feature/ux-wp-02-static-providers origin/main 
 ## 작업 범위 (`Core/Assist/Providers`)
 1. **SqlCompletionProvider** (CAP-UX-02): 조회 전용 keyword(`SELECT/FROM/WHERE/JOIN/GROUP BY/ORDER BY/HAVING/ON/AS`)·snippet(`SELECT ... FROM ... WHERE BASE_DT = :BASE_DT`). 차단 DML/DDL(`INSERT/UPDATE/DELETE/MERGE/CREATE/ALTER/DROP/TRUNCATE/GRANT/REVOKE/EXEC/CALL/COMMIT/ROLLBACK`) **미추천** + 입력 시 `BlockedHint`. 차단 목록 = **`SqlSafetyChecker`/RuleSet 재사용**.
 2. **VbaCompletionProvider** (CAP-UX-03): 안전 snippet(`Option Explicit` 헤더·에러 처리·배열 루프·`Application` 상태 원복). 금지 API(`Shell/WScript.Shell/Kill/FileSystemObject 삭제·이동/Declare PtrSafe/WinAPI/Outlook/외부 URL`) **미추천** + `BlockedHint`.
-3. **Excel2021CompletionProvider** (CAP-UX-04): 허용 함수(`XLOOKUP/XMATCH/FILTER/SORT/SORTBY/UNIQUE/SEQUENCE/LET/SUMIFS/COUNTIFS/INDEX/MATCH`). **Excel365BlockedHintProvider**: 365 전용(`VSTACK/HSTACK/TOCOL/TOROW/TEXTSPLIT/TEXTBEFORE/TEXTAFTER/GROUPBY/PIVOTBY/MAP/REDUCE/BYROW/BYCOL/REGEX*`) 입력 시 **2021 대체안 + `BlockedHint`**. 함수 목록 = **`Excel2021FunctionChecker`/RuleSet 재사용**.
-4. **SafetyHintProvider** (CAP-UX-05): 입력을 기존 Checker에 통과시켜 위험/비호환을 `SafetyHint`로 노출(룰 재구현 금지, 동일 RuleSet 경유).
-5. **RiskPhraseProvider** (CAP-UX-06): 리스크 코멘트 **일반 문구 seed**(예: "기준일 기준 노출 합계", "한도 초과 항목 후속 점검 필요"). 전부 `RequiresReview=true`.
+3. **Excel2021CompletionProvider** (CAP-UX-04): 허용 함수(`XLOOKUP/XMATCH/FILTER/SORT/SORTBY/UNIQUE/SEQUENCE/LET/SUMIFS/COUNTIFS/INDEX/MATCH`). **Excel365BlockedHintProvider**: 365 전용(`VSTACK/HSTACK/TOCOL/TOROW/TEXTSPLIT/TEXTBEFORE/TEXTAFTER/GROUPBY/PIVOTBY/MAP/REDUCE/BYROW/BYCOL/REGEX*`) 입력 시 **2021 대체안 + `BlockedHint`**. **차단/허용 목록은 `Excel2021FunctionChecker`/RuleSet 단일 원천에서만 읽고 provider 자체 하드코딩 금지**(SmokeTest가 provider 차단셋 = RuleSet 차단셋 동기화 단언 → drift 0).
+4. **SafetyHintProvider** (CAP-UX-05): 입력을 기존 Checker에 통과시켜 위험/비호환을 노출. **구조화 `SafetyFinding`(code·severity·message·position)을 평문화하지 말고 `CompletionItem.Finding`에 그대로 보존**. 이 항목은 `Kind=SafetyHint`·**`Insertable=false`·`InsertText=""`**(경고이지 완성 아님). 룰 재구현 금지(동일 RuleSet 경유).
+5. **RiskPhraseProvider** (CAP-UX-06): 리스크 코멘트 **일반 문구 seed**(예: "기준일 기준 노출 합계", "한도 초과 항목 후속 점검 필요"). **실 내부규정/실데이터/실 테이블명 0**(일반 표현만).
+- **공통**: 모든 provider 항목 `RequiresReview=true`. 비-힌트(Keyword/Snippet/Function/Phrase)는 `Insertable=true`.
 - **제외**: WPF(UX-WP-03), LLM, 스키마 introspection, 새 NuGet.
 
 ## 구현 세부 / 보안
 - 결정적. **실 테이블명/내부규정 원문/실데이터 seed 0**(일반 표현·일반 더미명만). RuleSet/Checker 재사용(차단·허용 단일 원천). 외부 0.
 
 ## 테스트
-- SQL 차단 DML 미추천 + `BlockedHint`(양성). VBA 금지 API 미추천. Excel 2021 허용 추천 + 365 입력 시 대체+`BlockedHint`. SafetyHintProvider 판정 = 기존 Checker와 동일. RiskPhrase 전부 `RequiresReview` + 실데이터/원문 0(스캔). `Total` 보존+신규(분류 키워드 포함).
+- SQL 차단 DML 미추천 + `BlockedHint`(양성). VBA 금지 API 미추천. Excel 2021 허용 추천 + 365 입력 시 대체+`BlockedHint`. **Excel provider 차단셋 = `Excel2021FunctionChecker`/RuleSet 차단셋 동기화(drift 0) 단언**. SafetyHintProvider = 기존 Checker와 **동일 구조화 `SafetyFinding` 보존**·`Insertable=false`. **전 항목 `RequiresReview=true`** + RiskPhrase 실데이터/원문 0(스캔). `Total` 보존+신규(이름에 `Assist`/`completion` 등 분류 키워드 → `Unclassified=0`).
 
 ## 완료/보고
-provider 5종(+365 힌트) + 회귀. build 0/0·SmokeTest `Total=N PASS/0 FAIL`·Gate A·NuGet 0. `docs/39` UX-WP-02 DONE 요청.
+provider 5종(+365 힌트) + 차단셋 단일 원천 + 회귀. build 0/0·SmokeTest `Total=N PASS/0 FAIL`·Gate A·NuGet 0. `docs/39` UX-WP-02 DONE 요청.
 
 ## Claude Review Checklist
-RuleSet/Checker 재사용(룰 분기 0) / 차단 DML·금지 API 미추천 / 365 대체 힌트 / **실데이터·원문 0** / 전부 RequiresReview / NuGet 0 / 기존 테스트 불변 / Gate A.
+RuleSet/Checker 재사용(**차단셋 단일 원천·drift 0**) / 차단 DML·금지 API 미추천 / 365 대체 힌트 / **SafetyHint 구조화 Finding 보존·비삽입** / **전항목 RequiresReview** / **실데이터·원문 0** / NuGet 0 / 기존 테스트 불변 / Gate A.
