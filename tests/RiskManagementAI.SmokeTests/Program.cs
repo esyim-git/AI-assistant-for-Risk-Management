@@ -1737,6 +1737,7 @@ AssertTrue(Throws<ArgumentException>(() => auditLogReader.Read("logs/../reports"
         ("config/security_policy.json", "Policy", true),
         ("config/column_mapping.json", "Mapping", true),
         ("kb/ncr_placeholder.md", "Kb", true),
+        ("kb/public_regulation_catalog.csv", "Kb", true),
         ("rules/safety_rules.json", "Rules", true),
         ("templates/report_template.txt", "Template", true)
     };
@@ -1957,6 +1958,24 @@ AssertTrue(Throws<ArgumentException>(() => auditLogReader.Read("logs/../reports"
     var fabricatedOk = new IntegrityResult(IntegrityStatus.Ok, false, Array.Empty<string>(), Array.Empty<SafetyFinding>(), new HashSet<string>(StringComparer.Ordinal));
     AssertTrue(IntegrityGate.Decide(fabricatedOk, devAllow: false) == GateDecision.Allow, "IntegrityGate allows an Ok manifest result");
 
+    // Manifest shrink of a NON-mandatory critical asset: drop the rules/* entry but leave the file on
+    // disk (and tamper it). All six mandatory paths remain, so this must be caught by the critical-glob
+    // scan, not the mandatory check (PR #61 P2).
+    var pkgShrinkRules = FreshIntegrityPackage();
+    var shrinkRulesEntries = IntegrityEntries(pkgShrinkRules).Where(x => (string)x["path"]! != "rules/safety_rules.json").ToList();
+    WriteIntegrityManifest(pkgShrinkRules, "0.6.0", shrinkRulesEntries);
+    File.WriteAllText(Path.Combine(pkgShrinkRules, "rules", "safety_rules.json"), "attacker-controlled-rule");
+    var shrinkRulesResult = IntegrityVerifier.VerifyPackage(pkgShrinkRules, strict: true);
+    AssertTrue(shrinkRulesResult.Status == IntegrityStatus.FailClosed && shrinkRulesResult.BlockedClasses.Contains("Rules"), "IntegrityVerifier manifest shrink of a non-mandatory critical rules asset fails closed (undeclared on-disk file)");
+
+    // Dropping a NON-mandatory kb/*.csv entry while the file remains is likewise caught by the
+    // critical-glob scan (isolates the scan from the mandatory check).
+    var pkgShrinkKb = FreshIntegrityPackage();
+    var shrinkKbEntries = IntegrityEntries(pkgShrinkKb).Where(x => (string)x["path"]! != "kb/public_regulation_catalog.csv").ToList();
+    WriteIntegrityManifest(pkgShrinkKb, "0.6.0", shrinkKbEntries);
+    var shrinkKbResult = IntegrityVerifier.VerifyPackage(pkgShrinkKb, strict: true);
+    AssertTrue(shrinkKbResult.Status == IntegrityStatus.FailClosed && shrinkKbResult.BlockedClasses.Contains("Kb"), "IntegrityVerifier manifest shrink of a non-mandatory kb critical asset fails closed");
+
     // Documented residual: an attacker who rewrites a file AND regenerates the folder manifest in
     // lock-step is NOT detected by the interim (no independent trust anchor). Deferred to code signing.
     var pkgCoTamper = FreshIntegrityPackage();
@@ -1975,6 +1994,13 @@ AssertTrue(Throws<ArgumentException>(() => auditLogReader.Read("logs/../reports"
     AssertTrue(build03IntegrityText.Contains("manifest path escapes package root", StringComparison.Ordinal), "build/03 manifest verification should guard path traversal (lock-step with IntegrityVerifier)");
     AssertTrue(IntegrityVerifier.MandatoryEntries.Count == 6, "IntegrityVerifier manifest mandatory entry set should contain the six core entries");
     AssertTrue(string.Equals(IntegrityVerifier.ExpectedVersion, File.ReadAllText("VERSION").Trim(), StringComparison.Ordinal), "IntegrityVerifier manifest ExpectedVersion should equal the VERSION file (single source of truth)");
+
+    // The runtime critical-glob shrink guard must stay in lock-step with build/01 manifest generation.
+    var build01IntegrityText = File.ReadAllText(Path.Combine("build", "01_publish-win-x64.ps1"));
+    foreach (var globToken in new[] { "rules", "templates", "config/ncr", "*.csv", "*.md", "*.json" })
+    {
+        AssertTrue(build01IntegrityText.Contains(globToken, StringComparison.Ordinal), $"build/01 manifest generation should cover critical glob '{globToken}' (lock-step with IntegrityVerifier critical-glob shrink guard)");
+    }
 
     foreach (var dir in integrityTempDirs)
     {

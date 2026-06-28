@@ -46,6 +46,18 @@ public static class IntegrityVerifier
     // to required:false. Ordinal: manifest paths are exact forward-slash (build/01).
     private static readonly HashSet<string> MandatorySet = new(MandatoryEntries, StringComparer.Ordinal);
 
+    // Integrity-critical asset globs — MUST stay in lock-step with build/01 manifest generation.
+    // Every on-disk file matching these is required to be a declared manifest entry; a dropped entry
+    // (manifest shrink) is detected even though the file itself remains present (and possibly tampered).
+    private static readonly (string Dir, string Pattern, string Class)[] CriticalGlobs =
+    {
+        ("rules", "*", "Rules"),
+        ("templates", "*", "Template"),
+        ("config/ncr", "*.json", "Ncr"),
+        ("kb", "*.csv", "Kb"),
+        ("kb", "*.md", "Kb")
+    };
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -234,6 +246,59 @@ public static class IntegrityVerifier
             {
                 problems.Add($"size mismatch: {entryPath} (manifest={entry.Size}, actual={actualSize})");
                 blockedClasses.Add(entryClass);
+            }
+        }
+
+        // Manifest-shrink guard: every integrity-critical asset that build/01 declares (rules/templates/
+        // ncr/kb globs) must be declared here too. Without this, an attacker could DROP a non-mandatory
+        // critical entry from the manifest and tamper that file — all six mandatory paths still exist and
+        // the per-entry loop never hashes the removed asset, so strict verification would wrongly return
+        // Ok. Scan the SAME globs build/01 generates and flag any on-disk file not declared (lock-step).
+        foreach (var glob in CriticalGlobs)
+        {
+            string globRoot;
+            try
+            {
+                globRoot = Path.GetFullPath(Path.Combine(baseDir, glob.Dir.Replace('/', Path.DirectorySeparatorChar)));
+            }
+            catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException or System.Security.SecurityException)
+            {
+                problems.Add($"could not resolve critical asset directory '{glob.Dir}': {ex.Message}");
+                blockedClasses.Add(glob.Class);
+                continue;
+            }
+
+            if (!Directory.Exists(globRoot))
+            {
+                continue; // build/01 skips absent asset folders; a declared-but-missing file is caught above.
+            }
+
+            IReadOnlyList<string> files;
+            try
+            {
+                files = Directory.GetFiles(globRoot, glob.Pattern, SearchOption.AllDirectories);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+            {
+                problems.Add($"could not enumerate critical assets under '{glob.Dir}': {ex.Message}");
+                blockedClasses.Add(glob.Class);
+                continue;
+            }
+
+            foreach (var file in files)
+            {
+                var full = Path.GetFullPath(file);
+                if (!full.StartsWith(rootNorm, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var rel = full.Substring(rootNorm.Length).Replace(Path.DirectorySeparatorChar, '/');
+                if (!declaredPaths.Contains(rel))
+                {
+                    problems.Add($"undeclared integrity-critical file (manifest shrink): {rel}");
+                    blockedClasses.Add(glob.Class);
+                }
             }
         }
 
