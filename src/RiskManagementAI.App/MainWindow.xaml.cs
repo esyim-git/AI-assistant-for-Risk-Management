@@ -93,6 +93,10 @@ public partial class MainWindow : Window
             startupFindings.Add(FindingDisplay.FromSafetyFinding(_kbLoadFinding));
         }
 
+        // STAB-WP-03b: surface runtime integrity findings (non-blocking). FailClosed never reaches the
+        // window (the app shuts down in App.OnStartup), so only Ok / DevFallback findings appear here.
+        startupFindings.AddRange(App.IntegrityResult.Findings.Select(FindingDisplay.FromSafetyFinding));
+
         FindingList.ItemsSource = startupFindings;
         FindingSummaryText.Text = $"{startupFindings.Count} startup finding(s)";
     }

@@ -7,10 +7,11 @@
 ---
 
 ## ★ Resume Brief (Codex 인수 — v0.6.0 기준선)
-- **현재 기준선**: main `4cd69e9`, VERSION **0.6.0** (**v0.6.0 정식 릴리스 태그 = `3dfa80b`**). R1(WP-01~08)·R3(R3-WP-01~05)·REL-v0.6 가드(#54)·**STAB-WP-01(#56)·STAB-WP-02(#57)·STAB-WP-03a(#59)** 모두 **DONE**. SmokeTest **513 PASS / 0 FAIL** (`Total=513`).
+- **현재 기준선**: main `8dd5d7b`, VERSION **0.6.0** (**v0.6.0 정식 릴리스 태그 = `3dfa80b`**). R1(WP-01~08)·R3(R3-WP-01~05)·REL-v0.6 가드(#54)·**STAB-WP-01(#56)·STAB-WP-02(#57)·STAB-WP-03a(#59)** 모두 **DONE**. SmokeTest **513 PASS / 0 FAIL** (`Total=513`); STAB-WP-03b 신규 IntegrityVerifier/Gate 회귀 추가(로컬 검증 시 합계 갱신, 전부 Packaging 도메인).
 - **STAB-WP-03a DONE (#59, local-gate PASS)**: build측 Release 보안(PDB 0·Dev/Test config 0·UnsafeBinaryFormatter false) + Integrity Manifest 생성(build/01)·검증(build/03 — 필수항목 강제·경로 traversal 차단·hash/size/version). 증거: manifest 25 entries, ZIP SHA256 `3C7D3926…`, PDB/Dev-Test 0, SmokeTest 513. RR-13 + RR-14(build측) 해소.
-- **NEXT UP (다음 WP)**: **`STAB-WP-03b`(runtime: 앱 시작 시 Fail-Closed 검증 + manifest 독립 신뢰 앵커, C#/App·Core)** → `prompts/codex/STAB-WP-03_integrity_manifest.md` §작업범위 3. (RR-14 runtime측. manifest 부재도 운영 Fail-Closed, dev 스위치는 릴리스 부재, 앱 DLL 포함.)
-- **그 다음 후보(순서, NEXT UP 아님)**: STAB-WP-04(테스트 구조 분리) → R2-WP-01(Risk Semantic Hardening) → R2-WP-02~04.
+- **STAB-WP-03b 구현완료·검토중 (IN REVIEW, branch `feature/stab-wp-03b-runtime-integrity`, local-gate PASS = 상태 VERIFIED, review-thread 대기)**: runtime Fail-Closed(Design 3 interim). 신규 `Core/Integrity/`(IntegrityStatus·IntegrityResult·IntegrityVerifier·IntegrityGate)가 build/03 §4를 in-process 포팅(SHA256 전용, NuGet 0, build/01·03 미변경, 513 불변). `App.OnStartup` 최상단에서 검증→FailClosed=Shutdown(2). 데이터/자산 변조 + manifest 부재/축소/버전불일치 차단. dev 스위치 강화(`RMAI_DEV_ALLOW_UNVERIFIED=1` + `Debugger.IsAttached`). **잔여 위험(미탐지, 명시)**: manifest 독립 앵커 부재(co-tamper)·self-contained 런타임 DLL 미해시·폴더 동반 변조 → **코드 서명(APPROVAL_REQUIRED)** 후속(`STAB-WP-05`). **Codex local-gate(2026-06-28, latest PR #61 delta incl. `947f532`/`8866a07` + RequiredCriticalEntries co-deletion fix) = VERIFIED**: `dotnet build` 0/0, SmokeTest `Total=572 PASS=572 FAIL=0`, Gate A 0, NuGet `PackageReference` 0, build/00~03 PASS(ZIP SHA256 `E3995BD54A1D1DCAA55FEDCD968E18906191255DCF564BA4047A0A59E8402021`). 봇 P2 4건(`99fc508`: ① null 엔트리 ② malformed path try/catch ③ mandatory를 manifest `required` 플래그와 무관하게 path로 강제 ④ 플랫폼 무관 rooted/UNC 거부) 검증 PASS. 추가 P2(`947f532`/`8866a07`) 검증 PASS: ⑤ **manifest 축소 가드** — build/01 critical 글롭(rules/templates/config·ncr/kb) 디스크 스캔으로 미선언 critical 파일 FailClosed(엔트리 드롭+파일 잔존/변조 차단, build/01 lock-step); ⑥ **critical 글롭 required-by-path** — 글롭 자산은 manifest `required` 플래그와 무관하게 필수 강제(엔트리 유지+`required:false`+파일 삭제 차단); ⑥' mandatory 자산 **co-deletion**(엔트리+파일 동시 삭제)은 hard-coded declared-check로 차단(앵커). **추가 보강 검증 PASS**: `RequiredCriticalEntries`로 현 build/01 critical asset inventory를 pin해 비-mandatory critical **co-deletion**(엔트리+파일 동시 삭제)도 FailClosed로 닫음. **잔여(미탐지 고정)**: 파일+manifest hash/size lock-step co-tamper는 독립 앵커 부재로 미탐지 → **코드 서명(STAB-WP-05)** 후속. 머지 전제 = Claude/Codex review thread 해소.
+- **NEXT UP (다음 WP)**: STAB-WP-03b가 머지되면 → **`STAB-WP-04`(테스트 구조 분리, RR-10 보호)**. (그 전까지는 03b local-gate 검증·머지가 활성 항목.)
+- **그 다음 후보(순서, NEXT UP 아님)**: STAB-WP-04(테스트 구조 분리) → **STAB-WP-05(Authenticode 코드 서명 — APPROVAL_REQUIRED, 외부 신뢰 루트, STOP)** → R2-WP-01(Risk Semantic Hardening) → R2-WP-02~04.
 - **BLOCKED**: PILOT Gate B/C(실 Test PC 증거 대기 — `docs/45`). 신규 기능과 분리해 user/Test PC가 병행.
 - **재현 검증**: `git fetch origin main && git switch main && dotnet build RiskManagementAI.sln -c Release && dotnet run --project tests/RiskManagementAI.SmokeTests` → 종료부의 두 줄 `=== SmokeTest Summary ===` 및 `Total=N PASS=N FAIL=0 Duration=...s` 확인(정본 합계). CI/로그 grep은 **`Total=`** 사용.
 - **운영 모델(Local-Gate)**: GitHub Actions 2,000분/월 소진(**~2026-06-30 리셋 예정**) 동안 build/test/packaging는 **전부 로컬 실행**. 머지 게이트 = 로컬 `Total=N PASS/0 FAIL` 증거 + Claude 코드리뷰(GitHub CI green 전제 아님). `ci.yml`·`governance-soft-guard.yml`는 `workflow_dispatch` 수동(분 가용 시), `ci.yml` test=ubuntu·wpf=windows. (`CLAUDE.md §11.6`)
@@ -162,6 +163,7 @@
 - **Claude Review Checklist**: 합계/요약 정확 / 기존 단언 불변 / exit code / 정본 수치 docs 반영.
 
 ## STAB-WP-03. Release Security + Integrity Manifest (RR-13, RR-14)
+> **분할**: **03a(build측 — Release 보안 + manifest 생성/검증) = DONE(#59, VERIFIED local-gate)**. **03b(runtime — 앱 시작 Fail-Closed) = IN REVIEW(PARTIAL, branch `feature/stab-wp-03b-runtime-integrity`)**. 독립 신뢰 앵커(코드 서명)는 **STAB-WP-05(APPROVAL_REQUIRED)** 로 분리.
 - **목표**: (a) Release 산출물에서 **PDB/개인 경로/SourceLink/Debug·Test config/Unsafe BinaryFormatter** 부재 보장(`DebugSymbols=false`, `DebugType=none`, allowlist), (b) **`approved_manifest.json`**(핵심 파일 path·size·SHA256·version·required·security class) 생성 + **앱 시작 시 무결성 검증**(개발=Fallback 경고, 운영=Fail-Closed: policy 불일치→기동/기능 차단, rules→검사 차단, template→Report 차단, KB→검색 차단).
 - **선행조건**: STAB-WP-01.
 - **작업범위**: `build/01`/`03`에 Release 보안 검증 추가, manifest 생성·검증 모듈(인박스, NuGet 0), 시작 시 검증 + 모드 분기. Code Signing은 **운영 절차 Placeholder**(자동서명 미구현).
@@ -178,6 +180,14 @@
 - **테스트**: 분리 전후 총수·이름 동일(매핑표), 도메인 Summary, Golden File 유지, 실패 exit code 유지.
 - **Branch**: `feature/stab-wp-04-test-suites` · **Commit**: `test: split SmokeTest into internal suites without loss (STAB-WP-04)`
 - **Claude Review Checklist**: 총수 보존+매핑 / 단언 불변 / 도메인 Summary / 외부 0.
+
+## STAB-WP-05. Authenticode 코드 서명 — 독립 신뢰 앵커 (APPROVAL_REQUIRED · STOP)
+- **상태**: **APPROVAL_REQUIRED**. STAB-WP-03b interim이 닫지 못한 **manifest 독립 신뢰 앵커**(쓰기 가능 폴더에서 파일+manifest를 lock-step 동시 변조하는 co-tamper) + **self-contained 런타임 DLL(~150개) 미해시** + 폴더 동반 변조를 닫는다. 외부 신뢰 루트(인증서·서명 도구)가 필요하므로 **STOP 규칙(§11.5)** — 승인(`docs/41`/ADR-008 §결정4·5) 전 진행 금지.
+- **목표**: 관리 어셈블리(`RiskManagementAI.dll`/`.exe`) Authenticode 서명 + 시작 시 자기 서명/게시자 검증을 신뢰 앵커로 하여 manifest 신뢰를 확립(서명 검증 후에만 manifest 신뢰). 런타임 DLL 범위는 서명 카탈로그/배포 정책으로 확장.
+- **선행조건**: STAB-WP-03b 머지. **승인 문서**(인증서 발급 주체·반입 절차·검증 정책·Rollback).
+- **제외범위(STOP 전)**: 자동 서명 파이프라인, 인증서 저장·반입 자동화.
+- **테스트(승인 후, Windows 실 Test PC)**: 정상 서명 패키지=기동, 미서명/서명 불일치=차단, co-tamper(파일+manifest 동시 변조)=서명 앵커로 **차단**(03b에서 미탐지였던 케이스 회귀로 PASS 전환).
+- **Claude Review Checklist**: 외부 신뢰 루트 승인 근거 / 서명 검증이 manifest 신뢰의 선행 / 03b 잔여위험 3건 폐쇄 매핑 / 절대원칙·NuGet 정책 유지.
 
 ## PILOT-WP-01. v0.6 Offline Gate B/C Evidence (BLOCKED, user/Test PC)
 - **목표**: `docs/45` v0.6 Gate B/C 증거 시트를 실 오프라인 Test PC에서 채워 봉인. **실 PC 증거 없으면 PASS 금지(BLOCKED 유지).**
