@@ -7,13 +7,13 @@
 ---
 
 ## ★ Resume Brief (Codex 인수 — v0.6.0 기준선)
-- **현재 기준선**: main **after PR #57 merge**, VERSION **0.6.0**. R1(WP-01~08) **DONE**, R3(R3-WP-01~05) **DONE**, REL-v0.6 패키징 가드(#54) **DONE**, **STAB-WP-01 Build/Version 재현성(#56) DONE**, **STAB-WP-02 정본 테스트 합계(#57) DONE**. SmokeTest **513 PASS / 0 FAIL** (정본 합계 — STAB-WP-02 CI 요약 `Total=513`).
-- **진행 중**: **`STAB-WP-03a`(build측: Release 보안 PDB/Debug 제거 + Integrity Manifest 생성(build/01)·검증(build/03))** = 현재 PR. **로컬 `build/00~03 -Version 0.6.0` 검증 후 병합**(Claude는 PowerShell 실행 불가 — local-gate). RR-13 + RR-14(build측) 처리.
+- **현재 기준선**: main `4cd69e9`, VERSION **0.6.0** (**v0.6.0 정식 릴리스 태그 = `3dfa80b`**). R1(WP-01~08)·R3(R3-WP-01~05)·REL-v0.6 가드(#54)·**STAB-WP-01(#56)·STAB-WP-02(#57)·STAB-WP-03a(#59)** 모두 **DONE**. SmokeTest **513 PASS / 0 FAIL** (`Total=513`).
+- **STAB-WP-03a DONE (#59, local-gate PASS)**: build측 Release 보안(PDB 0·Dev/Test config 0·UnsafeBinaryFormatter false) + Integrity Manifest 생성(build/01)·검증(build/03 — 필수항목 강제·경로 traversal 차단·hash/size/version). 증거: manifest 25 entries, ZIP SHA256 `3C7D3926…`, PDB/Dev-Test 0, SmokeTest 513. RR-13 + RR-14(build측) 해소.
 - **NEXT UP (다음 WP)**: **`STAB-WP-03b`(runtime: 앱 시작 시 Fail-Closed 검증 + manifest 독립 신뢰 앵커, C#/App·Core)** → `prompts/codex/STAB-WP-03_integrity_manifest.md` §작업범위 3. (RR-14 runtime측. manifest 부재도 운영 Fail-Closed, dev 스위치는 릴리스 부재, 앱 DLL 포함.)
 - **그 다음 후보(순서, NEXT UP 아님)**: STAB-WP-04(테스트 구조 분리) → R2-WP-01(Risk Semantic Hardening) → R2-WP-02~04.
 - **BLOCKED**: PILOT Gate B/C(실 Test PC 증거 대기 — `docs/45`). 신규 기능과 분리해 user/Test PC가 병행.
 - **재현 검증**: `git fetch origin main && git switch main && dotnet build RiskManagementAI.sln -c Release && dotnet run --project tests/RiskManagementAI.SmokeTests` → 종료부의 두 줄 `=== SmokeTest Summary ===` 및 `Total=N PASS=N FAIL=0 Duration=...s` 확인(정본 합계). CI/로그 grep은 **`Total=`** 사용.
-- **운영 모델(Local-Gate)**: GitHub Actions 분 소진 동안 build/test/packaging는 **전부 로컬 실행**. 머지 게이트 = 로컬 `Total=N PASS/0 FAIL` 증거 + Claude 코드리뷰(GitHub CI green 전제 아님). `ci.yml`·`governance-soft-guard.yml`는 `workflow_dispatch` 수동(분 가용 시), `ci.yml` test=ubuntu·wpf=windows. (`CLAUDE.md §11.6`)
+- **운영 모델(Local-Gate)**: GitHub Actions 2,000분/월 소진(**~2026-06-30 리셋 예정**) 동안 build/test/packaging는 **전부 로컬 실행**. 머지 게이트 = 로컬 `Total=N PASS/0 FAIL` 증거 + Claude 코드리뷰(GitHub CI green 전제 아님). `ci.yml`·`governance-soft-guard.yml`는 `workflow_dispatch` 수동(분 가용 시), `ci.yml` test=ubuntu·wpf=windows. (`CLAUDE.md §11.6`)
 - **테스트 수 변경 규약**: 총수 감소 시 사유·매핑 기록(삭제·약화 금지). STAB-WP-02가 합계·도메인 요약·실행시간을 출력하고, 미분류 도메인(`Unclassified`)이 남으면 실패한다.
 - **⚠️ Archived(재실행 금지) 프롬프트**: `prompts/codex_mvp1_implementation_prompt.md`, `prompts/codex_mvp2_*`, `prompts/codex_mvp3_ui_prompt.md`, `prompts/codex_goal_mode_prompt.md`, `prompts/claude_bootstrap_v2_prompt.md`, `prompts/codex/WP-01~07_*`, `prompts/codex/R3-WP-01~05_*`, `prompts/codex/REL-v0.6-packaging-guard.md`, `prompts/codex/STAB-WP-01_*`, `prompts/codex/STAB-WP-02_*` — 모두 **완료/Starter** 단계. 신규 작업은 본 Resume Brief의 NEXT UP만 따른다.
 

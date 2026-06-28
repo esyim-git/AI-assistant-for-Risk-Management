@@ -221,7 +221,7 @@ Claude는 **Architecture Lead / Program Manager / Security Reviewer / Release Re
 외부 NuGet/라이브러리·Vector DB·Embedding·Local LLM Runtime·모델파일이 필요해지면 **STOP** → 승인 문서(`docs/41`·`docs/40`) 후에만 진행.
 
 ### 11.6 Local-Gate 운영 모델 (GitHub Actions 분 제약)
-GitHub Actions 분(Free plan 2,000/월, private)이 소진된 동안의 작업 모델(repo 소유자 지정):
+GitHub Actions 분(Free plan 2,000/월, private)이 소진된 동안의 작업 모델(repo 소유자 지정, **~2026-06-30 리셋 예정**):
 - **Claude = 개발 + 코드 검증(코드리뷰)만.** build/test/packaging/CI **실행은 전부 Local**(사용자/Codex, Windows + .NET 8 SDK).
 - **머지 게이트 = ① 로컬 `dotnet build` + `dotnet run --project tests/RiskManagementAI.SmokeTests`(→ `Total=N PASS / 0 FAIL`) 증거 + ② Claude 코드리뷰(Diff·보안·문서정합).** GitHub CI green을 머지 전제로 요구하지 않는다(분 가용 시 보조망).
 - **CI 워크플로(`ci.yml`·`governance-soft-guard.yml`)는 `workflow_dispatch` 수동 전용.** `ci.yml`은 test=ubuntu(1x)·wpf=windows(2x) 분리. 월 리셋 후 자동 트리거 복원은 각 파일 주석 참조.
