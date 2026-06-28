@@ -1,6 +1,6 @@
 # Codex STAB-WP-04 — SmokeTest Suite Structure (RR-10)
 
-> 권위 스펙: `AGENTS.md` > `docs/39` STAB-WP-04 > 본 프롬프트. 현재 기준선은 main `682f1d8` 이후 STAB-WP-03b 완료 상태이며, SmokeTest 정본은 `Total=572 PASS=572 FAIL=0`.
+> 권위 스펙: `AGENTS.md` > `docs/39` STAB-WP-04 > 본 프롬프트. 현재 기준선은 main `80fbcb8`(STAB-WP-03b #61 + truth-sync #63 + Smart Assist 설계 #62 머지 후)이며, SmokeTest 정본은 `Total=572 PASS=572 FAIL=0`.
 
 ## 목표
 `tests/RiskManagementAI.SmokeTests/Program.cs`의 비대한 단일 파일을 외부 테스트 프레임워크 없이 내부 suite 구조로 분리한다. 목적은 유지보수성과 RR-10(기존 테스트 삭제·약화 금지) 보호이며, 기능 동작 변경은 금지한다.
