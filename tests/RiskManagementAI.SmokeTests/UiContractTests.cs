@@ -189,5 +189,28 @@ foreach (var (handler, tabKey) in expectedNavigationTargets)
         : mainWindowCode[start..(end < 0 ? mainWindowCode.Length : end)];
     context.AssertTrue(methodBody.Contains("SelectMainTab", StringComparison.Ordinal) && methodBody.Contains(tabKey, StringComparison.Ordinal), $"Left menu handler {handler} should select {tabKey}");
 }
+
+// STAB-UX-01: Resizable editor layout contract (XAML-level assertions, no WPF compile required).
+var mainWindowXamlText = File.ReadAllText(Path.Combine("src", "RiskManagementAI.App", "MainWindow.xaml"));
+
+bool ResizableEditorOk(string editorName)
+{
+    var box = mainWindowXaml.Descendants(wpf + "TextBox")
+        .FirstOrDefault(t => (string?)t.Attribute(xaml + "Name") == editorName);
+    return box != null
+        && (string?)box.Attribute("HorizontalAlignment") == "Stretch"
+        && (string?)box.Attribute("VerticalAlignment") == "Stretch"
+        && (string?)box.Attribute("AcceptsTab") == "True"
+        && (string?)box.Attribute("FontFamily") == "Consolas"
+        && (string?)box.Attribute("FontSize") == "14";
+}
+
+context.AssertTrue(mainWindowXaml.Descendants(wpf + "GridSplitter").Count() >= 2, "UI layout should provide editor/result and workspace GridSplitters");
+context.AssertTrue(!mainWindowXamlText.Contains("<RowDefinition Height=\"260\"", StringComparison.Ordinal) && mainWindowXamlText.Contains("Height=\"2*\"", StringComparison.Ordinal) && mainWindowXamlText.Contains("MinHeight=\"260\"", StringComparison.Ordinal), "UI layout editor region should be resizable not a fixed 260 height");
+context.AssertTrue(mainWindowXamlText.Contains("MinWidth=\"1180\"", StringComparison.Ordinal) && mainWindowXamlText.Contains("MinHeight=\"720\"", StringComparison.Ordinal), "UI window should set MinWidth and MinHeight for the resizable shell");
+context.AssertTrue(ResizableEditorOk("SqlRequestBox"), "UI SQL editor box should stretch with Consolas font");
+context.AssertTrue(ResizableEditorOk("VbaRequestBox"), "UI VBA editor box should stretch with Consolas font");
+context.AssertTrue(ResizableEditorOk("ExcelRequestBox"), "UI Excel editor box should stretch with Consolas font");
+context.AssertTrue(mainWindowXamlText.Contains("MinWidth=\"280\"", StringComparison.Ordinal) && mainWindowXamlText.Contains("MaxWidth=\"560\"", StringComparison.Ordinal), "UI Safety panel column should set MinWidth and MaxWidth bounds");
     }
 }

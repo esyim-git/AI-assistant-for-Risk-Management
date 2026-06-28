@@ -1,12 +1,14 @@
 <Window x:Class="RiskManagementAI.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Risk Management AI Assistant" Height="720" Width="1180" MinHeight="640" MinWidth="1000">
+        Title="Risk Management AI Assistant" Height="720" Width="1180" MinHeight="720" MinWidth="1180"
+        ResizeMode="CanResize" SizeToContent="Manual">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="220" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="300" />
+            <ColumnDefinition Width="*" MinWidth="480" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="340" MinWidth="280" MaxWidth="560" />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="64" />
@@ -14,7 +16,7 @@
             <RowDefinition Height="32" />
         </Grid.RowDefinitions>
 
-        <Border Grid.ColumnSpan="3" Background="#102033" Padding="16">
+        <Border Grid.ColumnSpan="4" Background="#102033" Padding="16">
             <DockPanel>
                 <TextBlock Text="Risk Management AI Assistant" Foreground="White" FontSize="22" FontWeight="SemiBold" />
                 <TextBlock x:Name="EnvironmentText" Text="Offline Mode / Local Model: Not Configured" Foreground="#B8D7FF" FontSize="13" HorizontalAlignment="Right" DockPanel.Dock="Right" />
@@ -39,11 +41,18 @@
 
         <Grid Grid.Row="1" Grid.Column="1" Margin="18">
             <Grid.RowDefinitions>
-                <RowDefinition Height="260" />
-                <RowDefinition Height="*" />
+                <RowDefinition Height="2*" MinHeight="260" />
+                <RowDefinition Height="8" />
+                <RowDefinition Height="*" MinHeight="180" />
             </Grid.RowDefinitions>
 
-            <TabControl x:Name="MainTabs">
+            <GridSplitter x:Name="EditorResultSplitter" Grid.Row="1"
+                          Height="8"
+                          HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                          ResizeBehavior="PreviousAndNext" ResizeDirection="Rows"
+                          Background="#E2E8F0" />
+
+            <TabControl x:Name="MainTabs" Grid.Row="0">
                 <TabItem x:Name="DashboardTab" Header="Dashboard">
                     <Grid Margin="10">
                         <Grid.RowDefinitions>
@@ -78,7 +87,10 @@
                             <RowDefinition Height="*" />
                             <RowDefinition Height="36" />
                         </Grid.RowDefinitions>
-                        <TextBox x:Name="SqlRequestBox" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                        <TextBox x:Name="SqlRequestBox" TextWrapping="Wrap" AcceptsReturn="True" AcceptsTab="True"
+                                 HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                 VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                                 FontFamily="Consolas" FontSize="14"
                                  Text="SELECT TRADE_ID, BASE_DT FROM RISK_EXPOSURE_DAILY WHERE BASE_DT = :BASE_DT" />
                         <Button Grid.Row="1" Content="SQL 검사" Width="110" HorizontalAlignment="Left" Margin="0,10,0,0" Click="OnCheckSql" />
                     </Grid>
@@ -91,9 +103,15 @@
                             <RowDefinition Height="*" />
                             <RowDefinition Height="36" />
                         </Grid.RowDefinitions>
-                        <TextBox x:Name="DraftRequestBox" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                        <TextBox x:Name="DraftRequestBox" TextWrapping="Wrap" AcceptsReturn="True" AcceptsTab="True"
+                                 HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                 VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                                 FontFamily="Consolas" FontSize="14"
                                  Text="리스크 한도 점검용 조회 SQL 초안을 작성" />
-                        <TextBox x:Name="DraftResultBox" Grid.Row="1" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" Margin="0,8,0,0"
+                        <TextBox x:Name="DraftResultBox" Grid.Row="1" TextWrapping="Wrap" AcceptsReturn="True" AcceptsTab="True"
+                                 HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                 VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                                 FontFamily="Consolas" FontSize="14" Margin="0,8,0,0"
                                  Text="NoModelMode 결과가 여기에 표시됩니다." IsReadOnly="True" />
                         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10,0,0">
                             <Button Content="SQL 초안" Width="110" Click="OnGenerateSqlDraft" />
@@ -108,7 +126,10 @@
                             <RowDefinition Height="*" />
                             <RowDefinition Height="36" />
                         </Grid.RowDefinitions>
-                        <TextBox x:Name="VbaRequestBox" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                        <TextBox x:Name="VbaRequestBox" TextWrapping="Wrap" AcceptsReturn="True" AcceptsTab="True"
+                                 HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                 VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                                 FontFamily="Consolas" FontSize="14"
                                  Text="Option Explicit&#x0a;Sub SampleCheck()&#x0a;    MsgBox &quot;Review only&quot;&#x0a;End Sub" />
                         <Button Grid.Row="1" Content="VBA 검사" Width="110" HorizontalAlignment="Left" Margin="0,10,0,0" Click="OnCheckVba" />
                     </Grid>
@@ -120,7 +141,10 @@
                             <RowDefinition Height="*" />
                             <RowDefinition Height="36" />
                         </Grid.RowDefinitions>
-                        <TextBox x:Name="ExcelRequestBox" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                        <TextBox x:Name="ExcelRequestBox" TextWrapping="Wrap" AcceptsReturn="True" AcceptsTab="True"
+                                 HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                 VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                                 FontFamily="Consolas" FontSize="14"
                                  Text="=XLOOKUP(A2,LimitTable[Desk],LimitTable[Limit])" />
                         <Button Grid.Row="1" Content="Excel 검사" Width="110" HorizontalAlignment="Left" Margin="0,10,0,0" Click="OnCheckExcel" />
                     </Grid>
@@ -352,7 +376,7 @@
                 </TabItem>
             </TabControl>
 
-            <Grid Grid.Row="1" Margin="0,16,0,0">
+            <Grid Grid.Row="2" Margin="0,8,0,0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="28" />
                     <RowDefinition Height="*" />
@@ -381,7 +405,13 @@
             </Grid>
         </Grid>
 
-        <Border Grid.Row="1" Grid.Column="2" Background="#FAFAFA" Padding="14" BorderBrush="#DDDDDD" BorderThickness="1,0,0,0">
+        <GridSplitter x:Name="WorkspaceSafetySplitter" Grid.Row="1" Grid.Column="2"
+                      Width="6"
+                      HorizontalAlignment="Center" VerticalAlignment="Stretch"
+                      ResizeBehavior="PreviousAndNext" ResizeDirection="Columns"
+                      Background="#E2E8F0" />
+
+        <Border Grid.Row="1" Grid.Column="3" Background="#FAFAFA" Padding="14" BorderBrush="#DDDDDD" BorderThickness="1,0,0,0">
             <StackPanel>
                 <TextBlock Text="Safety Check" FontSize="16" FontWeight="Bold" />
                 <TextBlock Text="초기 MVP는 모델 없이도 룰 엔진이 동작합니다." TextWrapping="Wrap" Margin="0,8,0,16" />
@@ -392,7 +422,7 @@
             </StackPanel>
         </Border>
 
-        <Border Grid.Row="2" Grid.ColumnSpan="3" Background="#EEF2F6" Padding="8">
+        <Border Grid.Row="2" Grid.ColumnSpan="4" Background="#EEF2F6" Padding="8">
             <TextBlock Text="No external API · No auto execution · Self-contained offline runtime" FontSize="12" Foreground="#475569" />
         </Border>
     </Grid>
