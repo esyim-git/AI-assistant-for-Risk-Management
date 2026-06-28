@@ -194,6 +194,54 @@
 - **목표**: `docs/45` v0.6 Gate B/C 증거 시트를 실 오프라인 Test PC에서 채워 봉인. **실 PC 증거 없으면 PASS 금지(BLOCKED 유지).**
 - **성격**: Codex 코드 작업 아님(문서/운영). Claude는 증거 회신 시 항목별 PASS/BLOCKED 재판정. 신규 기능과 분리·병행.
 
+## UX Assist Track — Smart Assist / Inline Assist (UX-WP-01~03)
+> 권위 설계 = `docs/46`, ADR-010(`docs/40`). 전체 생성(`DraftPipeline`)과 **별개**. 정적·NoModel·외부 Editor 패키지 0·자동삽입/자동실행 0·해시 audit. (STAB 이후 R2와 **병행 가능**, 선행 = 없음/안정 기준선.)
+
+## UX-WP-01. Smart Assist Core (Engine·Provider 계약, NoModel) (CAP-UX-01, CAP-UX-08)
+- **목표**: inline 완성 엔진의 **계약과 코어**를 만든다 — `CompletionEngine`·`CompletionContext`·`CompletionItem`·`ICompletionProvider`·Provider Registry. **NoModelMode 완전 동작**. Accept 시 해시 audit.
+- **선행조건**: 없음(안정 기준선). 후속 UX-WP-02/03의 토대.
+- **작업범위**: `Core/Assist/`에 `CompletionLanguage`/`CompletionItemKind` enum, `CompletionContext`/`CompletionItem`/`CompletionResult` record, `ICompletionProvider`, `CompletionProviderRegistry`, `CompletionEngine`(병합·중복제거·결정적 정렬·개수 상한). **`CompletionItem`에 `Insertable`(SafetyHint/BlockedHint=false)·`Finding`(구조화 `SafetyFinding` 보존)·`RequiresReview`(전 항목 true) 포함. `CompletionResult`에는 `Findings` 컬렉션을 두어 SafetyHint/BlockedHint의 구조화 finding을 UI가 문자열 Warnings에 의존하지 않고 전달받게 한다.** `SuggestionLogEntry`(+`InsertTextHash`·`Kind`) + accept audit writer(`TaskLogWriter` 패턴, 해시 전용). SmokeTest 분류기에 **`Assist` 도메인** 추가.
+- **제외범위**: 실제 provider 콘텐츠(UX-WP-02), WPF UI(UX-WP-03), LLM(R4).
+- **읽을문서**: `docs/46`, `docs/40` ADR-010, `Core/Logging`(LogHash/TaskLogWriter), `Core/Safety`(SafetyFinding).
+- **수정예상파일**: `Core/Assist/*.cs`(신규), `tests/.../Program.cs`(회귀 + `Assist` 도메인 매핑).
+- **Public Interface**: `CompletionResult CompletionEngine.GetCompletions(CompletionContext)`; `CompletionResult(Items, Mode, Warnings, Findings)`; `interface ICompletionProvider`; `CompletionProviderRegistry.Register/Resolve`; `CompletionItem(Label, InsertText, Kind, Source, RequiresReview, Insertable, Finding, SafetyNote, SortKey)`.
+- **구현세부**: 순수·결정적. 모델 의존 0. Engine `Mode="NoModel"`. 동일 Context→동일 결과. **전 항목 `RequiresReview=true`**; `SafetyHint/BlockedHint`는 `Insertable=false`·`InsertText=""`·구조화 `Finding` 보존. **SafetyHint/BlockedHint는 개수 상한보다 먼저 pinned 처리하고, 일반 추천 cap 때문에 `CompletionResult.Findings`가 누락되면 안 된다.** accept 로그에 **입력 원문/삽입 본문 미저장** — `SuggestionId`=provider+Label 해시, **`InsertTextHash`=`LogHash.Sha256Hex(InsertText)`**, `UserHash`=`LogHash.Sha256Hex`.
+- **보안조건**: 외부 0·NuGet 0·자동실행 0. 로그 = id/provider/kind/mode/userHash/insertTextHash/시각만. 쓰기 = `logs/`.
+- **테스트**(이름에 `Assist`/`completion` 등 분류 키워드): 결정성, 언어 라우팅, 개수 상한, **cap 적용 후에도 SafetyHint/BlockedHint와 `CompletionResult.Findings` 보존**, NoModel, **전 항목 RequiresReview**, **SafetyHint Insertable=false**, accept audit 1건·**InsertTextHash 기록·원문 미저장 단언**, `Unclassified=0`.
+- **완료조건**: CompletionEngine/Context/Item(Insertable·Finding)/ICompletionProvider/Registry + NoModel + accept 해시 audit + `Assist` 도메인 + SmokeTest. build 0/0·`Total` 보존+신규.
+- **Branch**: `feature/ux-wp-01-completion-core` · **Commit**: `feat: smart assist completion core + provider contract (UX-WP-01)`
+- **Claude Review Checklist**: 계약 명확(Insertable·Finding·CompletionResult.Findings 포함) / 결정성 / NoModel / cap이 safety finding을 누락하지 않음 / 전항목 RequiresReview / 힌트 비삽입 / 해시 audit(InsertTextHash·원문 미저장) / `Assist` 도메인·Unclassified 0 / NuGet 0 / 기존 테스트 불변 / Gate A.
+
+## UX-WP-02. Static SQL/VBA/Excel/Risk Providers (CAP-UX-02~06)
+- **목표**: 정적 provider 5종 — SQL keyword/snippet(조회전용), VBA 안전 snippet, Excel 2021 함수, Excel 365 차단+대체 힌트, SafetyHint(기존 Checker 재사용), Risk phrase seed.
+- **선행조건**: UX-WP-01.
+- **작업범위**: `SqlCompletionProvider`·`VbaCompletionProvider`·`Excel2021CompletionProvider`·`Excel365BlockedHintProvider`·`SafetyHintProvider`·`RiskPhraseProvider`. 차단 목록은 **기존 `SqlSafetyChecker`/`VbaSafetyChecker`/`Excel2021FunctionChecker`+RuleSet 재사용**(중복 정의 금지). Excel 허용 완성 함수는 UX-WP-02가 추가하는 전용 RuleLoader 소스 `rules/excel_2021_completion_allow_functions.txt`(또는 동등한 RuleSet 그룹 `excel_completion_allow`)에서만 읽고, `ExcelPreferredFunctions`를 직접 allow-list로 사용하지 않는다.
+- **제외범위**: WPF UI(UX-WP-03), LLM 랭킹(R4), 스키마 introspection.
+- **읽을문서**: `docs/46`, `CLAUDE.md §4·§5·§6`, `Core/Safety`(기존 Checker/RuleSet), `docs/16`(VBA).
+- **수정예상파일**: `Core/Assist/Providers/*.cs`(신규), `rules/`(필요 시 seed, 실데이터 0), `tests/.../Program.cs`.
+- **Public Interface**: 각 provider가 `ICompletionProvider` 구현(`ProviderId`·`Supports`·`GetCompletions`).
+- **구현세부**: 결정적. **전 항목 `RequiresReview=true`**. SQL 차단 DML/DDL 미추천+`BlockedHint`. VBA 금지 API 미추천. **Excel 차단 목록은 `Excel2021FunctionChecker`/RuleSet 단일 원천에서만**(provider 자체 하드코딩 금지) → 365 입력 시 2021 대체+`BlockedHint`. **Excel 허용 완성 함수는 전용 allow-list 소스에서만 읽고 실제 worksheet 함수만 허용**한다(`PivotTable`/`HelperColumn`/`VBA`/`SQLAggregation` 같은 안내 라벨 미추천). SafetyHintProvider는 **구조화 `SafetyFinding`(code·severity·position) 그대로 `CompletionItem.Finding` 및 `CompletionResult.Findings`에 보존**(평문화 금지), `Insertable=false`. **실 테이블명/내부규정/실데이터 seed 0**(일반 표현만).
+- **보안조건**: 외부 NuGet 0. seed에 민감정보 0. RuleSet 재사용(룰 분기 금지·차단셋 단일 원천).
+- **테스트**: SQL DML 미추천+`BlockedHint`, VBA 금지 API 미추천, Excel 2021 허용/365 차단+대체, **Excel provider 차단셋 = RuleSet 차단셋 동기화(drift 0) 단언**, Excel 허용 완성 allow-list가 비함수 라벨(`PivotTable`/`HelperColumn`/`VBA`/`SQLAggregation`)을 추천하지 않음, SafetyHint=기존 Checker **동일 구조화 Finding 보존**·`Insertable=false`, **전 항목 RequiresReview**·실데이터 0.
+- **완료조건**: 5(+365힌트) provider + 회귀. 차단셋 단일 원천. NuGet 0. build 0/0.
+- **Branch**: `feature/ux-wp-02-static-providers` · **Commit**: `feat: static SQL/VBA/Excel/risk completion providers (UX-WP-02)`
+- **Claude Review Checklist**: RuleSet 재사용(차단셋 단일 원천·drift 0) / Excel 허용 완성 전용 allow-list·비함수 라벨 미추천 / 차단 DML·금지 API 미추천 / 365 대체힌트 / SafetyHint 구조화 Finding 보존·비삽입 / 전항목 RequiresReview / 실데이터·원문 0 / NuGet 0 / Gate A.
+
+## UX-WP-03. WPF Completion Popup UI (CAP-UX-07)
+- **목표**: **SQL·VBA·Excel·리스크 코멘트(RiskComment) 4종 입력창 모두**에서 **Ctrl+Space**로 추천 Popup, **Enter/Tab** 삽입, **Esc** 닫기. 항목에 Source·Kind·RequiresReview 표시. Safety finding은 기존 결과 패널 연계. **자동 삽입 없음**.
+- **선행조건**: UX-WP-01, UX-WP-02.
+- **작업범위**: App 레이어 재사용 `CompletionPopup`(`Popup`+`ListBox`)을 **SQL·VBA·Excel·RiskComment `TextBox` 전부**에 부착(외부 Editor 패키지 0). RiskComment 입력은 `MainWindow.xaml` Risk Dashboard 탭의 분석 액션 행 아래에 `TextBox x:Name="RiskCommentRequestBox"`로 추가한다(검토용 리스크 코멘트 작성 입력 전용, DB/운영 연결 0). 입력 이벤트(Ctrl+Space/Enter/Tab/Esc) 처리, accept(삽입) 시 UX-WP-01 audit 호출.
+- **제외범위**: Core 로직 변경(UX-WP-01/02), LLM, 자동 삽입.
+- **읽을문서**: `docs/46`, `docs/14`(UI), `App/MainWindow.xaml(.cs)`(기존 입력창·`ShowFindings`).
+- **수정예상파일**: `App/Controls/CompletionPopup.xaml(.cs)`(신규), `App/MainWindow.xaml(.cs)`(4종 입력창 부착·이벤트), `tests/.../Program.cs`(UI 계약 가능 범위).
+- **Public Interface**: 없음(앱 내부 UI). Core 계약은 불변.
+- **구현세부**: 추천 표시는 `CompletionEngine` 결과만. **`Insertable=false`(SafetyHint/BlockedHint) 항목은 선택해도 삽입 0**(정보 표시만), `Insertable=true`만 삽입. **자동 삽입 0**(명시 선택 시에만). 항목 구조화 `Finding`/`CompletionResult.Findings`를 `ShowFindings`로 그대로 전달(평문화 금지). 삽입 본문 로그 미저장(audit=id/InsertTextHash).
+- **보안조건**: 자동삽입/자동실행 0. 외부 패키지 0. 입력 원문 로그 미저장.
+- **테스트**: 4종 입력창 연결(**`RiskCommentRequestBox` 존재·RiskComment 언어 매핑 포함**), 자동삽입 없음(Insertable 항목 선택 시에만 InsertText), **비삽입 힌트 선택 시 삽입 0**, 항목 Source/Kind/RequiresReview 노출, 구조화 Finding 결과패널 전달(가능 범위 계약 테스트).
+- **완료조건**: 4종 입력창 Ctrl+Space/Enter·Tab/Esc + 자동삽입 없음 + 비삽입 힌트 + 감사 연계. build 0/0(WPF 로컬 컴파일).
+- **Branch**: `feature/ux-wp-03-wpf-popup` · **Commit**: `feat: WPF completion popup integration (UX-WP-03)`
+- **Claude Review Checklist**: 외부 Editor 패키지 0 / **4종 입력창(RiskComment 포함)** / 자동삽입 없음 / 비삽입 힌트 / Source·Kind·RequiresReview / 구조화 Finding 결과패널 / 입력 원문 미저장 / Gate A.
+
 ## R2-WP-01. Risk Semantic Hardening (RR-15)
 - **목표**: 중복 Limit Key를 `group.Last()`로 임의 선택하지 않고 **명시 차단/상태화**, 통화·단위 컬럼을 ColumnMapping으로 관리, **`RECON_UNIT_MISMATCH` 활성화**, BASE_DT 형식 검증·정규화, Join 선택 규칙을 Audit Metadata에 기록.
 - **선행조건**: STAB-WP-01~02.

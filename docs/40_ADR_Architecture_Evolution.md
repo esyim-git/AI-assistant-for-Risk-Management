@@ -83,4 +83,19 @@
 - **결정 — 승인 문서 필수 항목**: 후보 Runtime · 후보 Model · License · 배포 크기 · RAM/CPU/GPU · 응답시간 · SQL/VBA 한국어 성능 · 규정답변 성능 · 환각률 · **인용 준수율** · 보안성 · 반입 방식 · Model Pack 업데이트 방식 · App↔Model Pack 분리 배포 · Runtime/Model Integrity Hash. 승인 전 Dependency 추가 0. (게이트: `docs/41 §3`.)
 - **대안/기각**: 승인 없이 PoC로 런타임 선반입 → 원칙·보안 위반 → 기각.
 
+## ADR-010. Smart Assist — WPF-native Inline Completion (정적·NoModel, 외부 Editor 금지)
+
+- **상태**: 채택(설계) — UX Assist Track (UX-WP-01~03). LLM 기반 추천은 **R4 이후 APPROVAL_REQUIRED**.
+- **맥락**: SQL/VBA/Excel/리스크 코멘트 작성 중 inline 자동완성·snippet·안전 힌트 수요. 단 전체 생성(`DraftPipeline`)과 **별개**여야 하고, 절대 원칙(Offline·NuGet 0·NoModel·자동실행 0)을 깨면 안 된다. 일반적 해법인 외부 에디터/완성 패키지(AvalonEdit·ScintillaNET·RoslynPad)는 **NuGet 도입 → 불변식 위반**.
+- **결정**:
+  1. **UI = WPF 기본 `TextBox` + `Popup`/`ListBox`** 로 완성 UI를 자체 구현(외부 Editor/Completion 패키지 0). Ctrl+Space 트리거, Enter/Tab 삽입, Esc 닫기, **자동 삽입 없음**.
+  2. **추천 = 정적·결정적 provider**(`ICompletionProvider`) + `CompletionEngine`(`RiskManagementAI.Core.Assist`). **NoModelMode 완전 동작**(모델 의존 0). 모델 기반 랭킹/생성은 **R4 Model Approval Gate 이후로 연기**(ADR-003/009, STOP).
+  3. **Safety/룰 재사용** — SQL/VBA/Excel 차단 판단은 **기존 `SqlSafetyChecker`/`VbaSafetyChecker`/`Excel2021FunctionChecker`+RuleSet** 경유(룰 중복 정의 금지). Excel 허용 완성 함수는 전용 RuleLoader 소스(`rules/excel_2021_completion_allow_functions.txt` 또는 동등 RuleSet 그룹)에서만 읽고, `ExcelPreferredFunctions`의 비함수 안내 라벨을 함수 allow-list로 쓰지 않는다. 입력 시 위험은 구조화 `SafetyFinding`을 보존한 `SafetyHint`/`BlockedHint` + `CompletionResult.Findings` + 기존 결과 패널 연계.
+  4. **Audit = 해시 전용** — accept 시 `SuggestionId·ProviderId·Language·Kind·Mode·UserHash·InsertTextHash·AcceptedAtUtc`만(입력 원문/삽입 본문 미저장).
+  5. **seed/snippet에 실데이터·실 테이블명·내부규정 원문 0**(일반 표현만), 모든 추천 `RequiresReview`(검토용 초안). SQL/VBA **자동 실행 0**(텍스트 제안만).
+  6. **안전 힌트 우선순위** — 결과 cap은 일반 삽입 가능 추천에 적용하고, `SafetyHint`/`BlockedHint` 및 `CompletionResult.Findings`는 top-N 절단으로 누락시키지 않는다.
+- **대안/기각**: ① 외부 Editor/Completion NuGet(AvalonEdit 등) → NuGet 0 불변식 위반 → 기각. ② 지금 LLM 기반 완성 → STOP·미승인 → R4로 연기. ③ 자동 삽입/자동 실행 → 안전성 위반(사용자 검토 필수) → 기각.
+
+> 관련: `docs/46`(Smart Assist 설계)·`docs/39`(UX-WP-01~03)·`docs/38`(UX Track)·`docs/14`(UI)·`CLAUDE.md §4·§5·§6`.
+
 > 관련: `docs/39`(WP 백로그)·`docs/41`(Data/Model/Pilot Gate)·`docs/11`(ADR-001)·`docs/17`(RAG)·`docs/08`(NCR)·`CLAUDE.md §3·§11`.

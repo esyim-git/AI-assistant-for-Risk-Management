@@ -22,6 +22,7 @@ Offline · 외부 NuGet 0 · 외부 API/Telemetry/AutoUpdate 0 · SQL/VBA/Golden
 | R3 | v0.6.0 | Regulation/NCR 구조 (공개·인용형 RAG + NCR Rule Set 구조) | RAG/NCR Approval Gate(코드레벨) | **DONE** |
 | **STAB** | **v0.6.1** | **Stabilization**(빌드/버전 재현성·Release 보안·Integrity Manifest·정본 테스트 베이스라인·테스트 구조) | — | **STAB-WP-01/02/03 DONE**(#56/#57/#59/#61) · **STAB-WP-04 NEXT** |
 | PILOT | (병행) | v0.6 오프라인 Test PC Gate B/C 증거 | Pilot Gate B/C | **BLOCKED**(실 Test PC 증거 대기) |
+| **UX** | (병행) v0.7.x | **Smart Assist / Inline Assist** (입력 중 자동완성·snippet·추천 문구·실시간 안전 힌트, **정적·NoModel**) | Gate A(보안) | 설계 (STAB 이후 R2와 병행 가능) |
 | R2 | v0.7.0 | Risk Analytics & Visualization (Semantic Hardening·Streaming·전일대비·차트) | Data Spec Gate | 설계 |
 | KB | v0.8.0 | Public Knowledge Pack (조항 원문 Chunk, keyword only) | RAG Approval Gate | 설계(원문 적재 STOP) |
 | NCR | v0.8.x | Approved NCR Rule Pack 계약 | NCR Approval Gate | 설계(계수 미포함) |
@@ -42,6 +43,7 @@ Offline · 외부 NuGet 0 · 외부 API/Telemetry/AutoUpdate 0 · SQL/VBA/Golden
 | NCR Rule Set 8요소 구조 | R3(v0.6.0) | **SCAFFOLD_ONLY** (승인 Rule Pack·계수 미적재) |
 | 빌드/버전 재현성 · 정본 테스트 베이스라인 | STAB(v0.6.1) | VERIFIED |
 | Release 보안 · Integrity Manifest(build측 03a) · 런타임 Fail-Closed(03b) | STAB(v0.6.1) | **VERIFIED**(local-gate; 03a #59, 03b #61. 실 Test PC Gate B/C 별도 BLOCKED) |
+| Smart Assist Core·정적 Provider·WPF Popup·Accept Audit (inline 자동완성, NoModel) | UX(v0.7.x) | NOT_IMPLEMENTED (설계 = `docs/46`/ADR-010) |
 | Risk Semantic Hardening(중복키/통화·단위 매핑/RECON_UNIT) | R2 | NOT_IMPLEMENTED |
 | Streaming/대용량 · 전일 대비 · 차트/Heatmap/TopN/집중도 · Excel Report 강화 | R2 | NOT_IMPLEMENTED |
 | 공개 규정 **원문 Clause/Chunk 검색** | KB | NOT_IMPLEMENTED (현재 Catalog/Metadata까지) |
@@ -68,6 +70,9 @@ R1(DONE) ─► R3(DONE) ─► STAB(v0.6.1) ─► R2(v0.7) ─► KB(v0.8) ─
 | C-10 | KB Metadata·역색인·인용·접근정책·원문가드 | R3-WP-01~04 | 검색 결정성·인용·Blocker 스캔 | RAG | VERIFIED |
 | C-11 | NCR Rule Set 8요소 구조 | R3-WP-05 | 구조·조회전용 SQL·검토용초안 | NCR | SCAFFOLD_ONLY |
 | C-12 | 빌드/버전 재현성·무결성·정본 테스트 | STAB-WP-01~04 | VERSION 단일원천·manifest 검증·런타임 Fail-Closed·정본 합계 | — | PARTIAL (STAB-WP-01/02/03 DONE; **STAB-WP-04 NEXT**) |
+| C-22 | Smart Assist Core (Engine·Context·Item·Provider 계약·Registry·NoModel) | UX-WP-01 | 결정성·언어 라우팅·개수 상한·accept 해시 audit(원문 미저장) | A | 설계 |
+| C-23 | 정적 Provider (SQL/VBA/Excel2021+365차단/SafetyHint/RiskPhrase) | UX-WP-02 | 차단 DML/금지 API 미추천·365 대체힌트·RuleSet 재사용·실데이터 0 | A | 설계 |
+| C-24 | WPF Completion Popup (Ctrl+Space·선택 삽입·자동삽입 없음) | UX-WP-03 | 자동삽입 없음·Source/Kind/RequiresReview 노출·결과패널 연계 | A | 설계 |
 | C-13 | Risk Semantic Hardening | R2-WP-01 | 중복키 차단·RECON_UNIT·BASE_DT 정규화 | Data | TODO |
 | C-14 | Streaming/Perf | R2-WP-02 | 상한·Welford·벤치 | Data | TODO |
 | C-15 | 전일 대비 | R2-WP-03 | Current/Prev/Δ·TopN | Data | TODO |
