@@ -65,7 +65,7 @@ public static class PolicyLoader
             return false;
         }
 
-        var segments = relativePolicyPath.Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries);
+        var segments = relativePolicyPath.Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
         return segments.Length >= 2
             && string.Equals(segments[0], "config", StringComparison.OrdinalIgnoreCase)
             && segments.All(segment => segment != "." && segment != "..");
