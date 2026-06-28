@@ -183,6 +183,54 @@
 - **목표**: `docs/45` v0.6 Gate B/C 증거 시트를 실 오프라인 Test PC에서 채워 봉인. **실 PC 증거 없으면 PASS 금지(BLOCKED 유지).**
 - **성격**: Codex 코드 작업 아님(문서/운영). Claude는 증거 회신 시 항목별 PASS/BLOCKED 재판정. 신규 기능과 분리·병행.
 
+## UX Assist Track — Smart Assist / Inline Assist (UX-WP-01~03)
+> 권위 설계 = `docs/46`, ADR-010(`docs/40`). 전체 생성(`DraftPipeline`)과 **별개**. 정적·NoModel·외부 Editor 패키지 0·자동삽입/자동실행 0·해시 audit. (STAB 이후 R2와 **병행 가능**, 선행 = 없음/안정 기준선.)
+
+## UX-WP-01. Smart Assist Core (Engine·Provider 계약, NoModel) (CAP-UX-01, CAP-UX-08)
+- **목표**: inline 완성 엔진의 **계약과 코어**를 만든다 — `CompletionEngine`·`CompletionContext`·`CompletionItem`·`ICompletionProvider`·Provider Registry. **NoModelMode 완전 동작**. Accept 시 해시 audit.
+- **선행조건**: 없음(안정 기준선). 후속 UX-WP-02/03의 토대.
+- **작업범위**: `Core/Assist/`에 `CompletionLanguage`/`CompletionItemKind` enum, `CompletionContext`/`CompletionItem`/`CompletionResult` record, `ICompletionProvider`, `CompletionProviderRegistry`, `CompletionEngine`(병합·중복제거·결정적 정렬·개수 상한). `SuggestionLogEntry` + accept audit writer(`TaskLogWriter` 패턴, 해시 전용).
+- **제외범위**: 실제 provider 콘텐츠(UX-WP-02), WPF UI(UX-WP-03), LLM(R4).
+- **읽을문서**: `docs/46`, `docs/40` ADR-010, `Core/Logging`(LogHash/TaskLogWriter), `Core/Safety`(SafetyFinding).
+- **수정예상파일**: `Core/Assist/*.cs`(신규), `tests/.../Program.cs`(회귀).
+- **Public Interface**: `CompletionResult CompletionEngine.GetCompletions(CompletionContext)`; `interface ICompletionProvider`; `CompletionProviderRegistry.Register/Resolve`.
+- **구현세부**: 순수·결정적. 모델 의존 0. Engine `Mode="NoModel"`. 동일 Context→동일 결과. accept 로그에 **입력 원문/삽입 본문 미저장**(SuggestionId=provider+Label 해시, UserHash=`LogHash.Sha256Hex`).
+- **보안조건**: 외부 0·NuGet 0·자동실행 0. 로그 = id/provider/mode/userHash/시각만. 쓰기 = `logs/`.
+- **테스트**: 결정성(동일 Context 동일 결과), 언어 라우팅, 개수 상한, NoModel 동작, accept audit 1건·원문 미저장 단언.
+- **완료조건**: CompletionEngine/Context/Item/ICompletionProvider/Registry + NoModel 동작 + SmokeTest. build 0/0·`Total` 보존+신규.
+- **Branch**: `feature/ux-wp-01-completion-core` · **Commit**: `feat: smart assist completion core + provider contract (UX-WP-01)`
+- **Claude Review Checklist**: 계약 명확 / 결정성 / NoModel / 해시 audit(원문 미저장) / NuGet 0 / 기존 테스트 불변 / Gate A.
+
+## UX-WP-02. Static SQL/VBA/Excel/Risk Providers (CAP-UX-02~06)
+- **목표**: 정적 provider 5종 — SQL keyword/snippet(조회전용), VBA 안전 snippet, Excel 2021 함수, Excel 365 차단+대체 힌트, SafetyHint(기존 Checker 재사용), Risk phrase seed.
+- **선행조건**: UX-WP-01.
+- **작업범위**: `SqlCompletionProvider`·`VbaCompletionProvider`·`Excel2021CompletionProvider`·`Excel365BlockedHintProvider`·`SafetyHintProvider`·`RiskPhraseProvider`. 차단/허용 목록은 **기존 `SqlSafetyChecker`/`VbaSafetyChecker`/`Excel2021FunctionChecker`+RuleSet 재사용**(중복 정의 금지).
+- **제외범위**: WPF UI(UX-WP-03), LLM 랭킹(R4), 스키마 introspection.
+- **읽을문서**: `docs/46`, `CLAUDE.md §4·§5·§6`, `Core/Safety`(기존 Checker/RuleSet), `docs/16`(VBA).
+- **수정예상파일**: `Core/Assist/Providers/*.cs`(신규), `rules/`(필요 시 seed, 실데이터 0), `tests/.../Program.cs`.
+- **Public Interface**: 각 provider가 `ICompletionProvider` 구현(`ProviderId`·`Supports`·`GetCompletions`).
+- **구현세부**: 결정적. SQL 차단 DML/DDL 미추천+`BlockedHint`. VBA 금지 API 미추천. Excel 365 입력 시 2021 대체+`BlockedHint`. RiskPhrase 전부 `RequiresReview`. **실 테이블명/내부규정/실데이터 seed 0**(일반 표현만).
+- **보안조건**: 외부 NuGet 0. seed에 민감정보 0. RuleSet 재사용(룰 분기 금지).
+- **테스트**: SQL DML 미추천+`BlockedHint`, VBA 금지 API 미추천, Excel 2021 허용/365 차단+대체, SafetyHint=기존 Checker 동일판정, RiskPhrase 전부 RequiresReview·실데이터 0.
+- **완료조건**: 5(+365힌트) provider + 회귀. NuGet 0. build 0/0.
+- **Branch**: `feature/ux-wp-02-static-providers` · **Commit**: `feat: static SQL/VBA/Excel/risk completion providers (UX-WP-02)`
+- **Claude Review Checklist**: RuleSet 재사용 / 차단 DML·금지 API 미추천 / 365 대체힌트 / 실데이터·원문 0 / RequiresReview / NuGet 0 / Gate A.
+
+## UX-WP-03. WPF Completion Popup UI (CAP-UX-07)
+- **목표**: SQL/VBA/Excel 입력창에서 **Ctrl+Space**로 추천 Popup, **Enter/Tab** 삽입, **Esc** 닫기. 항목에 Source·Kind·RequiresReview 표시. Safety finding은 기존 결과 패널 연계. **자동 삽입 없음**.
+- **선행조건**: UX-WP-01, UX-WP-02.
+- **작업범위**: App 레이어 재사용 `CompletionPopup`(`Popup`+`ListBox`)을 SQL/VBA/Excel `TextBox`에 부착(외부 Editor 패키지 0). 입력 이벤트(Ctrl+Space/Enter/Tab/Esc) 처리, accept 시 UX-WP-01 audit 호출.
+- **제외범위**: Core 로직 변경(UX-WP-01/02), LLM, 자동 삽입.
+- **읽을문서**: `docs/46`, `docs/14`(UI), `App/MainWindow.xaml(.cs)`(기존 입력창·`ShowFindings`).
+- **수정예상파일**: `App/Controls/CompletionPopup.xaml(.cs)`(신규), `App/MainWindow.xaml(.cs)`(부착·이벤트), `tests/.../Program.cs`(UI 계약 가능 범위).
+- **Public Interface**: 없음(앱 내부 UI). Core 계약은 불변.
+- **구현세부**: 추천 표시는 `CompletionEngine` 결과만. **자동 삽입 0**(명시 선택 시 InsertText 삽입). 삽입 본문 로그 미저장(audit는 id/해시).
+- **보안조건**: 자동삽입/자동실행 0. 외부 패키지 0. 입력 원문 로그 미저장.
+- **테스트**: 자동삽입 없음(선택 시에만 InsertText), 항목 Source/Kind/RequiresReview 노출, Safety finding 결과패널 연계(가능 범위 계약 테스트).
+- **완료조건**: Ctrl+Space/Enter·Tab/Esc 동작 + 자동삽입 없음 + 감사 연계. build 0/0(WPF 로컬 컴파일).
+- **Branch**: `feature/ux-wp-03-wpf-popup` · **Commit**: `feat: WPF completion popup integration (UX-WP-03)`
+- **Claude Review Checklist**: 외부 Editor 패키지 0 / 자동삽입 없음 / Source·Kind·RequiresReview / 결과패널 연계 / 입력 원문 미저장 / Gate A.
+
 ## R2-WP-01. Risk Semantic Hardening (RR-15)
 - **목표**: 중복 Limit Key를 `group.Last()`로 임의 선택하지 않고 **명시 차단/상태화**, 통화·단위 컬럼을 ColumnMapping으로 관리, **`RECON_UNIT_MISMATCH` 활성화**, BASE_DT 형식 검증·정규화, Join 선택 규칙을 Audit Metadata에 기록.
 - **선행조건**: STAB-WP-01~02.
