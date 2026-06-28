@@ -9,6 +9,7 @@ using RiskManagementAI.Core.Dashboard;
 using RiskManagementAI.Core.Excel;
 using RiskManagementAI.Core.Feedback;
 using RiskManagementAI.Core.Generation;
+using RiskManagementAI.Core.Integrity;
 using RiskManagementAI.Core.Kb;
 using RiskManagementAI.Core.Logging;
 using RiskManagementAI.Core.Mapping;
@@ -1724,6 +1725,231 @@ AssertTrue(auditReadResult.Records.All(record => record.UserHashPrefix.Length ==
 var missingAuditResult = auditLogReader.Read(Path.Combine("logs", "smoke_history_missing"), maxRows: 10);
 AssertTrue(missingAuditResult.Records.Count == 0 && missingAuditResult.Findings.Any(f => f.Code == "AUDIT_LOG_FILE_MISSING"), "AuditLogReader should gracefully report missing log files");
 AssertTrue(Throws<ArgumentException>(() => auditLogReader.Read("logs/../reports")), "AuditLogReader should reject paths outside logs");
+
+// === STAB-WP-03b: runtime fail-closed integrity gate (manifest). Domain keyword "manifest" => Packaging. ===
+{
+    var integritySpecs = new (string Path, string Class, bool Required)[]
+    {
+        ("RiskManagementAI.exe", "App", true),
+        ("RiskManagementAI.dll", "App", true),
+        ("RiskManagementAI.Core.dll", "App", true),
+        ("config/security_policy.json", "Policy", true),
+        ("config/column_mapping.json", "Mapping", true),
+        ("kb/ncr_placeholder.md", "Kb", true),
+        ("rules/safety_rules.json", "Rules", true),
+        ("templates/report_template.txt", "Template", true)
+    };
+
+    var integrityTempDirs = new List<string>();
+
+    string IntegrityHash(string path)
+    {
+        using var hashStream = File.OpenRead(path);
+        return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(hashStream));
+    }
+
+    string FreshIntegrityPackage()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "rmai_integrity_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        integrityTempDirs.Add(dir);
+        foreach (var spec in integritySpecs)
+        {
+            var full = Path.Combine(dir, spec.Path.Replace('/', Path.DirectorySeparatorChar));
+            Directory.CreateDirectory(Path.GetDirectoryName(full)!);
+            File.WriteAllText(full, $"deterministic-content-of-{spec.Path}");
+        }
+
+        return dir;
+    }
+
+    List<Dictionary<string, object?>> IntegrityEntries(string dir)
+    {
+        var entries = new List<Dictionary<string, object?>>();
+        foreach (var spec in integritySpecs)
+        {
+            var full = Path.Combine(dir, spec.Path.Replace('/', Path.DirectorySeparatorChar));
+            entries.Add(new Dictionary<string, object?>
+            {
+                ["path"] = spec.Path,
+                ["size"] = new FileInfo(full).Length,
+                ["sha256"] = IntegrityHash(full),
+                ["class"] = spec.Class,
+                ["required"] = spec.Required
+            });
+        }
+
+        return entries;
+    }
+
+    void WriteIntegrityManifest(string dir, string version, List<Dictionary<string, object?>> entries)
+    {
+        var manifest = new Dictionary<string, object?>
+        {
+            ["version"] = version,
+            ["generatedAtUtc"] = "2026-06-28T00:00:00Z",
+            ["files"] = entries
+        };
+        File.WriteAllText(
+            Path.Combine(dir, "approved_manifest.json"),
+            System.Text.Json.JsonSerializer.Serialize(manifest));
+    }
+
+    // Happy path: clean manifest verifies Ok and the gate allows startup.
+    var pkgOk = FreshIntegrityPackage();
+    WriteIntegrityManifest(pkgOk, "0.6.0", IntegrityEntries(pkgOk));
+    var okResult = IntegrityVerifier.VerifyPackage(pkgOk, strict: true);
+    AssertTrue(okResult.Status == IntegrityStatus.Ok && okResult.BlockedClasses.Count == 0, "IntegrityVerifier clean manifest verifies Ok in strict mode");
+    AssertTrue(IntegrityGate.Decide(okResult, devAllow: false) == GateDecision.Allow, "IntegrityGate allows a clean manifest package in release mode");
+
+    // Per-class data tamper: Policy.
+    var pkgPolicy = FreshIntegrityPackage();
+    WriteIntegrityManifest(pkgPolicy, "0.6.0", IntegrityEntries(pkgPolicy));
+    File.WriteAllText(Path.Combine(pkgPolicy, "config", "security_policy.json"), "tampered-policy-content");
+    var policyResult = IntegrityVerifier.VerifyPackage(pkgPolicy, strict: true);
+    AssertTrue(policyResult.Status == IntegrityStatus.FailClosed && policyResult.BlockedClasses.Contains("Policy"), "IntegrityVerifier manifest policy tamper fails closed and blocks the Policy class");
+    AssertTrue(policyResult.Findings.Any(f => f.Code == "INTEGRITY_POLICY_TAMPERED" && f.Severity == SafetySeverity.High), "IntegrityVerifier manifest policy tamper emits a HIGH Policy finding");
+    AssertTrue(IntegrityGate.Decide(policyResult, devAllow: false) == GateDecision.Block, "IntegrityGate blocks a tampered policy manifest package");
+
+    // Per-class data tamper: Rules.
+    var pkgRules = FreshIntegrityPackage();
+    WriteIntegrityManifest(pkgRules, "0.6.0", IntegrityEntries(pkgRules));
+    File.WriteAllText(Path.Combine(pkgRules, "rules", "safety_rules.json"), "tampered-rules-content");
+    var rulesResult = IntegrityVerifier.VerifyPackage(pkgRules, strict: true);
+    AssertTrue(rulesResult.Status == IntegrityStatus.FailClosed && rulesResult.BlockedClasses.Contains("Rules"), "IntegrityVerifier manifest rules tamper fails closed and blocks the Rules class");
+
+    // Manifest-entry tamper: stored hash altered while the file is unchanged.
+    var pkgEntry = FreshIntegrityPackage();
+    var entriesEntry = IntegrityEntries(pkgEntry);
+    entriesEntry.First(x => (string)x["path"]! == "kb/ncr_placeholder.md")["sha256"] = "00";
+    WriteIntegrityManifest(pkgEntry, "0.6.0", entriesEntry);
+    var entryResult = IntegrityVerifier.VerifyPackage(pkgEntry, strict: true);
+    AssertTrue(entryResult.Status == IntegrityStatus.FailClosed && entryResult.BlockedClasses.Contains("Kb"), "IntegrityVerifier manifest entry hash tamper fails closed");
+
+    // Required file missing on disk (manifest entry retained).
+    var pkgMissingFile = FreshIntegrityPackage();
+    WriteIntegrityManifest(pkgMissingFile, "0.6.0", IntegrityEntries(pkgMissingFile));
+    File.Delete(Path.Combine(pkgMissingFile, "kb", "ncr_placeholder.md"));
+    var missingFileResult = IntegrityVerifier.VerifyPackage(pkgMissingFile, strict: true);
+    AssertTrue(missingFileResult.Status == IntegrityStatus.FailClosed && missingFileResult.BlockedClasses.Contains("Kb"), "IntegrityVerifier manifest required file missing fails closed");
+
+    // Mandatory-set shrink: dropping ANY mandatory entry from the manifest must fail closed.
+    var mandatoryEntries = new[]
+    {
+        "RiskManagementAI.exe", "RiskManagementAI.dll", "RiskManagementAI.Core.dll",
+        "config/security_policy.json", "config/column_mapping.json", "kb/ncr_placeholder.md"
+    };
+    foreach (var mandatory in mandatoryEntries)
+    {
+        var pkgShrink = FreshIntegrityPackage();
+        var shrunk = IntegrityEntries(pkgShrink).Where(x => (string)x["path"]! != mandatory).ToList();
+        WriteIntegrityManifest(pkgShrink, "0.6.0", shrunk);
+        var shrinkResult = IntegrityVerifier.VerifyPackage(pkgShrink, strict: true);
+        AssertTrue(shrinkResult.Status == IntegrityStatus.FailClosed, $"IntegrityVerifier manifest missing mandatory entry '{mandatory}' fails closed");
+    }
+
+    // Path traversal entry.
+    var pkgTraversal = FreshIntegrityPackage();
+    var traversalEntries = IntegrityEntries(pkgTraversal);
+    traversalEntries.Add(new Dictionary<string, object?> { ["path"] = "../evil.txt", ["size"] = 1L, ["sha256"] = "00", ["class"] = "App", ["required"] = false });
+    WriteIntegrityManifest(pkgTraversal, "0.6.0", traversalEntries);
+    var traversalResult = IntegrityVerifier.VerifyPackage(pkgTraversal, strict: true);
+    AssertTrue(traversalResult.Status == IntegrityStatus.FailClosed, "IntegrityVerifier manifest path traversal entry fails closed");
+
+    // Rooted path entry (OS-appropriate).
+    var pkgRooted = FreshIntegrityPackage();
+    var rootedEntries = IntegrityEntries(pkgRooted);
+    var rootedPath = OperatingSystem.IsWindows() ? "C:/Windows/System32/evil.dll" : "/etc/evil";
+    rootedEntries.Add(new Dictionary<string, object?> { ["path"] = rootedPath, ["size"] = 1L, ["sha256"] = "00", ["class"] = "App", ["required"] = false });
+    WriteIntegrityManifest(pkgRooted, "0.6.0", rootedEntries);
+    var rootedResult = IntegrityVerifier.VerifyPackage(pkgRooted, strict: true);
+    AssertTrue(rootedResult.Status == IntegrityStatus.FailClosed, "IntegrityVerifier manifest rooted path entry fails closed");
+
+    // Size mismatch (correct hash, wrong declared size).
+    var pkgSize = FreshIntegrityPackage();
+    var sizeEntries = IntegrityEntries(pkgSize);
+    sizeEntries.First(x => (string)x["path"]! == "config/column_mapping.json")["size"] = 999999L;
+    WriteIntegrityManifest(pkgSize, "0.6.0", sizeEntries);
+    var sizeResult = IntegrityVerifier.VerifyPackage(pkgSize, strict: true);
+    AssertTrue(sizeResult.Status == IntegrityStatus.FailClosed && sizeResult.BlockedClasses.Contains("Mapping"), "IntegrityVerifier manifest size mismatch fails closed");
+
+    // Missing manifest: strict fail-closed; dev switch fallback only.
+    var pkgNoManifest = FreshIntegrityPackage();
+    var noManifestStrict = IntegrityVerifier.VerifyPackage(pkgNoManifest, strict: true);
+    AssertTrue(noManifestStrict.Status == IntegrityStatus.FailClosed, "IntegrityVerifier missing manifest fails closed in strict mode");
+    AssertTrue(IntegrityGate.Decide(noManifestStrict, devAllow: false) == GateDecision.Block, "IntegrityGate blocks a package with no manifest in release mode");
+    var noManifestDev = IntegrityVerifier.VerifyPackage(pkgNoManifest, strict: false);
+    AssertTrue(noManifestDev.Status == IntegrityStatus.DevFallback && noManifestDev.UsedDevFallback, "IntegrityVerifier missing manifest yields dev fallback under the dev switch");
+    AssertTrue(IntegrityGate.Decide(noManifestDev, devAllow: true) == GateDecision.Allow, "IntegrityGate allows a missing manifest only under the dev switch");
+
+    // Unparseable manifest.
+    var pkgBroken = FreshIntegrityPackage();
+    File.WriteAllText(Path.Combine(pkgBroken, "approved_manifest.json"), "{ broken json");
+    var brokenResult = IntegrityVerifier.VerifyPackage(pkgBroken, strict: true);
+    AssertTrue(brokenResult.Status == IntegrityStatus.FailClosed, "IntegrityVerifier unparseable manifest fails closed");
+
+    // Empty files list.
+    var pkgEmpty = FreshIntegrityPackage();
+    File.WriteAllText(Path.Combine(pkgEmpty, "approved_manifest.json"), "{\"version\":\"0.6.0\",\"files\":[]}");
+    var emptyResult = IntegrityVerifier.VerifyPackage(pkgEmpty, strict: true);
+    AssertTrue(emptyResult.Status == IntegrityStatus.FailClosed, "IntegrityVerifier empty manifest files list fails closed");
+
+    // Version mismatch (manifest declares a different version than the Core constant).
+    var pkgVersion = FreshIntegrityPackage();
+    WriteIntegrityManifest(pkgVersion, "9.9.9", IntegrityEntries(pkgVersion));
+    var versionResult = IntegrityVerifier.VerifyPackage(pkgVersion, strict: true);
+    AssertTrue(versionResult.Status == IntegrityStatus.FailClosed, "IntegrityVerifier manifest version mismatch fails closed");
+
+    // Dev vs release: identical tamper allows under dev switch, blocks in release.
+    var pkgDevTamper = FreshIntegrityPackage();
+    WriteIntegrityManifest(pkgDevTamper, "0.6.0", IntegrityEntries(pkgDevTamper));
+    File.WriteAllText(Path.Combine(pkgDevTamper, "config", "security_policy.json"), "tampered-under-dev");
+    var devTamperResult = IntegrityVerifier.VerifyPackage(pkgDevTamper, strict: false);
+    AssertTrue(devTamperResult.Status == IntegrityStatus.DevFallback && devTamperResult.UsedDevFallback, "IntegrityVerifier manifest tamper under dev switch downgrades to dev fallback");
+    AssertTrue(IntegrityGate.Decide(devTamperResult, devAllow: true) == GateDecision.Allow, "IntegrityGate allows manifest tamper only under the dev switch");
+    var devTamperStrict = IntegrityVerifier.VerifyPackage(pkgDevTamper, strict: true);
+    AssertTrue(devTamperStrict.Status == IntegrityStatus.FailClosed, "IntegrityVerifier same manifest tamper fails closed in release mode");
+
+    // Pure gate decisions.
+    AssertTrue(IntegrityGate.Decide(IntegrityResult.NotVerified(), devAllow: false) == GateDecision.Block, "IntegrityGate blocks the NotVerified manifest state in release mode");
+    AssertTrue(IntegrityGate.Decide(IntegrityResult.NotVerified(), devAllow: true) == GateDecision.Allow, "IntegrityGate allows the NotVerified manifest state only under the dev switch");
+    var fabricatedOk = new IntegrityResult(IntegrityStatus.Ok, false, Array.Empty<string>(), Array.Empty<SafetyFinding>(), new HashSet<string>(StringComparer.Ordinal));
+    AssertTrue(IntegrityGate.Decide(fabricatedOk, devAllow: false) == GateDecision.Allow, "IntegrityGate allows an Ok manifest result");
+
+    // Documented residual: an attacker who rewrites a file AND regenerates the folder manifest in
+    // lock-step is NOT detected by the interim (no independent trust anchor). Deferred to code signing.
+    var pkgCoTamper = FreshIntegrityPackage();
+    File.WriteAllText(Path.Combine(pkgCoTamper, "config", "security_policy.json"), "attacker-controlled-policy");
+    WriteIntegrityManifest(pkgCoTamper, "0.6.0", IntegrityEntries(pkgCoTamper));
+    var coTamperResult = IntegrityVerifier.VerifyPackage(pkgCoTamper, strict: true);
+    AssertTrue(coTamperResult.Status == IntegrityStatus.Ok, "IntegrityVerifier manifest co-tamper (file+manifest rewritten together) is NOT detected — documented residual deferred to code signing");
+
+    // Lock-step with build/03 §4 and the VERSION single source of truth.
+    var build03IntegrityText = File.ReadAllText(Path.Combine("build", "03_verify-package.ps1"));
+    foreach (var mandatory in mandatoryEntries)
+    {
+        AssertTrue(build03IntegrityText.Contains(mandatory, StringComparison.Ordinal), $"build/03 manifest verification should enforce mandatory entry '{mandatory}' (lock-step with IntegrityVerifier)");
+    }
+    AssertTrue(build03IntegrityText.Contains("approved_manifest.json", StringComparison.Ordinal), "build/03 should verify the approved_manifest.json (lock-step with runtime IntegrityVerifier)");
+    AssertTrue(build03IntegrityText.Contains("manifest path escapes package root", StringComparison.Ordinal), "build/03 manifest verification should guard path traversal (lock-step with IntegrityVerifier)");
+    AssertTrue(IntegrityVerifier.MandatoryEntries.Count == 6, "IntegrityVerifier manifest mandatory entry set should contain the six core entries");
+    AssertTrue(string.Equals(IntegrityVerifier.ExpectedVersion, File.ReadAllText("VERSION").Trim(), StringComparison.Ordinal), "IntegrityVerifier manifest ExpectedVersion should equal the VERSION file (single source of truth)");
+
+    foreach (var dir in integrityTempDirs)
+    {
+        try
+        {
+            if (Directory.Exists(dir))
+            {
+                Directory.Delete(dir, recursive: true);
+            }
+        }
+        catch (Exception cleanupEx) when (cleanupEx is IOException or UnauthorizedAccessException)
+        {
+            // Best-effort cleanup of temp packages.
+        }
+    }
+}
 
 smokeStopwatch.Stop();
 var smokeTotal = passed + failed;

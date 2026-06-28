@@ -41,8 +41,9 @@ v0.6.0 portable ZIP을 **실 오프라인 Test PC(Gate B)** 및 **운영 반입(
 | C1 | Excel 2021에서 Report Open · **Formula Error 0** | ⬜ | 캡처 |
 | C2 | **External Link 0 · Macro 0 · Formula Injection 0** | ⬜ | 검사 |
 | C3 | 백신/EDR 통과 | ⬜ | 로그 |
-| C4 | **PDB/개인경로 0** (v0.6.0=**수동 ZIP 검사**로 확인 가능; 자동 가드/Integrity Manifest는 STAB-WP-03=v0.6.1) | ⬜ / 자동분 N/A until STAB | 스캔 |
-| C5 | Code Signing 상태(운영 절차 Placeholder) | ⬜ | 기록 |
+| C4 | **PDB/개인경로 0** (v0.6.0=수동 ZIP 검사; **자동 가드+Integrity Manifest 생성/검증 = STAB-WP-03a DONE**(build/01·03)) | ⬜ / 자동분 03a로 충족 | 스캔 |
+| C4b | **런타임 Fail-Closed 무결성 게이트**(STAB-WP-03b, Design 3 interim — 앱 시작 시 manifest 검증, 변조/부재=차단). 상태 PARTIAL: 실 Test PC 기동 증거 필요 | ⬜ (BLOCKED until Test PC) | 기동 로그·차단 캡처 |
+| C5 | Code Signing 상태(운영 절차 Placeholder → **독립 신뢰 앵커 = STAB-WP-05 APPROVAL_REQUIRED**; 03b 잔여위험 co-tamper/런타임 DLL 폐쇄는 서명 후) | ⬜ | 기록 |
 | C6 | Performance / Memory 측정 | ⬜ | 측정값 |
 | C7 | Rollback 절차 확인 | ⬜ | 기록 |
 
