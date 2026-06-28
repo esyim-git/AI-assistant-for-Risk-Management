@@ -895,6 +895,7 @@ foreach (var buildScript in new[] { "01_publish-win-x64.ps1", "02_package-releas
     AssertTrue(scriptText.Contains("VERSION file", StringComparison.Ordinal), $"build/{buildScript} should resolve version from the VERSION file");
     AssertTrue(scriptText.Contains("does not match VERSION file", StringComparison.Ordinal), $"build/{buildScript} should fail when -Version mismatches the VERSION file");
 }
+AssertTrue(!File.ReadAllText(Path.Combine("build", "01_publish-win-x64.ps1")).Contains("signed assembly", StringComparison.OrdinalIgnoreCase), "build/01 manifest logging should not overstate signed-assembly trust anchor before STAB-WP-05");
 AssertTrue(System.Text.RegularExpressions.Regex.IsMatch(File.ReadAllText("VERSION").Trim(), @"^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$"), "VERSION file should be a non-empty semver string (single source of truth; no hardcoded value in tests)");
 AssertTrue(File.Exists("global.json") && File.ReadAllText("global.json").Contains("8.0", StringComparison.Ordinal), "global.json should pin the .NET 8 SDK band (ADR-005/006)");
 
