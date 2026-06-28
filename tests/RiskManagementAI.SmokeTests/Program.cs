@@ -2026,9 +2026,9 @@ AssertTrue(Throws<ArgumentException>(() => auditLogReader.Read("logs/../reports"
 
     // The runtime critical-glob shrink guard must stay in lock-step with build/01 manifest generation.
     var build01IntegrityText = File.ReadAllText(Path.Combine("build", "01_publish-win-x64.ps1"));
-    foreach (var globToken in new[] { "rules", "templates", "config/ncr", "*.csv", "*.md", "*.json" })
+    foreach (var globPattern in new[] { "rules", "templates", "config/ncr", "*.csv", "*.md", "*.json" })
     {
-        AssertTrue(build01IntegrityText.Contains(globToken, StringComparison.Ordinal), $"build/01 manifest generation should cover critical glob '{globToken}' (lock-step with IntegrityVerifier critical-glob shrink guard)");
+        AssertTrue(build01IntegrityText.Contains(globPattern, StringComparison.Ordinal), $"build/01 manifest generation should cover critical glob '{globPattern}' (lock-step with IntegrityVerifier critical-glob shrink guard)");
     }
 
     foreach (var dir in integrityTempDirs)
