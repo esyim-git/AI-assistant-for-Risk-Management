@@ -1976,6 +1976,35 @@ AssertTrue(Throws<ArgumentException>(() => auditLogReader.Read("logs/../reports"
     var shrinkKbResult = IntegrityVerifier.VerifyPackage(pkgShrinkKb, strict: true);
     AssertTrue(shrinkKbResult.Status == IntegrityStatus.FailClosed && shrinkKbResult.BlockedClasses.Contains("Kb"), "IntegrityVerifier manifest shrink of a non-mandatory kb critical asset fails closed");
 
+    // Critical-glob entry kept but required flipped to false AND the file deleted must still fail
+    // closed: critical assets are required by path, not by the manifest-controlled flag (PR #61 P2).
+    var pkgReqFalseGlob = FreshIntegrityPackage();
+    var reqFalseGlobEntries = IntegrityEntries(pkgReqFalseGlob);
+    reqFalseGlobEntries.First(x => (string)x["path"]! == "kb/public_regulation_catalog.csv")["required"] = false;
+    WriteIntegrityManifest(pkgReqFalseGlob, "0.6.0", reqFalseGlobEntries);
+    File.Delete(Path.Combine(pkgReqFalseGlob, "kb", "public_regulation_catalog.csv"));
+    var reqFalseGlobResult = IntegrityVerifier.VerifyPackage(pkgReqFalseGlob, strict: true);
+    AssertTrue(reqFalseGlobResult.Status == IntegrityStatus.FailClosed && reqFalseGlobResult.BlockedClasses.Contains("Kb"), "IntegrityVerifier manifest critical-glob asset deleted with required:false still fails closed (required by path)");
+
+    // Mandatory asset removed from manifest AND deleted from disk still fails closed — the six
+    // mandatory paths are anchored by the hard-coded declared-check even on co-deletion (PR #61 P2).
+    var pkgMandatoryCoDel = FreshIntegrityPackage();
+    var mandatoryCoDelEntries = IntegrityEntries(pkgMandatoryCoDel).Where(x => (string)x["path"]! != "config/security_policy.json").ToList();
+    WriteIntegrityManifest(pkgMandatoryCoDel, "0.6.0", mandatoryCoDelEntries);
+    File.Delete(Path.Combine(pkgMandatoryCoDel, "config", "security_policy.json"));
+    var mandatoryCoDelResult = IntegrityVerifier.VerifyPackage(pkgMandatoryCoDel, strict: true);
+    AssertTrue(mandatoryCoDelResult.Status == IntegrityStatus.FailClosed && mandatoryCoDelResult.BlockedClasses.Contains("Policy"), "IntegrityVerifier manifest mandatory asset co-deletion (entry removed + file deleted) fails closed");
+
+    // Documented residual: a NON-mandatory critical asset removed from BOTH manifest and disk
+    // (co-deletion) is NOT detected by the interim — no independent record that the file should exist.
+    // Same no-independent-anchor class as co-tamper; closed only by code signing (STAB-WP-05).
+    var pkgGlobCoDel = FreshIntegrityPackage();
+    var globCoDelEntries = IntegrityEntries(pkgGlobCoDel).Where(x => (string)x["path"]! != "kb/public_regulation_catalog.csv").ToList();
+    WriteIntegrityManifest(pkgGlobCoDel, "0.6.0", globCoDelEntries);
+    File.Delete(Path.Combine(pkgGlobCoDel, "kb", "public_regulation_catalog.csv"));
+    var globCoDelResult = IntegrityVerifier.VerifyPackage(pkgGlobCoDel, strict: true);
+    AssertTrue(globCoDelResult.Status == IntegrityStatus.Ok, "IntegrityVerifier manifest non-mandatory critical co-deletion (entry+file removed) is NOT detected — documented residual deferred to code signing (STAB-WP-05)");
+
     // Documented residual: an attacker who rewrites a file AND regenerates the folder manifest in
     // lock-step is NOT detected by the interim (no independent trust anchor). Deferred to code signing.
     var pkgCoTamper = FreshIntegrityPackage();

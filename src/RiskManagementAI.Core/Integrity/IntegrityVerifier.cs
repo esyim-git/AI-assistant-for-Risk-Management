@@ -208,9 +208,11 @@ public static class IntegrityVerifier
 
             if (!File.Exists(entryFull))
             {
-                // Mandatory core files are required by path regardless of the manifest-controlled
-                // `required` flag — a tampered required:false must not suppress a missing-file failure.
-                if (entry.Required || MandatorySet.Contains(entryPath))
+                // Mandatory core files AND any critical-glob asset (rules/templates/ncr/kb — build/01
+                // always emits these as required) are required BY PATH, independent of the manifest-
+                // controlled `required` flag. A tampered required:false must not suppress a missing-file
+                // failure for an asset the build always ships.
+                if (entry.Required || MandatorySet.Contains(entryPath) || IsCriticalGlobPath(entryPath))
                 {
                     problems.Add($"required file missing: {entryPath}");
                     blockedClasses.Add(entryClass);
@@ -303,6 +305,30 @@ public static class IntegrityVerifier
         }
 
         return Build(strict, problems, blockedClasses, manifestPresent: true);
+    }
+
+    /// <summary>
+    /// Whether a manifest path falls under a build/01 critical glob (rules/*, templates/*,
+    /// config/ncr/*.json, kb/*.csv, kb/*.md). build/01 always emits these as required, so they are
+    /// enforced as required-by-path even if the manifest-controlled `required` flag says otherwise.
+    /// </summary>
+    private static bool IsCriticalGlobPath(string relPath)
+    {
+        if (relPath.StartsWith("rules/", StringComparison.Ordinal) ||
+            relPath.StartsWith("templates/", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        if (relPath.StartsWith("config/ncr/", StringComparison.Ordinal) &&
+            relPath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return relPath.StartsWith("kb/", StringComparison.Ordinal) &&
+            (relPath.EndsWith(".csv", StringComparison.OrdinalIgnoreCase) ||
+             relPath.EndsWith(".md", StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>Map a manifest entry/path to its security class for blocking attribution.</summary>
