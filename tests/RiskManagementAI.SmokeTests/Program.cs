@@ -1736,10 +1736,26 @@ AssertTrue(Throws<ArgumentException>(() => auditLogReader.Read("logs/../reports"
         ("RiskManagementAI.Core.dll", "App", true),
         ("config/security_policy.json", "Policy", true),
         ("config/column_mapping.json", "Mapping", true),
+        ("config/ncr/ncr_ruleset_sample.json", "Ncr", true),
+        ("kb/README.md", "Kb", true),
         ("kb/ncr_placeholder.md", "Kb", true),
         ("kb/public_regulation_catalog.csv", "Kb", true),
-        ("rules/safety_rules.json", "Rules", true),
-        ("templates/report_template.txt", "Template", true)
+        ("rules/excel_2021_blocked_functions.txt", "Rules", true),
+        ("rules/excel_2021_preferred_functions.txt", "Rules", true),
+        ("rules/sql_deny_patterns.txt", "Rules", true),
+        ("rules/sql_warn_patterns.txt", "Rules", true),
+        ("rules/vba_deny_patterns.txt", "Rules", true),
+        ("rules/vba_warn_patterns.txt", "Rules", true),
+        ("templates/report/app.xml.tpl", "Template", true),
+        ("templates/report/content_types.xml.tpl", "Template", true),
+        ("templates/report/core.xml.tpl", "Template", true),
+        ("templates/report/root_rels.xml.tpl", "Template", true),
+        ("templates/report/styles.xml.tpl", "Template", true),
+        ("templates/report/workbook.xml.tpl", "Template", true),
+        ("templates/report/workbook_rels.xml.tpl", "Template", true),
+        ("templates/report/worksheet.xml.tpl", "Template", true),
+        ("templates/sql/sql_generation_prompt.md", "Template", true),
+        ("templates/vba/vba_generation_prompt.md", "Template", true)
     };
 
     var integrityTempDirs = new List<string>();
@@ -1816,7 +1832,7 @@ AssertTrue(Throws<ArgumentException>(() => auditLogReader.Read("logs/../reports"
     // Per-class data tamper: Rules.
     var pkgRules = FreshIntegrityPackage();
     WriteIntegrityManifest(pkgRules, "0.6.0", IntegrityEntries(pkgRules));
-    File.WriteAllText(Path.Combine(pkgRules, "rules", "safety_rules.json"), "tampered-rules-content");
+    File.WriteAllText(Path.Combine(pkgRules, "rules", "sql_deny_patterns.txt"), "tampered-rules-content");
     var rulesResult = IntegrityVerifier.VerifyPackage(pkgRules, strict: true);
     AssertTrue(rulesResult.Status == IntegrityStatus.FailClosed && rulesResult.BlockedClasses.Contains("Rules"), "IntegrityVerifier manifest rules tamper fails closed and blocks the Rules class");
 
@@ -1962,9 +1978,9 @@ AssertTrue(Throws<ArgumentException>(() => auditLogReader.Read("logs/../reports"
     // disk (and tamper it). All six mandatory paths remain, so this must be caught by the critical-glob
     // scan, not the mandatory check (PR #61 P2).
     var pkgShrinkRules = FreshIntegrityPackage();
-    var shrinkRulesEntries = IntegrityEntries(pkgShrinkRules).Where(x => (string)x["path"]! != "rules/safety_rules.json").ToList();
+    var shrinkRulesEntries = IntegrityEntries(pkgShrinkRules).Where(x => (string)x["path"]! != "rules/sql_deny_patterns.txt").ToList();
     WriteIntegrityManifest(pkgShrinkRules, "0.6.0", shrinkRulesEntries);
-    File.WriteAllText(Path.Combine(pkgShrinkRules, "rules", "safety_rules.json"), "attacker-controlled-rule");
+    File.WriteAllText(Path.Combine(pkgShrinkRules, "rules", "sql_deny_patterns.txt"), "attacker-controlled-rule");
     var shrinkRulesResult = IntegrityVerifier.VerifyPackage(pkgShrinkRules, strict: true);
     AssertTrue(shrinkRulesResult.Status == IntegrityStatus.FailClosed && shrinkRulesResult.BlockedClasses.Contains("Rules"), "IntegrityVerifier manifest shrink of a non-mandatory critical rules asset fails closed (undeclared on-disk file)");
 
@@ -1995,15 +2011,14 @@ AssertTrue(Throws<ArgumentException>(() => auditLogReader.Read("logs/../reports"
     var mandatoryCoDelResult = IntegrityVerifier.VerifyPackage(pkgMandatoryCoDel, strict: true);
     AssertTrue(mandatoryCoDelResult.Status == IntegrityStatus.FailClosed && mandatoryCoDelResult.BlockedClasses.Contains("Policy"), "IntegrityVerifier manifest mandatory asset co-deletion (entry removed + file deleted) fails closed");
 
-    // Documented residual: a NON-mandatory critical asset removed from BOTH manifest and disk
-    // (co-deletion) is NOT detected by the interim — no independent record that the file should exist.
-    // Same no-independent-anchor class as co-tamper; closed only by code signing (STAB-WP-05).
+    // NON-mandatory critical asset removed from BOTH manifest and disk (co-deletion) must fail closed
+    // via RequiredCriticalEntries. This closes the manifest-shrink deletion gap before code signing.
     var pkgGlobCoDel = FreshIntegrityPackage();
     var globCoDelEntries = IntegrityEntries(pkgGlobCoDel).Where(x => (string)x["path"]! != "kb/public_regulation_catalog.csv").ToList();
     WriteIntegrityManifest(pkgGlobCoDel, "0.6.0", globCoDelEntries);
     File.Delete(Path.Combine(pkgGlobCoDel, "kb", "public_regulation_catalog.csv"));
     var globCoDelResult = IntegrityVerifier.VerifyPackage(pkgGlobCoDel, strict: true);
-    AssertTrue(globCoDelResult.Status == IntegrityStatus.Ok, "IntegrityVerifier manifest non-mandatory critical co-deletion (entry+file removed) is NOT detected — documented residual deferred to code signing (STAB-WP-05)");
+    AssertTrue(globCoDelResult.Status == IntegrityStatus.FailClosed && globCoDelResult.BlockedClasses.Contains("Kb"), "IntegrityVerifier manifest non-mandatory critical co-deletion (entry+file removed) fails closed via pinned critical entries");
 
     // Documented residual: an attacker who rewrites a file AND regenerates the folder manifest in
     // lock-step is NOT detected by the interim (no independent trust anchor). Deferred to code signing.
@@ -2030,6 +2045,35 @@ AssertTrue(Throws<ArgumentException>(() => auditLogReader.Read("logs/../reports"
     {
         AssertTrue(build01IntegrityText.Contains(globPattern, StringComparison.Ordinal), $"build/01 manifest generation should cover critical glob '{globPattern}' (lock-step with IntegrityVerifier critical-glob shrink guard)");
     }
+
+    var repoRoot = Directory.GetCurrentDirectory();
+    if (!repoRoot.EndsWith(Path.DirectorySeparatorChar))
+    {
+        repoRoot += Path.DirectorySeparatorChar;
+    }
+
+    var repoCriticalPaths = new List<string>();
+    foreach (var (dir, pattern) in new[]
+    {
+        ("rules", "*"),
+        ("templates", "*"),
+        (Path.Combine("config", "ncr"), "*.json"),
+        ("kb", "*.csv"),
+        ("kb", "*.md")
+    })
+    {
+        if (!Directory.Exists(dir))
+        {
+            continue;
+        }
+
+        repoCriticalPaths.AddRange(Directory.GetFiles(dir, pattern, SearchOption.AllDirectories)
+            .Select(path => Path.GetFullPath(path).Substring(repoRoot.Length).Replace(Path.DirectorySeparatorChar, '/')));
+    }
+
+    var actualCriticalPaths = IntegrityVerifier.RequiredCriticalEntries.OrderBy(x => x, StringComparer.Ordinal).ToArray();
+    var expectedCriticalPaths = repoCriticalPaths.OrderBy(x => x, StringComparer.Ordinal).ToArray();
+    AssertTrue(actualCriticalPaths.SequenceEqual(expectedCriticalPaths), "IntegrityVerifier RequiredCriticalEntries should match the current build/01 critical asset inventory");
 
     foreach (var dir in integrityTempDirs)
     {

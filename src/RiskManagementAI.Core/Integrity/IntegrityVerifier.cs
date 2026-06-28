@@ -42,9 +42,41 @@ public static class IntegrityVerifier
         "kb/ncr_placeholder.md"
     };
 
+    /// <summary>
+    /// Current release's build/01 critical glob inventory. This pins files that must exist in the
+    /// runtime package even when an attacker deletes both the file and its manifest row; without this
+    /// independent list, co-deletion is indistinguishable from an intentional manifest shrink.
+    /// </summary>
+    public static readonly IReadOnlyList<string> RequiredCriticalEntries = new[]
+    {
+        "config/ncr/ncr_ruleset_sample.json",
+        "kb/README.md",
+        "kb/ncr_placeholder.md",
+        "kb/public_regulation_catalog.csv",
+        "rules/excel_2021_blocked_functions.txt",
+        "rules/excel_2021_preferred_functions.txt",
+        "rules/sql_deny_patterns.txt",
+        "rules/sql_warn_patterns.txt",
+        "rules/vba_deny_patterns.txt",
+        "rules/vba_warn_patterns.txt",
+        "templates/report/app.xml.tpl",
+        "templates/report/content_types.xml.tpl",
+        "templates/report/core.xml.tpl",
+        "templates/report/root_rels.xml.tpl",
+        "templates/report/styles.xml.tpl",
+        "templates/report/workbook.xml.tpl",
+        "templates/report/workbook_rels.xml.tpl",
+        "templates/report/worksheet.xml.tpl",
+        "templates/sql/sql_generation_prompt.md",
+        "templates/vba/vba_generation_prompt.md"
+    };
+
     // O(1) lookup so a missing mandatory file fails closed even when its manifest entry was tampered
     // to required:false. Ordinal: manifest paths are exact forward-slash (build/01).
     private static readonly HashSet<string> MandatorySet = new(MandatoryEntries, StringComparer.Ordinal);
+
+    // O(1) lookup for build/01 critical asset co-deletion: file and manifest row missing together.
+    private static readonly HashSet<string> RequiredCriticalSet = new(RequiredCriticalEntries, StringComparer.Ordinal);
 
     // Integrity-critical asset globs — MUST stay in lock-step with build/01 manifest generation.
     // Every on-disk file matching these is required to be a declared manifest entry; a dropped entry
@@ -157,6 +189,19 @@ public static class IntegrityVerifier
             }
         }
 
+        // 4a') Every current build/01 critical asset must be declared too. This closes the
+        // non-mandatory critical co-deletion gap: if the file and manifest row are removed together,
+        // the on-disk glob scan below cannot see the file, so this pinned list is the fail-closed
+        // anchor until STAB-WP-05 introduces an independent signed package trust root.
+        foreach (var requiredCritical in RequiredCriticalEntries)
+        {
+            if (!declaredPaths.Contains(requiredCritical))
+            {
+                problems.Add($"manifest missing required critical asset: {requiredCritical}");
+                blockedClasses.Add(ClassForPath(requiredCritical));
+            }
+        }
+
         // 4b) Verify each declared entry. Aggregate ALL findings; never early-return Ok.
         foreach (var entry in manifest.Files)
         {
@@ -212,10 +257,10 @@ public static class IntegrityVerifier
                 // always emits these as required) are required BY PATH, independent of the manifest-
                 // controlled `required` flag. A tampered required:false must not suppress a missing-file
                 // failure for an asset the build always ships.
-                if (entry.Required || MandatorySet.Contains(entryPath) || IsCriticalGlobPath(entryPath))
+                if (entry.Required || MandatorySet.Contains(entryPath) || RequiredCriticalSet.Contains(entryPath) || IsCriticalGlobPath(entryPath))
                 {
                     problems.Add($"required file missing: {entryPath}");
-                    blockedClasses.Add(entryClass);
+                    blockedClasses.Add(ClassForPath(entryPath));
                 }
 
                 continue;
@@ -337,6 +382,10 @@ public static class IntegrityVerifier
         "config/security_policy.json" => "Policy",
         "config/column_mapping.json" => "Mapping",
         "kb/ncr_placeholder.md" => "Kb",
+        _ when path.StartsWith("rules/", StringComparison.Ordinal) => "Rules",
+        _ when path.StartsWith("templates/", StringComparison.Ordinal) => "Template",
+        _ when path.StartsWith("config/ncr/", StringComparison.Ordinal) => "Ncr",
+        _ when path.StartsWith("kb/", StringComparison.Ordinal) => "Kb",
         _ => "App"
     };
 
