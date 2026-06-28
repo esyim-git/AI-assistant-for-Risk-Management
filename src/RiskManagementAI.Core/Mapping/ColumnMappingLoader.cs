@@ -135,7 +135,7 @@ public static class ColumnMappingLoader
             return false;
         }
 
-        var segments = relativeMappingPath.Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries);
+        var segments = relativeMappingPath.Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
         return segments.Length >= 2
             && string.Equals(segments[0], "config", StringComparison.OrdinalIgnoreCase)
             && segments.All(segment => segment != "." && segment != "..");

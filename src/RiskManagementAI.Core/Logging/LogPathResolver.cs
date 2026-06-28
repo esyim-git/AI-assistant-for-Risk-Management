@@ -63,7 +63,7 @@ internal static class LogPathResolver
 
     private static bool ContainsParentTraversal(string path)
     {
-        var segments = path.Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries);
+        var segments = path.Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
         return segments.Any(segment => segment == "..");
     }
 }

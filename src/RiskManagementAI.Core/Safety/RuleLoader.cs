@@ -189,7 +189,7 @@ public static class RuleLoader
             return false;
         }
 
-        var segments = relativeRulesDirectory.Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries);
+        var segments = relativeRulesDirectory.Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
         return segments.All(segment => segment != "." && segment != "..");
     }
 

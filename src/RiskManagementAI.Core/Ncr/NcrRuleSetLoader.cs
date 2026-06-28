@@ -192,7 +192,7 @@ public static class NcrRuleSetLoader
             return false;
         }
 
-        var segments = relativeRuleSetPath.Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries);
+        var segments = relativeRuleSetPath.Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
         return segments.Length == 3
             && string.Equals(segments[0], "config", StringComparison.OrdinalIgnoreCase)
             && string.Equals(segments[1], "ncr", StringComparison.OrdinalIgnoreCase)
