@@ -42,6 +42,10 @@ public static class IntegrityVerifier
         "kb/ncr_placeholder.md"
     };
 
+    // O(1) lookup so a missing mandatory file fails closed even when its manifest entry was tampered
+    // to required:false. Ordinal: manifest paths are exact forward-slash (build/01).
+    private static readonly HashSet<string> MandatorySet = new(MandatoryEntries, StringComparer.Ordinal);
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -119,9 +123,18 @@ public static class IntegrityVerifier
             blockedClasses.Add("App");
         }
 
+        // A parseable-but-corrupt manifest may carry null file entries (e.g. {"files":[null]}); the
+        // empty-guard above does not catch them (Count > 0). Treat any null entry as tamper so the
+        // verifier fails closed here instead of throwing a NullReferenceException downstream.
+        if (manifest.Files.Any(f => f is null))
+        {
+            problems.Add("manifest contains a null file entry");
+            blockedClasses.Add("App");
+        }
+
         // 4a) Every mandatory core entry must be declared (independent of per-entry verification).
         var declaredPaths = new HashSet<string>(
-            manifest.Files.Where(f => !string.IsNullOrEmpty(f.Path)).Select(f => f.Path!),
+            manifest.Files.Where(f => f is not null && !string.IsNullOrEmpty(f.Path)).Select(f => f!.Path!),
             StringComparer.Ordinal);
         foreach (var mandatory in MandatoryEntries)
         {
@@ -135,6 +148,11 @@ public static class IntegrityVerifier
         // 4b) Verify each declared entry. Aggregate ALL findings; never early-return Ok.
         foreach (var entry in manifest.Files)
         {
+            if (entry is null)
+            {
+                continue; // recorded above as a problem (corrupt manifest) — never early-return Ok.
+            }
+
             var entryClass = string.IsNullOrWhiteSpace(entry.Class) ? "App" : entry.Class!;
             var entryPath = entry.Path;
 
@@ -145,15 +163,30 @@ public static class IntegrityVerifier
                 continue;
             }
 
-            // Reject rooted or traversal paths before combining (manifest path must stay under root).
-            if (Path.IsPathRooted(entryPath) || entryPath.Contains("..", StringComparison.Ordinal))
+            // Reject rooted / UNC / traversal paths before combining (manifest path must stay under
+            // root). Platform-independent: Path.IsPathRooted does not recognize Windows drive/UNC
+            // roots on non-Windows hosts, so they are checked explicitly too.
+            if (IsRootedOrTraversal(entryPath))
             {
                 problems.Add($"manifest path is rooted or contains traversal: {entryPath}");
                 blockedClasses.Add(entryClass);
                 continue;
             }
 
-            var entryFull = Path.GetFullPath(Path.Combine(baseDir, entryPath.Replace('/', Path.DirectorySeparatorChar)));
+            // A malformed path (embedded NUL, overlong, illegal chars) makes Path.GetFullPath throw;
+            // capture it as a verification failure instead of letting it escape the fail-closed path.
+            string entryFull;
+            try
+            {
+                entryFull = Path.GetFullPath(Path.Combine(baseDir, entryPath.Replace('/', Path.DirectorySeparatorChar)));
+            }
+            catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException or System.Security.SecurityException)
+            {
+                problems.Add($"manifest path is malformed: {entryPath} ({ex.Message})");
+                blockedClasses.Add(entryClass);
+                continue;
+            }
+
             if (!entryFull.StartsWith(rootNorm, StringComparison.OrdinalIgnoreCase))
             {
                 problems.Add($"manifest path escapes package root: {entryPath}");
@@ -163,7 +196,9 @@ public static class IntegrityVerifier
 
             if (!File.Exists(entryFull))
             {
-                if (entry.Required)
+                // Mandatory core files are required by path regardless of the manifest-controlled
+                // `required` flag — a tampered required:false must not suppress a missing-file failure.
+                if (entry.Required || MandatorySet.Contains(entryPath))
                 {
                     problems.Add($"required file missing: {entryPath}");
                     blockedClasses.Add(entryClass);
@@ -213,6 +248,29 @@ public static class IntegrityVerifier
         "kb/ncr_placeholder.md" => "Kb",
         _ => "App"
     };
+
+    /// <summary>
+    /// Platform-independent rejection of paths that must never appear in a manifest: traversal,
+    /// POSIX/Windows roots, Windows drive-letter roots (<c>X:</c>), and UNC roots (<c>\\</c> or <c>//</c>).
+    /// <see cref="Path.IsPathRooted"/> alone misses Windows drive/UNC roots on non-Windows hosts.
+    /// </summary>
+    private static bool IsRootedOrTraversal(string path)
+    {
+        if (Path.IsPathRooted(path) || path.Contains("..", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        if (path.StartsWith('/') || path.StartsWith('\\'))
+        {
+            return true; // POSIX root or UNC/backslash root, independent of host OS.
+        }
+
+        // Windows drive-letter root, e.g. "C:" or "c:/...".
+        return path.Length >= 2
+            && path[1] == ':'
+            && ((path[0] >= 'A' && path[0] <= 'Z') || (path[0] >= 'a' && path[0] <= 'z'));
+    }
 
     private static IntegrityResult Build(bool strict, List<string> problems, SortedSet<string> blockedClasses, bool manifestPresent)
     {
@@ -283,7 +341,7 @@ public static class IntegrityVerifier
     private sealed record ManifestModel(
         [property: JsonPropertyName("version")] string? Version,
         [property: JsonPropertyName("generatedAtUtc")] string? GeneratedAtUtc,
-        [property: JsonPropertyName("files")] IReadOnlyList<ManifestEntry>? Files);
+        [property: JsonPropertyName("files")] IReadOnlyList<ManifestEntry?>? Files);
 
     private sealed record ManifestEntry(
         [property: JsonPropertyName("path")] string? Path,

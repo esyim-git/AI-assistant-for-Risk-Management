@@ -1895,6 +1895,46 @@ AssertTrue(Throws<ArgumentException>(() => auditLogReader.Read("logs/../reports"
     var emptyResult = IntegrityVerifier.VerifyPackage(pkgEmpty, strict: true);
     AssertTrue(emptyResult.Status == IntegrityStatus.FailClosed, "IntegrityVerifier empty manifest files list fails closed");
 
+    // Corrupt-but-parseable manifest with a null entry must fail closed, not throw (PR #61 P2).
+    var pkgNullEntry = FreshIntegrityPackage();
+    File.WriteAllText(Path.Combine(pkgNullEntry, "approved_manifest.json"), "{\"version\":\"0.6.0\",\"files\":[null]}");
+    var nullEntryResult = IntegrityVerifier.VerifyPackage(pkgNullEntry, strict: true);
+    AssertTrue(nullEntryResult.Status == IntegrityStatus.FailClosed, "IntegrityVerifier manifest with a null file entry fails closed without throwing");
+
+    // Valid entries plus a trailing null entry must still fail closed (no early-return Ok).
+    var pkgMixedNull = FreshIntegrityPackage();
+    var mixedNullEntries = IntegrityEntries(pkgMixedNull);
+    mixedNullEntries.Add(null!);
+    WriteIntegrityManifest(pkgMixedNull, "0.6.0", mixedNullEntries);
+    var mixedNullResult = IntegrityVerifier.VerifyPackage(pkgMixedNull, strict: true);
+    AssertTrue(mixedNullResult.Status == IntegrityStatus.FailClosed, "IntegrityVerifier manifest with a valid-plus-null entry list fails closed");
+
+    // Mandatory file deleted while its manifest entry is tampered to required:false must still fail
+    // closed (mandatory enforced by path, not by the manifest-controlled flag) (PR #61 P2).
+    var pkgReqFalse = FreshIntegrityPackage();
+    var reqFalseEntries = IntegrityEntries(pkgReqFalse);
+    reqFalseEntries.First(x => (string)x["path"]! == "config/security_policy.json")["required"] = false;
+    WriteIntegrityManifest(pkgReqFalse, "0.6.0", reqFalseEntries);
+    File.Delete(Path.Combine(pkgReqFalse, "config", "security_policy.json"));
+    var reqFalseResult = IntegrityVerifier.VerifyPackage(pkgReqFalse, strict: true);
+    AssertTrue(reqFalseResult.Status == IntegrityStatus.FailClosed && reqFalseResult.BlockedClasses.Contains("Policy"), "IntegrityVerifier manifest mandatory file deleted with required:false still fails closed");
+
+    // Windows-rooted path entry must be rejected on ANY host (Path.IsPathRooted misses C:/ on Linux) (PR #61 P2).
+    var pkgWinRooted = FreshIntegrityPackage();
+    var winRootedEntries = IntegrityEntries(pkgWinRooted);
+    winRootedEntries.Add(new Dictionary<string, object?> { ["path"] = "C:/Windows/System32/evil.dll", ["size"] = 1L, ["sha256"] = "00", ["class"] = "App", ["required"] = false });
+    WriteIntegrityManifest(pkgWinRooted, "0.6.0", winRootedEntries);
+    var winRootedResult = IntegrityVerifier.VerifyPackage(pkgWinRooted, strict: true);
+    AssertTrue(winRootedResult.Status == IntegrityStatus.FailClosed, "IntegrityVerifier manifest Windows-rooted path entry fails closed on any host");
+
+    // Malformed path (embedded NUL) makes Path.GetFullPath throw; must be caught and fail closed (PR #61 P2).
+    var pkgMalformed = FreshIntegrityPackage();
+    var malformedEntries = IntegrityEntries(pkgMalformed);
+    malformedEntries.Add(new Dictionary<string, object?> { ["path"] = "bad\0name", ["size"] = 1L, ["sha256"] = "00", ["class"] = "App", ["required"] = false });
+    WriteIntegrityManifest(pkgMalformed, "0.6.0", malformedEntries);
+    var malformedResult = IntegrityVerifier.VerifyPackage(pkgMalformed, strict: true);
+    AssertTrue(malformedResult.Status == IntegrityStatus.FailClosed, "IntegrityVerifier manifest malformed path entry fails closed without throwing");
+
     // Version mismatch (manifest declares a different version than the Core constant).
     var pkgVersion = FreshIntegrityPackage();
     WriteIntegrityManifest(pkgVersion, "9.9.9", IntegrityEntries(pkgVersion));
