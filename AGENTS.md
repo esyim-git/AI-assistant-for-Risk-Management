@@ -6,7 +6,7 @@ Codex 및 구현 Agent는 이 파일을 반드시 읽고 따른다. **충돌 시
 
 ## 0. 현재 기준선 (재설계 금지)
 
-현재 main = `f6b1405`, **VERSION 0.6.0** (v0.6.0 태그 `3dfa80b`). 정본 SmokeTest = **Total=572 PASS=572 FAIL=0** (STAB-WP-04 suite 분리 후). R1(Data & Limit Foundation, v0.5.0 완료)과 R3(Regulation/NCR 구조, v0.6.0 완료 — **공개 규정 Metadata 기반 RAG 구조** + **NCR Rule Set 구조**; 규정 원문 RAG·실제 NCR 산정 아님)가 완료되어 있다. STAB v0.6.1 WP-01/02/03a/03b/04 완료(#56·#57·#59·#61·#66, STAB-WP-05 코드서명 APPROVAL_REQUIRED). R2 Risk Analytics=미구현/다음 · R4 Local LLM=설계/승인대기(Runtime APPROVAL_REQUIRED, STOP) · R5 Feedback Learning=일부 구조 있음·실사용 확장 필요 · R6 Team Pilot=Gate B/C 미완료(실 Test PC 증거 BLOCKED). **완료된 MVP-1~3, R1, R3를 재구현하지 않는다.** 새 작업은 v0.6.0 다음 단계부터, **하나의 Work Package(WP) 단위**로만 수행한다.
+현재 main = `dd286fa`, **VERSION 0.6.0** (v0.6.0 태그 `3dfa80b`). 정본 SmokeTest = **Total=579 PASS=579 FAIL=0** (STAB-WP-04 suite 분리 572 + STAB-UX-01 XAML Contract +7). R1(Data & Limit Foundation, v0.5.0 완료)과 R3(Regulation/NCR 구조, v0.6.0 완료 — **공개 규정 Metadata 기반 RAG 구조** + **NCR Rule Set 구조**; 규정 원문 RAG·실제 NCR 산정 아님)가 완료되어 있다. STAB v0.6.1 WP-01/02/03a/03b/04 + UX-01(Resizable Layout) 완료(#56·#57·#59·#61·#66·#68, STAB-WP-05 코드서명 APPROVAL_REQUIRED). **NEXT UP = UX-WP-01**(Smart Assist Core). R2 Risk Analytics=미구현/다음 · R4 Local LLM=설계/승인대기(Runtime APPROVAL_REQUIRED, STOP) · R5 Feedback Learning=일부 구조 있음·실사용 확장 필요 · R6 Team Pilot=Gate B/C 미완료(실 Test PC 증거 BLOCKED). **완료된 MVP-1~3, R1, R3를 재구현하지 않는다.** 새 작업은 v0.6.0 다음 단계부터, **하나의 Work Package(WP) 단위**로만 수행한다.
 
 작업 시작 전 반드시 읽는다:
 1. `docs/38_v1_Master_Roadmap.md` — Release Train / 현재 상태
