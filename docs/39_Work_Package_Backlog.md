@@ -163,7 +163,7 @@
 - **Claude Review Checklist**: 합계/요약 정확 / 기존 단언 불변 / exit code / 정본 수치 docs 반영.
 
 ## STAB-WP-03. Release Security + Integrity Manifest (RR-13, RR-14)
-> **분할**: **03a(build측 — Release 보안 + manifest 생성/검증) = DONE(#59, VERIFIED local-gate)**. **03b(runtime — 앱 시작 Fail-Closed) = IN REVIEW(PARTIAL, branch `feature/stab-wp-03b-runtime-integrity`)**. 독립 신뢰 앵커(코드 서명)는 **STAB-WP-05(APPROVAL_REQUIRED)** 로 분리.
+> **분할 완료**: **03a(build측 — Release 보안 + manifest 생성/검증) = DONE(#59, VERIFIED local-gate)**. **03b(runtime — 앱 시작 Fail-Closed) = DONE(#61, VERIFIED local-gate, main `682f1d8`)**. `Total=572 PASS=572 FAIL=0`, Gate A 0, build/00~03 PASS. 비-mandatory critical co-deletion은 `RequiredCriticalEntries` 핀으로 해소. 독립 신뢰 앵커(코드 서명)와 self-contained 런타임 DLL 미해시는 **STAB-WP-05(APPROVAL_REQUIRED)** 로 분리.
 - **목표**: (a) Release 산출물에서 **PDB/개인 경로/SourceLink/Debug·Test config/Unsafe BinaryFormatter** 부재 보장(`DebugSymbols=false`, `DebugType=none`, allowlist), (b) **`approved_manifest.json`**(핵심 파일 path·size·SHA256·version·required·security class) 생성 + **앱 시작 시 무결성 검증**(개발=Fallback 경고, 운영=Fail-Closed: policy 불일치→기동/기능 차단, rules→검사 차단, template→Report 차단, KB→검색 차단).
 - **선행조건**: STAB-WP-01.
 - **작업범위**: `build/01`/`03`에 Release 보안 검증 추가, manifest 생성·검증 모듈(인박스, NuGet 0), 시작 시 검증 + 모드 분기. Code Signing은 **운영 절차 Placeholder**(자동서명 미구현).
@@ -173,9 +173,10 @@
 - **테스트**: 정상=PASS, 변조 파일=차단(도메인별), PDB/개인경로/Debug config 0 검증, ZIP에 manifest 포함.
 - **Branch**: `feature/stab-wp-03-integrity` · **Commit**: `feat: release security guard + integrity manifest with fail-closed verify (STAB-WP-03)`
 - **Claude Review Checklist**: PDB/개인경로/Debug 0 / manifest 검증 / 운영 Fail-Closed·개발 Fallback / 핵심파일 분류 / NuGet 0 / 기존 테스트 유지.
+> **DONE 증거(03b #61)**: null/malformed/rooted/traversal manifest entry fail-closed, mandatory/critical required-by-path, manifest shrink(엔트리 드롭+파일 잔존), mandatory co-deletion, non-mandatory critical co-deletion 모두 SmokeTest로 고정. 남은 미탐지 양성 고정은 파일+manifest hash/size lock-step co-tamper뿐이며 STAB-WP-05 서명 앵커 전까지 과대표기 금지.
 
 ## STAB-WP-04. SmokeTest Suite Structure (RR-10 보호)
-- **목표**: 비대한 단일 `Program.cs`를 **외부 프레임워크 0**으로 내부 Suite(SafetyTests/CsvTests/XlsxTests/MappingTests/LimitTests/ReconciliationTests/ReportTests/KbTests/NcrTests/PackagingTests/UiContractTests + TestRunner)로 분리. **테스트 삭제·약화 금지**, 총수 보존(감소 시 사유·매핑).
+- **목표**: 비대한 단일 `Program.cs`를 **외부 프레임워크 0**으로 내부 Suite(SafetyTests/CsvTests/XlsxTests/MappingTests/LimitTests/ReconciliationTests/ReportTests/KbTests/NcrTests/PackagingTests/UiContractTests + TestRunner)로 분리. **테스트 삭제·약화 금지**, 총수 보존(감소 시 사유·매핑). Codex 시작 프롬프트: `prompts/codex/STAB-WP-04_test_suites.md`.
 - **선행조건**: STAB-WP-02.
 - **테스트**: 분리 전후 총수·이름 동일(매핑표), 도메인 Summary, Golden File 유지, 실패 exit code 유지.
 - **Branch**: `feature/stab-wp-04-test-suites` · **Commit**: `test: split SmokeTest into internal suites without loss (STAB-WP-04)`

@@ -8,7 +8,7 @@
 - **v0.5.0 = R1 Data & Limit Foundation — DONE** (CP949/UTF-8/XLSX 입력, Column Mapping, 실 Exposure-Limit Join + 공통 `LimitAnalysisResult`, 6상태, 대사 9종, Dashboard=Report 일원화).
 - **v0.6.0 = R3 Regulation/NCR 구조 — DONE** (공개 규정 KB Metadata, Keyword/Inverted Index, 인용형 답변, `KbAccessPolicy`+`KbRepositoryGuard`(+build/03 패키징 스캔), NCR Rule Set 8요소 **구조**).
 - **완료 기능(MVP-1~3, R1, R3)은 재설계하지 않는다.**
-- **SmokeTest**: **513 PASS / 0 FAIL** (정본 합계 — STAB-WP-02 적용 후 CI 요약 `Total=513`, windows-latest, 2026-06-22). 과거 484/502는 하니스가 합계를 안 찍던 시절의 미집계 추정치였고, STAB-WP-02가 **합계·도메인별 PASS/FAIL·실행시간**을 출력한다.
+- **SmokeTest**: **572 PASS / 0 FAIL** (정본 합계 — STAB-WP-03b(#61) local-gate 후 `Total=572`). STAB-WP-02 최초 정본은 `Total=513`이었고, 이후 STAB-WP-03b 회귀가 +59 추가됐다. 과거 484/502는 하니스가 합계를 안 찍던 시절의 미집계 추정치였고, STAB-WP-02가 **합계·도메인별 PASS/FAIL·실행시간**을 출력한다.
 - ⚠️ R2(Risk Analytics)는 R3보다 뒤로 밀렸다(R3 먼저 출시). R2는 v0.6.1 STAB 이후.
 
 ## 1. 절대 원칙 (전 릴리스 유지)
@@ -90,7 +90,7 @@ R1(DONE) ─► R3(DONE) ─► STAB(v0.6.1) ─► R2(v0.7) ─► KB(v0.8) ─
 | **RR-11** | **빌드 기본 `-Version 0.2.0` ≠ VERSION 0.6.0 → 오버전 산출물** | 高(릴리스) | STAB-WP-01 VERSION 단일원천·불일치 시 실패 | 해소 |
 | **RR-12** | **정본 테스트 수 불명(484/502 혼재)** | 中 | STAB-WP-02 합계+도메인 요약 출력 | 해소 |
 | **RR-13** | **Release ZIP에 PDB/개인경로/Debug 자산 포함 가능** | 中(보안) | STAB-WP-03a Release 보안·allowlist·manifest(#59) | 해소 |
-| **RR-14** | **핵심 파일(policy/rules/template/KB) 변조 미탐지** | 中 | STAB-WP-03a manifest + 03b 런타임 시작 검증(운영 Fail-Closed, #61). 잔여 co-tamper/런타임 DLL은 STAB-WP-05 서명 | 해소(서명 잔여 이관) |
+| **RR-14** | **핵심 파일(policy/rules/template/KB) 변조 미탐지** | 中 | STAB-WP-03a manifest + 03b 런타임 시작 검증(운영 Fail-Closed, #61). 잔여 co-tamper/런타임 DLL은 STAB-WP-05 서명 | 부분해소(03a/03b) · 서명 잔여 OPEN |
 | RR-06 | Local LLM 무단 도입 | 高(원칙) | R4 설계만·STOP·Model Approval Gate | 통제 |
 | RR-08 | 대용량/손상 파일 메모리 | 中 | R2-WP-02 Streaming·상한 | 계획 |
 | RR-15 | 중복 한도키 임의선택(group.Last) | 中 | R2-WP-01 명시 차단/상태 | 계획 |
