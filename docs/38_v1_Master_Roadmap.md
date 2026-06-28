@@ -68,7 +68,6 @@ R1(DONE) ─► R3(DONE) ─► STAB(v0.6.1) ─► R2(v0.7) ─► KB(v0.8) ─
 | C-10 | KB Metadata·역색인·인용·접근정책·원문가드 | R3-WP-01~04 | 검색 결정성·인용·Blocker 스캔 | RAG | VERIFIED |
 | C-11 | NCR Rule Set 8요소 구조 | R3-WP-05 | 구조·조회전용 SQL·검토용초안 | NCR | SCAFFOLD_ONLY |
 | C-12 | 빌드/버전 재현성·무결성·정본 테스트 | STAB-WP-01~04 | VERSION 단일원천·manifest 검증·런타임 Fail-Closed·정본 합계 | — | PARTIAL (STAB-WP-01/02/03 DONE; **STAB-WP-04 NEXT**) |
-| C-22~24 | Smart Assist(inline 자동완성, 정적·NoModel) | UX-WP-01~03 | 결정성·차단셋 단일원천·자동삽입 0·해시 audit | A | 설계(PR #62) |
 | C-13 | Risk Semantic Hardening | R2-WP-01 | 중복키 차단·RECON_UNIT·BASE_DT 정규화 | Data | TODO |
 | C-14 | Streaming/Perf | R2-WP-02 | 상한·Welford·벤치 | Data | TODO |
 | C-15 | 전일 대비 | R2-WP-03 | Current/Prev/Δ·TopN | Data | TODO |
