@@ -7,16 +7,17 @@
 ---
 
 ## ★ Resume Brief (Codex 인수 — v0.6.0 기준선)
-- **현재 기준선**: main `80fbcb8`, VERSION **0.6.0** (**v0.6.0 정식 릴리스 태그 = `3dfa80b`**). R1(WP-01~08)·R3(R3-WP-01~05)·REL-v0.6 가드(#54)·**STAB-WP-01(#56)·STAB-WP-02(#57)·STAB-WP-03a(#59)·STAB-WP-03b(#61)** 모두 **DONE**. 추가 머지: truth-sync(#63)·Smart Assist 설계(#62, UX 트랙). SmokeTest **`Total=572 PASS=572 FAIL=0`**(local-gate, 03b 머지 후; 기존 513 보존 + STAB-WP-03b 회귀 +59, 전부 도메인 분류).
+- **현재 기준선**: main `f6b1405`, VERSION **0.6.0** (**v0.6.0 정식 릴리스 태그 = `3dfa80b`**). R1(WP-01~08)·R3(R3-WP-01~05)·REL-v0.6 가드(#54)·**STAB-WP-01(#56)·STAB-WP-02(#57)·STAB-WP-03a(#59)·STAB-WP-03b(#61)·STAB-WP-04(#66)** 모두 **DONE**. 추가 머지: truth-sync(#63)·Smart Assist 설계(#62, UX 트랙)·STAB-WP-04+UX-WP-01 kickoff(#65). SmokeTest **`Total=572 PASS=572 FAIL=0`**(local-gate, 04 suite 분리 후에도 보존; 기존 513 보존 + STAB-WP-03b 회귀 +59, 전부 도메인 분류).
 - **STAB-WP-03a DONE (#59, local-gate PASS)**: build측 Release 보안(PDB 0·Dev/Test config 0·UnsafeBinaryFormatter false) + Integrity Manifest 생성(build/01)·검증(build/03 — 필수항목 강제·경로 traversal 차단·hash/size/version). 증거: manifest 25 entries, ZIP SHA256 `3C7D3926…`, PDB/Dev-Test 0, SmokeTest 513. RR-13 + RR-14(build측) 해소.
 - **STAB-WP-03b DONE (#61 merged, 2026-06-28, main `682f1d8`, VERIFIED — local-gate; review thread 7건 resolve)**: runtime Fail-Closed(Design 3 interim). 신규 `Core/Integrity/`(IntegrityStatus·IntegrityResult·IntegrityVerifier·IntegrityGate)가 build/03 §4를 in-process 포팅(SHA256 전용, NuGet 0, build/01·03 미변경, 513 불변). `App.OnStartup` 최상단에서 검증→FailClosed=Shutdown(2). 데이터/자산 변조 + manifest 부재/축소/버전불일치 차단. dev 스위치 강화(`RMAI_DEV_ALLOW_UNVERIFIED=1` + `Debugger.IsAttached`). **잔여 위험(미탐지, 명시)**: manifest 독립 앵커 부재(co-tamper)·self-contained 런타임 DLL 미해시·폴더 동반 변조 → **코드 서명(APPROVAL_REQUIRED)** 후속(`STAB-WP-05`). **Codex local-gate(2026-06-28, latest PR #61 delta incl. `947f532`/`8866a07` + RequiredCriticalEntries co-deletion fix) = VERIFIED**: `dotnet build` 0/0, SmokeTest `Total=572 PASS=572 FAIL=0`, Gate A 0, NuGet `PackageReference` 0, build/00~03 PASS(ZIP SHA256 `E3995BD54A1D1DCAA55FEDCD968E18906191255DCF564BA4047A0A59E8402021`). 봇 P2 4건(`99fc508`: ① null 엔트리 ② malformed path try/catch ③ mandatory를 manifest `required` 플래그와 무관하게 path로 강제 ④ 플랫폼 무관 rooted/UNC 거부) 검증 PASS. 추가 P2(`947f532`/`8866a07`) 검증 PASS: ⑤ **manifest 축소 가드** — build/01 critical 글롭(rules/templates/config·ncr/kb) 디스크 스캔으로 미선언 critical 파일 FailClosed(엔트리 드롭+파일 잔존/변조 차단, build/01 lock-step); ⑥ **critical 글롭 required-by-path** — 글롭 자산은 manifest `required` 플래그와 무관하게 필수 강제(엔트리 유지+`required:false`+파일 삭제 차단); ⑥' mandatory 자산 **co-deletion**(엔트리+파일 동시 삭제)은 hard-coded declared-check로 차단(앵커). **추가 보강 검증 PASS**: `RequiredCriticalEntries`로 현 build/01 critical asset inventory를 pin해 비-mandatory critical **co-deletion**(엔트리+파일 동시 삭제)도 FailClosed로 닫음. **잔여(미탐지 고정)**: 파일+manifest hash/size lock-step **co-tamper**(콘텐츠 동시 변조) + self-contained 런타임 DLL 미해시만 남음 → **코드 서명(STAB-WP-05, APPROVAL_REQUIRED)** 후속. (비-mandatory critical **co-deletion**은 `RequiredCriticalEntries` 핀으로 **해소**.)
-- **NEXT UP (다음 WP)**: **`STAB-WP-04`(SmokeTest 구조 분리, RR-10 보호)** — STAB-WP-03b(#61) 머지로 활성. **Codex 프롬프트 READY**: `prompts/codex/STAB-WP-04_test_suites.md`. 병행 READY: **UX-WP-01**(Smart Assist Completion Core) — `prompts/codex/UX-WP-01_completion_core.md`(설계 #62 머지, 7+4 P2 반영 완료) → Codex 핸드오프 가능. 그 외 병행: PILOT Gate B/C(BLOCKED, 실 Test PC).
-- **그 다음 후보(순서, NEXT UP 아님)**: STAB-WP-04(테스트 구조 분리) → **STAB-WP-05(Authenticode 코드 서명 — APPROVAL_REQUIRED, 외부 신뢰 루트, STOP)** → R2-WP-01(Risk Semantic Hardening) → R2-WP-02~04.
+- **STAB-WP-04 DONE (#66 merged, main `f6b1405`, VERIFIED — local-gate)**: 비대한 단일 `Program.cs`를 외부 프레임워크 0으로 내부 Suite로 분리(`Program.cs`는 3줄 runner 호출만; `SmokeTestContext`+13개 suite 파일 SafetyTests/CsvTests/XlsxTests/MappingTests/LimitReconciliationTests/ReportTests/KbTests/NcrTests/PackagingTests/UiContractTests/GenerationTests/DataProfileTests/AuditTests + `TestRunner`+`SmokeTestHelpers`+`GlobalUsings`). **RR-10 보존 검증(Claude review)**: AssertTrue 호출 426=426, Throws 25=25, 문자열 리터럴 0건 누락(comm -23), `SmokeDomain` 분류·`=== SmokeTest Summary ===`·`Total=N PASS=N FAIL=N`·fail exit code 보존, `Total=572 PASS=572 FAIL=0` 불변, 외부 PackageReference 0. 기능 코드 변경 없음(7개 Core `string.Split`는 SDK 8.0.100 collection-expression 회피용 `new[]{}`로 동작 동일).
+- **NEXT UP (다음 WP)**: **`STAB-UX-01`(Resizable Editor Layout — WPF 레이아웃 안정화, 기능변경 0)** — 고정높이 EditorRow(260) 제거·GridSplitter·창 Min·TextBox Stretch. **Codex 프롬프트 READY**: `prompts/codex/STAB-UX-01_resizable_editor_layout.md`. 병행 READY: **UX-WP-01**(Smart Assist Completion Core) — `prompts/codex/UX-WP-01_completion_core.md`(설계 #62 머지, 7+4 P2 반영 완료) → Codex 핸드오프 가능. 그 외 병행: PILOT Gate B/C(BLOCKED, 실 Test PC).
+- **그 다음 후보(순서, NEXT UP 아님)**: STAB-UX-01(레이아웃) → UX-WP-01~03(Smart Assist) → **STAB-WP-05(Authenticode 코드 서명 — APPROVAL_REQUIRED, 외부 신뢰 루트, STOP)** → R2-WP-01(Risk Semantic Hardening) → R2-WP-02~04.
 - **BLOCKED**: PILOT Gate B/C(실 Test PC 증거 대기 — `docs/45`). 신규 기능과 분리해 user/Test PC가 병행.
 - **재현 검증**: `git fetch origin main && git switch main && dotnet build RiskManagementAI.sln -c Release && dotnet run --project tests/RiskManagementAI.SmokeTests` → 종료부의 두 줄 `=== SmokeTest Summary ===` 및 `Total=N PASS=N FAIL=0 Duration=...s` 확인(정본 합계). CI/로그 grep은 **`Total=`** 사용.
 - **운영 모델(Local-Gate)**: GitHub Actions 2,000분/월 소진(**~2026-06-30 리셋 예정**) 동안 build/test/packaging는 **전부 로컬 실행**. 머지 게이트 = 로컬 `Total=N PASS/0 FAIL` 증거 + Claude 코드리뷰(GitHub CI green 전제 아님). `ci.yml`·`governance-soft-guard.yml`는 `workflow_dispatch` 수동(분 가용 시), `ci.yml` test=ubuntu·wpf=windows. (`CLAUDE.md §11.6`)
 - **테스트 수 변경 규약**: 총수 감소 시 사유·매핑 기록(삭제·약화 금지). STAB-WP-02가 합계·도메인 요약·실행시간을 출력하고, 미분류 도메인(`Unclassified`)이 남으면 실패한다.
-- **⚠️ Archived(재실행 금지) 프롬프트**: `prompts/codex_mvp1_implementation_prompt.md`, `prompts/codex_mvp2_*`, `prompts/codex_mvp3_ui_prompt.md`, `prompts/codex_goal_mode_prompt.md`, `prompts/claude_bootstrap_v2_prompt.md`, `prompts/codex/WP-01~07_*`, `prompts/codex/R3-WP-01~05_*`, `prompts/codex/REL-v0.6-packaging-guard.md`, `prompts/codex/STAB-WP-01_*`, `prompts/codex/STAB-WP-02_*` — 모두 **완료/Starter** 단계. 신규 작업은 본 Resume Brief의 NEXT UP만 따른다.
+- **⚠️ Archived(재실행 금지) 프롬프트**: `prompts/codex_mvp1_implementation_prompt.md`, `prompts/codex_mvp2_*`, `prompts/codex_mvp3_ui_prompt.md`, `prompts/codex_goal_mode_prompt.md`, `prompts/claude_bootstrap_v2_prompt.md`, `prompts/codex/WP-01~07_*`, `prompts/codex/R3-WP-01~05_*`, `prompts/codex/REL-v0.6-packaging-guard.md`, `prompts/codex/STAB-WP-01_*`, `prompts/codex/STAB-WP-02_*`, `prompts/codex/STAB-WP-04_*` — 모두 **완료/Starter** 단계. 신규 작업은 본 Resume Brief의 NEXT UP만 따른다.
 
 ## R1 진행 원장 (Codex 갱신)
 | WP | 목표 | 상태 | PR/커밋 | SmokeTest | 비고 |
@@ -175,12 +176,14 @@
 - **Claude Review Checklist**: PDB/개인경로/Debug 0 / manifest 검증 / 운영 Fail-Closed·개발 Fallback / 핵심파일 분류 / NuGet 0 / 기존 테스트 유지.
 > **DONE 증거(03b #61)**: null/malformed/rooted/traversal manifest entry fail-closed, mandatory/critical required-by-path, manifest shrink(엔트리 드롭+파일 잔존), mandatory co-deletion, non-mandatory critical co-deletion 모두 SmokeTest로 고정. 남은 미탐지 양성 고정은 파일+manifest hash/size lock-step co-tamper뿐이며 STAB-WP-05 서명 앵커 전까지 과대표기 금지.
 
-## STAB-WP-04. SmokeTest Suite Structure (RR-10 보호)
-- **목표**: 비대한 단일 `Program.cs`를 **외부 프레임워크 0**으로 내부 Suite(SafetyTests/CsvTests/XlsxTests/MappingTests/LimitTests/ReconciliationTests/ReportTests/KbTests/NcrTests/PackagingTests/UiContractTests + TestRunner)로 분리. **테스트 삭제·약화 금지**, 총수 보존(감소 시 사유·매핑). Codex 시작 프롬프트: `prompts/codex/STAB-WP-04_test_suites.md`.
+## STAB-WP-04. SmokeTest Suite Structure (RR-10 보호) — **DONE (#66, VERIFIED local-gate)**
+- **상태**: **DONE** (main `f6b1405`). 단일 `Program.cs` → 3줄 runner + `SmokeTestContext` + 13개 suite(SafetyTests/CsvTests/XlsxTests/MappingTests/LimitReconciliationTests/ReportTests/KbTests/NcrTests/PackagingTests/UiContractTests/GenerationTests/DataProfileTests/AuditTests) + `TestRunner`/`SmokeTestHelpers`/`GlobalUsings`.
+- **목표**: 비대한 단일 `Program.cs`를 **외부 프레임워크 0**으로 내부 Suite로 분리. **테스트 삭제·약화 금지**, 총수 보존.
 - **선행조건**: STAB-WP-02.
 - **테스트**: 분리 전후 총수·이름 동일(매핑표), 도메인 Summary, Golden File 유지, 실패 exit code 유지.
+- **DONE 증거(Claude review)**: AssertTrue 426=426, Throws 25=25, 문자열 리터럴 0건 누락(comm -23), `SmokeDomain`/`=== SmokeTest Summary ===`/`Total=N PASS=N FAIL=N`/fail exit code 보존, **`Total=572 PASS=572 FAIL=0` 불변**, PackageReference 0, 기능 변경 없음(Core `string.Split` 7건은 SDK 8.0.100 collection-expression 회피용 `new[]{}`로 동작 동일).
 - **Branch**: `feature/stab-wp-04-test-suites` · **Commit**: `test: split SmokeTest into internal suites without loss (STAB-WP-04)`
-- **Claude Review Checklist**: 총수 보존+매핑 / 단언 불변 / 도메인 Summary / 외부 0.
+- **Claude Review Checklist**: 총수 보존+매핑 / 단언 불변 / 도메인 Summary / 외부 0. → **전부 PASS**.
 
 ## STAB-WP-05. Authenticode 코드 서명 — 독립 신뢰 앵커 (APPROVAL_REQUIRED · STOP)
 - **상태**: **APPROVAL_REQUIRED**. STAB-WP-03b interim이 닫지 못한 **manifest 독립 신뢰 앵커**(쓰기 가능 폴더에서 파일+manifest를 lock-step 동시 변조하는 co-tamper) + **self-contained 런타임 DLL(~150개) 미해시** + 폴더 동반 변조를 닫는다. 외부 신뢰 루트(인증서·서명 도구)가 필요하므로 **STOP 규칙(§11.5)** — 승인(`docs/41`/ADR-008 §결정4·5) 전 진행 금지.
@@ -189,6 +192,25 @@
 - **제외범위(STOP 전)**: 자동 서명 파이프라인, 인증서 저장·반입 자동화.
 - **테스트(승인 후, Windows 실 Test PC)**: 정상 서명 패키지=기동, 미서명/서명 불일치=차단, co-tamper(파일+manifest 동시 변조)=서명 앵커로 **차단**(03b에서 미탐지였던 케이스 회귀로 PASS 전환).
 - **Claude Review Checklist**: 외부 신뢰 루트 승인 근거 / 서명 검증이 manifest 신뢰의 선행 / 03b 잔여위험 3건 폐쇄 매핑 / 절대원칙·NuGet 정책 유지.
+
+## STAB-UX-01. Resizable Editor Layout (WPF 레이아웃 안정화, 기능변경 0) — **NEXT UP** (CAP-UX 사용성)
+- **목표**: `MainWindow.xaml`의 **고정 높이 EditorRow(`Height="260"`)** 때문에 SQL/VBA/Excel/리스크 코멘트 편집 영역이 좁고 창 크기에 반응하지 않는 문제를 해소한다. **GridSplitter 기반 가변 레이아웃**으로 에디터/결과 패널·중앙/우측 Safety 패널을 사용자가 조절하고, 창 리사이즈에 비례 반응하게 한다. **기능·계약·데이터 흐름 변경 0**(순수 레이아웃/XAML).
+- **선행조건**: 없음(안정 기준선 `f6b1405`). UX-WP-03(Completion Popup)과 충돌 없는 토대.
+- **작업범위**:
+  - **Window**: `Width="1180" Height="720"`, **`MinWidth="1180" MinHeight="720"`**, `ResizeMode="CanResize"`, `SizeToContent="Manual"`.
+  - **중앙 작업 Grid**(현 `Grid.Row="1" Grid.Column="1"`): EditorRow `Height="260"`(고정) → **`Height="2*" MinHeight="260"`**, 그 아래 **Splitter Row `Height="8"`** + GridSplitter(에디터/결과 세로 분할), ResultRow `Height="*"` → **`Height="1*" MinHeight="180"`**.
+  - **중앙↔우측 Safety 패널**: 최상위 Grid 컬럼에 GridSplitter 추가, Safety 패널 컬럼 `Width="300"` → **`Width="340" MinWidth="280" MaxWidth="560"`**. **좌측 메뉴 컬럼은 `Width="220"` 고정 유지**, 중앙 컬럼 `Width="*"`.
+  - **편집 TextBox**(SQL/VBA/Excel/Draft): `HorizontalAlignment="Stretch" VerticalAlignment="Stretch"`, `AcceptsReturn="True" AcceptsTab="True"`, `VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"`, `FontFamily="Consolas" FontSize="14"`.
+- **제외범위**: 레이아웃 영속화(`config/ui_layout.local.json` 저장/복원)는 **후속 WP(STAB-UX-02 후보)**. Smart Assist 기능(UX-WP-01~03), 신규 컨트롤/탭, 데이터/계약 변경, 신규 NuGet.
+- **읽을문서**: `docs/46`(UX 설계 §Resizable Workspace Layout), `docs/14`(UI), `App/MainWindow.xaml`.
+- **수정예상파일**: `App/MainWindow.xaml`(레이아웃만), 필요 시 `App/MainWindow.xaml.cs`(GridSplitter 관련 최소 코드비하인드 — 자동실행/계약 변경 0), `tests/.../`(XAML Contract SmokeTest).
+- **Public Interface**: 없음(앱 내부 레이아웃). Core 계약·이벤트 핸들러 시그니처 불변.
+- **구현세부**: 순수 XAML 레이아웃. 기존 `x:Name`·이벤트 바인딩·탭 구조 보존. GridSplitter는 `ResizeBehavior`/`ResizeDirection` 명시. 외부 Editor 패키지 0. 자동실행 0.
+- **보안조건**: 외부 NuGet 0. 기능/데이터 흐름·자동실행·로그 변경 0. 실데이터·원문 0.
+- **테스트**(XAML Contract SmokeTest, 외부 프레임워크 0): ① `MainWindow.xaml`에 **GridSplitter ≥1 존재**, ② EditorRow가 **고정 `Height="260"`이 아님**(`2*`/`MinHeight`), ③ Window `MinWidth`/`MinHeight` 설정됨(1180/720), ④ SQL/VBA TextBox `Stretch`+`Consolas`/`14`, ⑤ Safety 패널 컬럼 `MinWidth`/`MaxWidth` 설정, ⑥ **기존 SmokeTest `Total=572 PASS=572 FAIL=0` 보존**, ⑦ NuGet PackageReference 0.
+- **완료조건**: 가변 레이아웃 + GridSplitter(에디터/결과·중앙/우측) + 창 Min + TextBox Stretch + XAML Contract Test. build 0/0(WPF 로컬 컴파일) · `Total` 보존+신규.
+- **Branch**: `feature/stab-ux-01-resizable-layout` · **Commit**: `feat: resizable editor layout with grid splitters (STAB-UX-01)`
+- **Claude Review Checklist**: 고정높이 제거(EditorRow 비고정) / GridSplitter 존재(에디터-결과·중앙-우측) / Window Min 1180×720 / TextBox Stretch+Consolas/14 / Safety 패널 Min·Max / 기능·계약 변경 0 / 기존 SmokeTest 보존 / XAML Contract Test / NuGet 0 / Gate A.
 
 ## PILOT-WP-01. v0.6 Offline Gate B/C Evidence (BLOCKED, user/Test PC)
 - **목표**: `docs/45` v0.6 Gate B/C 증거 시트를 실 오프라인 Test PC에서 채워 봉인. **실 PC 증거 없으면 PASS 금지(BLOCKED 유지).**

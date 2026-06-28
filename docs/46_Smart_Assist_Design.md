@@ -112,4 +112,23 @@ record CompletionResult(
 - 승인된 KB/규정 catalog를 RiskPhrase의 **참조형 출처**로 연결(원문 미포함 유지, R3/KB 계약 경유).
 - 사용자 승인형 snippet 승격(Feedback Learning, R5)와 연계 가능(가중치 자동학습 0).
 
-> 관련: `docs/40`(ADR-010·ADR-003/009)·`docs/39`(UX-WP-01~03)·`docs/38`(UX Track)·`CLAUDE.md §4·§5·§6·§10`·`docs/14`(UI)·`docs/16`(VBA)·`docs/28`(Gate A).
+## 8. Resizable Workspace Layout (STAB-UX-01)
+
+> Smart Assist Popup이 부착될 **편집 영역 자체의 사용성** 선행 작업. **순수 WPF 레이아웃·기능변경 0**. WP 상세 = `docs/39 §STAB-UX-01`, Codex 프롬프트 = `prompts/codex/STAB-UX-01_resizable_editor_layout.md`.
+
+### 8.1 현재 문제
+`MainWindow.xaml` 중앙 작업 Grid의 EditorRow가 **고정 `Height="260"`**이라 SQL/VBA/Excel/리스크 코멘트 편집 영역이 좁고 창 리사이즈에 반응하지 않는다. 우측 Safety 패널도 `Width="300"` 고정이라 화면이 커져도 작업 공간이 늘지 않는다.
+
+### 8.2 목표 레이아웃
+- **Window**: `Width=1180 Height=720`, **`MinWidth=1180 MinHeight=720`**, `ResizeMode=CanResize`, `SizeToContent=Manual`.
+- **세로 분할(에디터 ↔ 결과)**: EditorRow `Height="2*" MinHeight="260"`, **Splitter Row(`Height="8"`) + `GridSplitter`(Rows)**, ResultRow `Height="1*" MinHeight="180"`.
+- **가로 분할(중앙 ↔ 우측 Safety)**: 좌측 메뉴 `Width=220` **고정**, 중앙 `Width=*`, **중앙↔우측 사이 `GridSplitter`(Columns)**, Safety 패널 `Width="340" MinWidth="280" MaxWidth="560"`.
+- **편집 TextBox**(SQL/VBA/Excel/Draft): `HorizontalAlignment=Stretch VerticalAlignment=Stretch`, `AcceptsReturn=True AcceptsTab=True`, `Vertical/HorizontalScrollBarVisibility=Auto`, `FontFamily=Consolas FontSize=14`.
+
+### 8.3 제외 / 후속
+- **레이아웃 영속화**(`config/ui_layout.local.json` 저장·복원)는 **후속 WP(STAB-UX-02 후보)**. 기능·계약·데이터 흐름·신규 NuGet **0**.
+
+### 8.4 테스트(XAML Contract SmokeTest)
+GridSplitter ≥1 존재 · EditorRow 비고정(`2*`/MinHeight) · Window MinWidth/MinHeight(1180/720) · SQL/VBA TextBox Stretch+Consolas/14 · Safety 패널 MinWidth/MaxWidth · **기존 `Total=572 PASS=572 FAIL=0` 보존** · PackageReference 0.
+
+> 관련: `docs/40`(ADR-010·ADR-003/009)·`docs/39`(UX-WP-01~03·STAB-UX-01)·`docs/38`(UX Track)·`CLAUDE.md §4·§5·§6·§10`·`docs/14`(UI)·`docs/16`(VBA)·`docs/28`(Gate A).

@@ -4,7 +4,7 @@
 v0.6.0 = **v0.5.0(R1 데이터 파운데이션) + R3(RAG/NCR)**. 본 문서는 v0.6.0 **릴리스 노트 + Codex/Windows 패키징 런북 + Gate B 체크리스트 + GitHub Release 핸드오프**다. `docs/42`(v0.5.0)·`docs/34`(리허설)·`docs/24`(패키징)·`docs/28`(게이트 B/C)를 v0.6.0 단계로 갱신.
 
 > 빌드·ZIP·태그는 **Windows + .NET 8 SDK + PowerShell**(Codex 로컬). 웹/Linux 세션 및 git proxy는 **태그 push가 403** → **태그·Release 발행은 로컬에서**.
-> **전제**: `main`이 `ee0e93c`(R3 완료 + 게이트 PASS) 이상 + **패키징-guard 연결 PR 병합 후**(아래 §2 ④) 컷한다.
+> **기준선**: v0.6.0 태그 = `3dfa80b`, VERSION `0.6.0`. 현재 main = `f6b1405`(STAB v0.6.1 WP-01~04 완료 반영). **전제**: R3 완료 + 코드/CI 레벨 게이트 PASS + **패키징-guard 연결 PR 병합 후**(아래 §2 ④) 컷한다.
 
 ---
 
@@ -18,7 +18,8 @@ v0.6.0 = **v0.5.0(R1 데이터 파운데이션) + R3(RAG/NCR)**. 본 문서는 v
 - **적재 게이트 가드**(WP-04): `KbAccessPolicy` — 공개 status만 인용, `PROD_ONLY`/`MANUAL_APPROVAL_REQUIRED`는 **원문 비노출(메타+표식)**, 라이선스/승인/미지 status 구조화 `SafetyFinding`. **`KbRepositoryGuard`**가 kb/·data_sources/·samples/·config/ncr 원문 의심파일 Blocker 스캔.
 - **NCR Rule Set 구조**(WP-05): **모델이 산식을 암기해 답하지 않고** Rule Set 8요소(Version·Effective Date·Component Map·Formula Description·Validation SQL·Regulation Basis·Approval History)로만 산출·설명. 샘플=placeholder(실 계수 0), Validation SQL=조회 전용. **NCR 공식본 원문 repo 미포함**.
 - **패키징 가드 강화**: release 검증에 **원문 미포함 스캔** 연결(§2 ④).
-- **SmokeTest 368 → 460**.
+- **SmokeTest**: R3 마감 시점 460 PASS → **현재 정본 572 PASS / 0 FAIL**(STAB v0.6.1 WP-04 suite 분리 후).
+- **무결성(STAB v0.6.1, local-gate VERIFIED)**: STAB-WP-03a(build측 manifest, #59) + STAB-WP-03b(런타임 Fail-Closed, #61) = 통합 무결성 VERIFIED. co-deletion은 `RequiredCriticalEntries`로 해소. **잔여**(콘텐츠 co-tamper + 런타임 DLL 미해시) + **Code Signing(현재 placeholder)** = STAB-WP-05(**APPROVAL_REQUIRED**).
 
 **유지된 절대 원칙**: 오프라인 · 외부 NuGet 0 · 외부 API/telemetry/자동업데이트 0 · SQL/VBA 자동실행 0 · 해시 전용 감사 · NoModelMode · **내부규정/NCR 원문·실데이터·모델파일 미포함** · **Vector/Embedding/모델 런타임 미도입**.
 
@@ -59,7 +60,7 @@ artifacts/release/ReleaseNote-v0.6.0.md / DependencyList-v0.6.0.csv
 - [ ] R3: **KB 검색** → 인용(문서명·버전·시행일·조항·출처·검색기준일·검토필요), 내부/NCR은 **메타+표식만(원문 0)**, **NCR Rule Set 구조** 설명(검토용 초안)
 - [ ] ReleaseNote SHA256과 `Get-FileHash` 일치 · 종료/재실행 정상
 
-> 실 Test PC 미가용 시: **BLOCKED(Pilot PC 대기)**, 체크리스트 선완성.
+> **실 오프라인 Test PC 증거가 없으면 Gate B는 PASS로 적지 않고 BLOCKED(Pilot PC 대기)를 유지**, 체크리스트만 선완성. (현재 R6 Team Pilot Gate B/C = BLOCKED.)
 
 ---
 
