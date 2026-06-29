@@ -60,3 +60,7 @@
 ## 10. Branch / Commit
 - Branch: `feature/r2-wp-02-streaming-performance`
 - Commit: `feat: add streaming/Welford profiling path with row/byte caps (R2-WP-02)`
+
+## Codex 리뷰 반영 (P2 — 필수 준수)
+- **(P2) OutlierCount 정확 재현**: 기존 `DataProfiler.CountSimpleOutliers`(`DataProfiler.cs:188-208`)는 **2-pass**(최종 mean/3σ 산출 후 전 값 재방문 카운트)다. 단일-pass Welford(count/mean/M2)만으로는 동일 `OutlierCount` 재현 불가(후행 값이 최종 임계를 이동). → streaming 경로는 **2차 streaming pass** 또는 **상한-bounded 값 보존** 등 정확 메커니즘을 허용하고 "single-pass로 기존과 동일" 주장 금지. 회귀: 동일 입력에 기존 `OutlierCount` 정확 일치.
+- **(P2) CP949 streaming 보존**: 기존 CP949는 .NET Encoding이 아니라 repo 커스텀 `Cp949Decoder.Decode(byte[])`(CsvReader는 `File.ReadAllBytes`→커스텀 디코드, `CodePagesEncodingProvider` 금지)다. `StreamReader`/.NET Encoding 기반 streaming은 CP949 미지원/오디코드. → streaming 경로는 **`Cp949Decoder` 바이트 디코더(CP949/Auto) 재사용**을 명시하고 **CP949 streaming을 명시적 테스트 요구**(Golden6 CP949 export: 기존==streaming 동일 디코드).

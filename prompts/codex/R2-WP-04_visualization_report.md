@@ -54,3 +54,7 @@
 - 생성 xlsx를 로컬 Excel 2021에서 열어 **손상 경고 없음** 확인(증거 첨부; 불가 시 BLOCKED 명시).
 - 보고 형식: 변경 파일 목록 + Diff 요지 / SmokeTest 전후 Total / NuGet 0 증거 / Excel 열기 결과 / 상태어휘(데이터 시트·정확 카운트=VERIFIED 후보, WPF=화면 한정, chart part=미채택). **과대표기 금지.**
 - Branch `feature/r2-wp-04-visualization-report`, 1 PR(squash), Subject 예: `Add in-box risk visualization sheet and exact exception count (#NN)`. force push·hard reset·main 직접 push 금지.
+
+## Codex 리뷰 반영 (P2 — 필수 준수)
+- **(P2) DuplicateLimit 리포트 반영**: R2-WP-01이 추가하는 `DuplicateLimit`/`DUPLICATE_LIMIT`를 RISK_VISUAL 상태분포·SUMMARY 등 report/aggregator 회귀가 **상태 존재 시 카운트에 포함**(6상태만 동결 금지 — WP-01 hardening 신호 은폐 방지).
+- **(P2) 집중도/HHI는 절대 노출 기준**: `LimitMonitorRow.ExposureAmount`는 음수 가능하고 usage ratio는 `Math.Abs(exposure)`를 쓴다(`LimitMonitor.cs:576`). 집중도/HHI 분모·share는 **`Abs(ExposureAmount)` 합** 기준(또는 양수만/부호버킷 규칙 명시). raw 합 0/음수면 undefined → **분모 0 graceful(빈 시각화·Finding)** 회귀 추가.

@@ -78,3 +78,6 @@ Streaming/상한/Welford(R2-WP-02), 전일대비(R2-WP-03), 차트/Heatmap/Repor
 
 ## STOP
 외부 NuGet/Vector/Embedding/Local LLM/charting 라이브러리 필요 신호가 나타나면 **즉시 STOP** → 승인 문서(`docs/41`·`docs/40`) 후에만 진행. 본 WP는 순수 인박스로 구현 가능(STOP 위험 없음).
+
+## Codex 리뷰 반영 (P2 — 필수 준수)
+- **(P2) Optional 매핑 접근 — throw 회피**: `ColumnMapping.Physical()`은 미매핑 논리컬럼에 `InvalidDataException`을 throw한다(`ColumnMapping.cs:44`). CurrencyCode/UnitCode를 **Optional**로 다루므로 6열 config(통화/단위 키 없음)에서 `Physical(CurrencyCode)` 직접 호출은 throw → LimitMonitor 실패. 따라서 **`TryPhysical(LogicalColumn, out string?)` 추가**(또는 `PhysicalColumns.ContainsKey` 가드) 후 사용하고, 매핑 부재 시 throw 없이 해당 비교를 **비활성(Applicable=false)** 처리한다. 회귀: 6열 config 로드 시 `UsedFallback=false` + 통화/단위 비교 비활성·예외 0.

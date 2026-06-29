@@ -98,3 +98,8 @@ dotnet run --project tests/RiskManagementAI.SmokeTests
 - Branch: `feature/r2-wp-03-prior-day-analytics`
 - Commit: `feat: prior-day analytics (current/prev/delta, TopN movers, 4-section contract) (R2-WP-03)`
 - **Claude 승인 전 main 머지 금지.**
+
+## Codex 리뷰 반영 (P2 — 필수 준수)
+- **(P2) DuplicateLimit 비숫자 전이**: R2-WP-01 후 `LimitMonitorStatus`에 `DuplicateLimit` 추가. 숫자 mover {Normal,Warning,Breach}에서 제외하는 **비숫자 상태 집합에 `DuplicateLimit` 포함**(NoLimit/InvalidLimit/MappingError와 함께). 양일 DuplicateLimit 동일 상태 회귀 추가.
+- **(P2) 날짜 형식 차이로 0건 강제 금지**: 분석기는 현재일/전일에 `LimitMonitor.Analyze`를 **개별 호출**하고 `MonitoringTable` 행을 `(PortfolioId,RiskFactor)`로 페어링하므로 BASE_DT 형식이 달라도(예 `20260617` vs `2026-06-16`) 선택된 행은 비교 가능. **형식 불일치만으로 `0건` 강제 금지** — Hidden-Risk는 **빈/실패한 날짜 선택**에 기반하거나 경고하되 실제 선택 행은 계속 비교.
+- **(P2) 한도 델타 계약 포함**: `PriorDayComparisonRow` 계약에 **Current/Prior/Δ `LimitAmount` 필드 추가**(Exposure·Limit·UsageRatio·RemainingLimit 전부). 한도만 변경(노출 불변) 회귀 추가.
