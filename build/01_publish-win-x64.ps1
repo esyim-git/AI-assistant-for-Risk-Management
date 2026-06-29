@@ -60,6 +60,13 @@ foreach ($folder in $RequiredAssetFolders) {
     Copy-Item $src $dst -Recurse -Force
 }
 
+# Runtime-local user state must never ship in portable release packages.
+$localConfigRoot = Join-Path $PublishDir "config"
+if (Test-Path $localConfigRoot) {
+    Get-ChildItem -LiteralPath $localConfigRoot -Recurse -File -Filter "*.local.json" -ErrorAction SilentlyContinue |
+        Remove-Item -Force
+}
+
 # Optional offline assets - SQL/VBA templates for offline reference (copied if present).
 $OptionalAssetFolders = @("sql", "vba")
 foreach ($folder in $OptionalAssetFolders) {

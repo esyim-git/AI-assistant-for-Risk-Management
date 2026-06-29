@@ -302,6 +302,8 @@ try {
         ($_.Name -like "*.Development.json") -or ($_.Name -like "*.Test.json") -or ($_.Name -like "*.Debug.json")
     }
     if ($devTestConfig) { $devTestConfig | ForEach-Object { $integrityProblems += "Dev/Test config present in package: $($_.Name)" } }
+    $localRuntimeConfig = Get-ChildItem -LiteralPath $extractRoot -Recurse -File -Filter "*.local.json" -ErrorAction SilentlyContinue
+    if ($localRuntimeConfig) { $localRuntimeConfig | ForEach-Object { $integrityProblems += "Local runtime config present in package: $($_.Name)" } }
     if ($integrityProblems.Count -gt 0) {
         Write-Host "PACKAGE INTEGRITY VERIFICATION FAILED:"
         $integrityProblems | ForEach-Object { Write-Host " - $_" }

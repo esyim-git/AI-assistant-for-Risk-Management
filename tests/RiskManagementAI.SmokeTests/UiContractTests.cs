@@ -212,6 +212,56 @@ context.AssertTrue(ResizableEditorOk("SqlRequestBox"), "UI SQL editor box should
 context.AssertTrue(ResizableEditorOk("VbaRequestBox"), "UI VBA editor box should stretch with Consolas font");
 context.AssertTrue(ResizableEditorOk("ExcelRequestBox"), "UI Excel editor box should stretch with Consolas font");
 context.AssertTrue(mainWindowXamlText.Contains("MinWidth=\"280\"", StringComparison.Ordinal) && mainWindowXamlText.Contains("MaxWidth=\"560\"", StringComparison.Ordinal), "UI Safety panel column should set MinWidth and MaxWidth bounds");
+context.AssertTrue(mainWindowXamlText.Contains("x:Name=\"EditorRow\"", StringComparison.Ordinal) && mainWindowXamlText.Contains("x:Name=\"ResultRow\"", StringComparison.Ordinal), "UI layout should name editor/result rows for persistence");
+context.AssertTrue(mainWindowXamlText.Contains("x:Name=\"SafetyPanelColumn\"", StringComparison.Ordinal), "UI layout should name Safety column for persistence");
+context.AssertTrue(mainWindowCode.Contains("UiLayoutStore.Load()", StringComparison.Ordinal) && mainWindowCode.Contains("UiLayoutStore.Save", StringComparison.Ordinal), "UI layout should load and save persisted layout through Core store");
+
+var originalCurrentDirectory = Directory.GetCurrentDirectory();
+var layoutTempDirectory = Path.Combine(Path.GetTempPath(), "rmai_ui_layout_" + Guid.NewGuid().ToString("N"));
+Directory.CreateDirectory(layoutTempDirectory);
+try
+{
+    Directory.SetCurrentDirectory(layoutTempDirectory);
+    var defaultLayout = UiLayoutStore.Load();
+    context.AssertTrue(defaultLayout == UiLayoutStore.Default, "UI layout missing file should fallback to default layout");
+
+    var savedLayout = new UiLayout(1280, 800, 3, 2, 420, UiLayoutStore.CurrentSchemaVersion);
+    UiLayoutStore.Save(savedLayout);
+    context.AssertTrue(UiLayoutStore.Load() == savedLayout, "UI layout store should round-trip saved layout values");
+
+    File.WriteAllText(UiLayoutStore.DefaultPath, "{ broken json");
+    context.AssertTrue(UiLayoutStore.Load() == UiLayoutStore.Default, "UI layout corrupt JSON should fallback to default layout");
+
+    File.WriteAllText(
+        UiLayoutStore.DefaultPath,
+        System.Text.Json.JsonSerializer.Serialize(new UiLayout(1280, 800, 3, 2, 420, 999)));
+    context.AssertTrue(UiLayoutStore.Load() == UiLayoutStore.Default, "UI layout schema mismatch should fallback to default layout");
+
+    File.WriteAllText(
+        UiLayoutStore.DefaultPath,
+        System.Text.Json.JsonSerializer.Serialize(new UiLayout(100, 100, 0, -1, 9999, UiLayoutStore.CurrentSchemaVersion)));
+    var clampedLayout = UiLayoutStore.Load();
+    context.AssertTrue(clampedLayout.WindowWidth == 1180 && clampedLayout.WindowHeight == 720 && clampedLayout.EditorRowStar > 0 && clampedLayout.ResultRowStar > 0 && clampedLayout.SafetyColumnWidth == 560, "UI layout load should clamp window, star, and Safety column bounds");
+
+    context.AssertTrue(context.Throws<ArgumentException>(() => UiLayoutStore.Load("../ui_layout.local.json")), "UI layout store should reject traversal paths");
+    context.AssertTrue(context.Throws<ArgumentException>(() => UiLayoutStore.Load(Path.Combine(Path.GetTempPath(), "ui_layout.local.json"))), "UI layout store should reject rooted paths");
+    context.AssertTrue(context.Throws<ArgumentException>(() => UiLayoutStore.Load("logs/ui_layout.local.json")), "UI layout store should reject non-config paths");
+}
+finally
+{
+    Directory.SetCurrentDirectory(originalCurrentDirectory);
+    try
+    {
+        Directory.Delete(layoutTempDirectory, recursive: true);
+    }
+    catch (Exception cleanupEx) when (cleanupEx is IOException or UnauthorizedAccessException)
+    {
+        // Best-effort cleanup of temp layout files.
+    }
+}
+
+context.AssertTrue(!IntegrityVerifier.MandatoryEntries.Contains(UiLayoutStore.DefaultPath, StringComparer.Ordinal) && !IntegrityVerifier.RequiredCriticalEntries.Contains(UiLayoutStore.DefaultPath, StringComparer.Ordinal), "UI layout local file should stay outside integrity mandatory and critical inventories");
+context.AssertTrue(File.ReadAllText(".gitignore").Contains("config/ui_layout.local.json", StringComparison.Ordinal), "UI layout local file should be ignored by git");
 
 // UX-WP-03: Smart Assist WPF popup contract.
 var completionPopupXamlPath = Path.Combine("src", "RiskManagementAI.App", "Controls", "CompletionPopup.xaml");
