@@ -379,9 +379,9 @@
   - 쓰기 경로 logs//reports//config/ 한정(벤치 훅 telemetry 0).
   - 실데이터/실컬럼명 0(더미 seed만).
 
-## R2-WP-03. 전일 대비 분석 (Prior-Day Analytics) — Current/Prev/Δ · TopN movers · 4구획 출력 계약 (Cap C-15, NOT_IMPLEMENTED)
+## R2-WP-03. 전일 대비 분석 (Prior-Day Analytics) — Current/Prev/Δ · TopN movers · 4구획 출력 계약 (Cap C-15, PARTIAL — Codex local-gate, Claude review pending)
 
-> 상태: **NOT_IMPLEMENTED**(설계). 본 WP는 실 구현 전이며, 아래는 설계 계약이다. 구현은 Codex 로컬에서 진행한다. R2-WP-04(Visualization/Report)는 본 WP의 **제외 범위**다.
+> 상태: **PARTIAL**(Codex implementation branch local-gate 완료, Claude review/merge pending). R2-WP-04(Visualization/Report)는 본 WP의 **제외 범위**다.
 
 - **목표**: 하나의 명확한 목표 — 동일 (PortfolioId, RiskFactor) 단위로 **당일(BASE_DT=N) 대비 전일(N-1)** 한도분석 결과를 결정적으로 결합하여, 행별 Current/Prev/**Δ(증감)**, 상태전이(New/Resolved/Increased/Decreased/Unchanged), **TopN movers**, 그리고 **검토용 초안 4구획 출력 계약(Data-Fact / Methodology / User-Validation / Hidden-Risk)** 을 구조화 record로 산출한다. 새 분석 엔진·새 상태·새 분류 로직은 만들지 않고, 기존 `LimitMonitor.Analyze`를 두 번(N, N-1) 호출하여 그 결과를 차분(diff)한다.
 - **선행조건**: R1 완료(VERIFIED — `LimitMonitor`/`LimitAnalysisResult` **7상태**·대사) + **R2-WP-01 머지됨(#79 `59a752f`)**. R2-WP-01이 입력 baseDate 인자를 정규화(`yyyy-MM-dd`→`yyyyMMdd`)하므로 두 일자 인자 포맷이 달라도 각 `Analyze` 호출은 정상 동작하고, 결과 행은 `(PortfolioId,RiskFactor)`로 페어링되어 **포맷 차이만으로 0건이 강제되지 않는다**. 단 R2-WP-01은 데이터행 BASE_DT를 재해석하지 않으므로, 한 일자가 데이터 BASE_DT와 미매칭이면(그 측 0행) `BASE_DT_FORMAT_MISMATCH` Hidden-Risk finding을 추가하되 매칭된 행은 계속 비교한다(임의 보정 금지).
@@ -429,6 +429,7 @@
   6. "prior-day 4-section contract deterministic" — 동일 입력 2회 → DataFact/Methodology/UserValidation/HiddenRisk 동일(서명 비교), DraftNotice("검토용 초안") 존재, `Current`/`Prior` 가 기존 **7상태** `LimitAnalysisResult` 계약 보존(NormalCount·DuplicateLimitCount 등) 확인. **한도만 변경(노출 불변) 시 `LimitAmountDelta != 0`·`ExposureAmountDelta == 0` 회귀**.
   - **기존 SmokeTest Total 보존 + 신규 추가**(삭제·약화 0). Total 증가분은 R1 진행 원장/§5에 기록.
 - **완료 조건**: 로컬 `dotnet build` 0 error · `dotnet run --project tests/RiskManagementAI.SmokeTests` → `Total=N PASS / 0 FAIL`(N = 기존+신규, Unclassified=0) · 외부 NuGet 0 유지 · 결정성(동일 입력 동일 출력) · R1 **7상태**/RECON_*/LimitAnalysisResult/Dashboard=Report 계약 비파괴 · Claude 코드리뷰(Diff·보안·문서정합) 승인. 실 Test PC Gate B/C 증거 없으면 PASS 표기 금지(BLOCKED 유지).
+- **Codex local-gate 결과(2026-06-30, branch `feature/r2-wp-03-prior-day-analytics`)**: `dotnet build RiskManagementAI.sln -c Release` → 0 warnings / 0 errors. `dotnet run --project tests\RiskManagementAI.SmokeTests -c Release` → `Total=697 PASS=697 FAIL=0`, Unclassified=0. 신규 단언 +17: prior-day Current/Prev/Δ, New/Resolved, TopN ordering, StateTransition 비숫자 mover(NoLimit + DuplicateLimit), BASE_DT no-row Hidden-Risk + same-day normalization guard, 4-section deterministic contract + limit-only delta. 외부 NuGet 0 / 실데이터 0 / 차트·LLM·Vector 0. **남은 게이트**: Claude review/merge pending, 실 Test PC Gate B/C BLOCKED.
 - **Branch**: `feature/r2-wp-03-prior-day-analytics`
 - **Commit**: `feat: prior-day analytics (current/prev/delta, TopN movers, 4-section contract) (R2-WP-03)`
 - **Claude Review Checklist**:

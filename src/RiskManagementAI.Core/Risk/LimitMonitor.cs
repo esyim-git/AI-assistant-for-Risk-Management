@@ -865,8 +865,11 @@ public sealed class LimitMonitor
             : LimitMonitorStatus.Normal;
     }
 
-    private static string BuildJoinKey(string portfolioId, string riskFactor)
+    internal static string BuildComparisonKey(string portfolioId, string riskFactor)
         => $"{portfolioId.Trim()}\u001F{riskFactor.Trim()}";
+
+    private static string BuildJoinKey(string portfolioId, string riskFactor)
+        => BuildComparisonKey(portfolioId, riskFactor);
 
     private static bool TryParseDecimal(string value, out decimal parsed)
     {

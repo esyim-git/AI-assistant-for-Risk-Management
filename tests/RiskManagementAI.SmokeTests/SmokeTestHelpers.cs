@@ -280,6 +280,45 @@ internal static string ReconciliationSignature(LimitAnalysisResult result)
         result.Reconciliation.Checks.Select(check => $"{check.Code}:{check.Applicable}:{check.ExceptionCount}:{check.MaxSeverity}"));
 }
 
+internal static string PriorDaySignature(PriorDayAnalysisResult result)
+{
+    var rows = string.Join(
+        ";",
+        result.Contract.DataFact.ComparisonTable.Select(row =>
+            string.Join(
+                ":",
+                row.PortfolioId,
+                row.RiskFactor,
+                row.CurrentStatus?.ToString() ?? "None",
+                row.PriorStatus?.ToString() ?? "None",
+                row.CurrentUsageRatio.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                row.PriorUsageRatio.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                row.UsageRatioDelta.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                row.CurrentLimitAmount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                row.PriorLimitAmount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                row.LimitAmountDelta.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                row.Movement)));
+    var movers = string.Join(
+        ";",
+        result.Contract.DataFact.Movers.TopByUsageRatioDelta.Select(row =>
+            $"{row.PortfolioId}:{row.RiskFactor}:{row.UsageRatioDelta.ToString(System.Globalization.CultureInfo.InvariantCulture)}"));
+    var findings = string.Join(
+        ";",
+        result.Contract.HiddenRisk.Findings.Select(finding => $"{finding.Code}:{finding.Severity}:{finding.Message}"));
+
+    return string.Join(
+        "||",
+        result.Contract.DataFact.CurrentBaseDate,
+        result.Contract.DataFact.PriorBaseDate,
+        result.Contract.DataFact.Kpis.ToString(),
+        rows,
+        movers,
+        result.Contract.Methodology.ToString(),
+        string.Join(";", result.Contract.UserValidation.ChecklistItems),
+        findings,
+        result.IsDeterministic);
+}
+
 internal static LimitAnalysisResult EmptyLimitAnalysis(string baseDate = "20260617")
 {
     var rows = Array.Empty<LimitMonitorRow>();
