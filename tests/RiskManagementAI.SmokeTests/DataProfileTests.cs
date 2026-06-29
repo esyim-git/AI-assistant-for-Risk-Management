@@ -15,6 +15,61 @@ context.AssertTrue(smallProfile.NullCounts["DESK_CD"] == 1, "DataProfiler should
 context.AssertTrue(smallProfile.DuplicateRowCount == 1, "DataProfiler should count duplicate rows");
 context.AssertTrue(smallProfile.BaseDateDistribution["20260617"] == 2 && smallProfile.BaseDateDistribution["20260618"] == 1, "DataProfiler should count BASE_DT values");
 context.AssertTrue(smallProfile.NumericColumns["AMT"].Sum == 40m, "DataProfiler should compute small numeric sum");
+var smallProfileStreaming = profiler.ProfileCsvStreaming(profileSmokeCsv);
+AssertProfilesEqual(context, smallProfile, smallProfileStreaming, "DataProfiler streaming should match ProfileTable for BASE_DT duplicate numeric profile");
+
+var welfordCsv = Path.Combine(profileSmokeDirectory, "profile_welford_outlier_streaming.csv");
+using (var writer = new StreamWriter(welfordCsv, append: false, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)))
+{
+    writer.WriteLine("BASE_DT,AMT");
+    for (var index = 0; index < 10; index++)
+    {
+        writer.WriteLine("20260617,0");
+    }
+
+    writer.WriteLine("20260617,1000");
+}
+var welfordProfile = profiler.ProfileCsvStreaming(welfordCsv);
+var welfordAmount = welfordProfile.NumericColumns["AMT"];
+context.AssertTrue(
+    welfordAmount.NonNullCount == 11 && welfordAmount.Sum == 1000m && welfordAmount.Min == 0m && welfordAmount.Max == 1000m && welfordAmount.OutlierCount == 1,
+    "DataProfiler streaming welford numeric profile should preserve 3-sigma OutlierCount");
+
+var largeStreamingCsv = Path.Combine(profileSmokeDirectory, "profile_large_streaming_within_cap.csv");
+using (var writer = new StreamWriter(largeStreamingCsv, append: false, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)))
+{
+    writer.WriteLine("BASE_DT,DESK_CD,AMT");
+    for (var index = 0; index < 4096; index++)
+    {
+        writer.WriteLine($"20260617,DESK_{index % 4},{index % 10}");
+    }
+}
+var largeStreamingProfile = profiler.ProfileCsvStreaming(largeStreamingCsv);
+context.AssertTrue(
+    largeStreamingProfile.RowCount == 4096 && largeStreamingProfile.BaseDateDistribution["20260617"] == 4096 && largeStreamingProfile.NumericColumns["AMT"].Sum == 18420m,
+    "DataProfiler streaming should process large BASE_DT input within MaxRowCount deterministically");
+
+var byteCapCsv = Path.Combine(profileSmokeDirectory, "profile_streaming_byte_cap.csv");
+using (var stream = File.Create(byteCapCsv))
+{
+    stream.SetLength(CsvReader.MaxByteSize + 1);
+}
+context.AssertTrue(
+    ThrowsInvalidDataWithMaxActual(() => profiler.ProfileCsvStreaming(byteCapCsv)),
+    "DataProfiler streaming MaxByteSize should throw InvalidDataException with max actual");
+
+var rowCapCsv = Path.Combine(profileSmokeDirectory, "profile_streaming_row_cap.csv");
+using (var writer = new StreamWriter(rowCapCsv, append: false, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)))
+{
+    writer.WriteLine("BASE_DT,AMT");
+    for (var index = 0; index <= CsvReader.MaxRowCount; index++)
+    {
+        writer.WriteLine("20260617,1");
+    }
+}
+context.AssertTrue(
+    ThrowsInvalidDataWithMaxActual(() => profiler.ProfileCsvStreaming(rowCapCsv)),
+    "DataProfiler streaming MaxRowCount should throw InvalidDataException with max actual");
 
 var noBaseDateCsv = Path.Combine(profileSmokeDirectory, "profile_no_base_dt.csv");
 File.WriteAllText(noBaseDateCsv, "DESK_CD,AMT\nEQD,10\nFIC,20\n");
@@ -34,5 +89,54 @@ var customMappingLimitResult = new LimitMonitor(customColumnMappingResult).Analy
 context.AssertTrue(customMappingLimitResult.Rows.Count == 1, "LimitMonitor should use ColumnMapping for renamed join columns");
 context.AssertTrue(customMappingLimitResult.Rows.Single().Status == LimitMonitorStatus.Warning, "LimitMonitor should classify custom mapped rows with renamed amount columns");
 
+    }
+
+    private static void AssertProfilesEqual(SmokeTestContext context, DataProfileResult expected, DataProfileResult actual, string name)
+    {
+        context.AssertTrue(
+            expected.SourceName == actual.SourceName
+            && expected.RowCount == actual.RowCount
+            && expected.ColumnCount == actual.ColumnCount
+            && expected.Columns.SequenceEqual(actual.Columns, StringComparer.Ordinal)
+            && DictionaryEquals(expected.NullCounts, actual.NullCounts)
+            && expected.DuplicateRowCount == actual.DuplicateRowCount
+            && DictionaryEquals(expected.BaseDateDistribution, actual.BaseDateDistribution)
+            && NumericProfilesEqual(expected.NumericColumns, actual.NumericColumns)
+            && expected.Warnings.SequenceEqual(actual.Warnings, StringComparer.Ordinal),
+            name);
+    }
+
+    private static bool ThrowsInvalidDataWithMaxActual(Action action)
+    {
+        try
+        {
+            action();
+            return false;
+        }
+        catch (InvalidDataException exception)
+        {
+            return exception.Message.Contains("max=", StringComparison.OrdinalIgnoreCase)
+                && exception.Message.Contains("actual=", StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    private static bool DictionaryEquals(IReadOnlyDictionary<string, int> left, IReadOnlyDictionary<string, int> right)
+    {
+        return left.Count == right.Count
+            && left.All(item => right.TryGetValue(item.Key, out var value) && value == item.Value);
+    }
+
+    private static bool NumericProfilesEqual(
+        IReadOnlyDictionary<string, NumericColumnProfile> left,
+        IReadOnlyDictionary<string, NumericColumnProfile> right)
+    {
+        return left.Count == right.Count
+            && left.All(item =>
+                right.TryGetValue(item.Key, out var value)
+                && item.Value.NonNullCount == value.NonNullCount
+                && item.Value.Sum == value.Sum
+                && item.Value.Min == value.Min
+                && item.Value.Max == value.Max
+                && item.Value.OutlierCount == value.OutlierCount);
     }
 }

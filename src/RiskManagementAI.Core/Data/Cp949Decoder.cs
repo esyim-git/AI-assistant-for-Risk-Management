@@ -74,6 +74,91 @@ public static class Cp949Decoder
         return builder.ToString();
     }
 
+    public static IEnumerable<string> DecodeLines(Stream stream)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+
+        var mapping = Mapping.Value.Entries;
+        var line = new StringBuilder();
+        var invalidSequences = 0;
+        var skipNextLf = false;
+
+        while (true)
+        {
+            var next = stream.ReadByte();
+            if (next < 0)
+            {
+                break;
+            }
+
+            string decoded;
+            var current = (byte)next;
+            if (current <= 0x7F)
+            {
+                decoded = ((char)current).ToString();
+            }
+            else if (current == 0x80)
+            {
+                decoded = "\u0080";
+            }
+            else
+            {
+                var trail = stream.ReadByte();
+                if (trail < 0)
+                {
+                    invalidSequences++;
+                    break;
+                }
+
+                var key = (ushort)((current << 8) | (byte)trail);
+                if (!mapping.TryGetValue(key, out var mapped))
+                {
+                    invalidSequences++;
+                    continue;
+                }
+
+                decoded = mapped;
+            }
+
+            foreach (var ch in decoded)
+            {
+                if (skipNextLf && ch == '\n')
+                {
+                    skipNextLf = false;
+                    continue;
+                }
+
+                skipNextLf = false;
+                if (ch == '\r')
+                {
+                    yield return line.ToString();
+                    line.Clear();
+                    skipNextLf = true;
+                    continue;
+                }
+
+                if (ch == '\n')
+                {
+                    yield return line.ToString();
+                    line.Clear();
+                    continue;
+                }
+
+                line.Append(ch);
+            }
+        }
+
+        if (invalidSequences > 0)
+        {
+            throw new InvalidDataException($"CP949 CSV 디코딩 중 유효하지 않은 바이트 시퀀스가 있습니다. count={invalidSequences}");
+        }
+
+        if (line.Length > 0)
+        {
+            yield return line.ToString();
+        }
+    }
+
     private static MappingData LoadMapping()
     {
         var assembly = typeof(Cp949Decoder).GetTypeInfo().Assembly;
