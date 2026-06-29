@@ -66,7 +66,7 @@
 - priorBaseDate는 **항상 호출자가 명시**한다. 달력/영업일 자동 산출·임의 증감 **금지**.
 - `LimitMonitor.Analyze`를 currentBaseDate·priorBaseDate에 **각각 개별 호출**한다. R2-WP-01이 입력 baseDate 인자를 정규화(`yyyy-MM-dd`→`yyyyMMdd`)하므로 **두 인자의 포맷이 서로 달라도**(`20260617` vs `2026-06-16`) 각 호출은 정상 동작하고, 결과 행은 `(PortfolioId,RiskFactor)`로 페어링되므로 **두 일자 포맷 차이만으로 0건이 강제되지 않는다.**
 - 단, R2-WP-01은 **데이터 행의 BASE_DT 값 자체는 재해석하지 않으므로**, 어느 한 일자가 데이터의 어떤 BASE_DT와도 매칭되지 않으면(예: 파일이 `2026-06-17`로 저장, 인자는 `20260617`) 그 측 분석이 0행이 되어 전부 New(또는 Resolved)가 된다. 이 경우 **임의 보정하지 말고** `BASE_DT_FORMAT_MISMATCH`(또는 `PRIOR_DAY_NO_ROWS`) Hidden-Risk finding을 추가하되, **매칭된 행은 계속 비교**한다(전체 0건 강제 금지).
-- currentBaseDate == priorBaseDate 또는 빈 값 → `ArgumentException` 또는 빈 비교표 + finding 중 하나로 결정적 처리(테스트로 고정).
+- currentBaseDate/priorBaseDate 빈 값 → `ArgumentException` 또는 빈 비교표 + finding 중 하나로 결정적 처리(테스트로 고정). 동일일자 가드는 원문 문자열뿐 아니라 **R2-WP-01 정규화 후 결과(`Current.BaseDate`/`Prior.BaseDate`) 기준**으로도 적용한다. 예: `20260617` vs `2026-06-17`처럼 원문은 달라도 정규화 후 동일하면 자기 자신과 비교하지 않고 deterministic하게 차단/표면화한다.
 
 ## 제외 범위 (건드리지 마라)
 - 차트/Heatmap/시각화·Excel Report 강화 → R2-WP-04.

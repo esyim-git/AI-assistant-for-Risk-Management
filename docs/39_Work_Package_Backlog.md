@@ -402,7 +402,7 @@
 - **Public Interface**:
   - `public sealed class PriorDayAnalyzer { public PriorDayAnalysisResult Analyze(CsvTable exposure, CsvTable limit, string currentBaseDate, string priorBaseDate, int topN = 10); public PriorDayAnalysisResult Analyze(string exposurePath, string limitPath, string currentBaseDate, string priorBaseDate, int topN = 10); }` — 내부에서 `LimitMonitor.Analyze` 2회 호출.
   - `public enum PriorDayMovement { New, Resolved, Increased, Decreased, Unchanged, StateTransition }`
-  - `public sealed record PriorDayComparisonRow(string PortfolioId, string RiskFactor, string CurrentBaseDate, string PriorBaseDate, LimitMonitorStatus? CurrentStatus, LimitMonitorStatus? PriorStatus, decimal CurrentUsageRatio, decimal PriorUsageRatio, decimal UsageRatioDelta, decimal CurrentExposureAmount, decimal PriorExposureAmount, decimal ExposureAmountDelta, decimal CurrentRemainingLimit, decimal PriorRemainingLimit, decimal RemainingLimitDelta, PriorDayMovement Movement)` — Current/Prev 한쪽만 있으면 해당 측 nullable status, 결측 측 금액=0.
+  - `public sealed record PriorDayComparisonRow(string PortfolioId, string RiskFactor, string CurrentBaseDate, string PriorBaseDate, LimitMonitorStatus? CurrentStatus, LimitMonitorStatus? PriorStatus, decimal CurrentUsageRatio, decimal PriorUsageRatio, decimal UsageRatioDelta, decimal CurrentExposureAmount, decimal PriorExposureAmount, decimal ExposureAmountDelta, decimal CurrentLimitAmount, decimal PriorLimitAmount, decimal LimitAmountDelta, decimal CurrentRemainingLimit, decimal PriorRemainingLimit, decimal RemainingLimitDelta, PriorDayMovement Movement)` — Exposure·Limit·UsageRatio·RemainingLimit 전부 Current/Prev/Δ 포함(한도만 변경·노출 불변 케이스 포착). Current/Prev 한쪽만 있으면 해당 측 nullable status, 결측 측 금액=0.
   - `public sealed record PriorDayKpis(int ComparedCount, int NewCount, int ResolvedCount, int IncreasedCount, int DecreasedCount, int UnchangedCount, int StateTransitionCount)` + `static FromRows(IReadOnlyList<PriorDayComparisonRow>)`.
   - `public sealed record PriorDayMovers(IReadOnlyList<PriorDayComparisonRow> TopByUsageRatioDelta)` — |UsageRatioDelta| desc, tie PortfolioId→RiskFactor Ordinal, 상위 topN.
   - **4구획 출력 계약**(구조화 record): `public sealed record PriorDayContract(PriorDayDataFact DataFact, PriorDayMethodology Methodology, PriorDayUserValidation UserValidation, PriorDayHiddenRisk HiddenRisk)`
@@ -412,10 +412,10 @@
     - `public sealed record PriorDayHiddenRisk(IReadOnlyList<SafetyFinding> Findings)` — BASE_DT 포맷 불일치, prior-day 행 0건, 비숫자 상태전이, 한쪽 결측 대량 등.
   - `public sealed record PriorDayAnalysisResult(PriorDayContract Contract, LimitAnalysisResult Current, LimitAnalysisResult Prior, bool IsDeterministic)` — 두 입력 일자 분석 결과는 그대로 보존(R1 계약 비파괴).
 - **구현 세부**:
-  - currentBaseDate/priorBaseDate 모두 비거나 동일하면 `ArgumentException`(또는 동일 시 Hidden-Risk finding + 빈 비교표 — 결정적 택1, 테스트로 고정).
+  - currentBaseDate/priorBaseDate 모두 비면 `ArgumentException`(또는 빈 비교표 + finding — 결정적 택1, 테스트로 고정). 동일일자 가드는 원문 문자열뿐 아니라 **R2-WP-01 정규화 후 결과(`Current.BaseDate`/`Prior.BaseDate`) 기준**으로도 적용한다. 예: `20260617` vs `2026-06-17`처럼 원문은 달라도 정규화 후 동일하면 자기 자신과 비교하지 않고 deterministic하게 차단/표면화한다.
   - 키 정합: `LimitMonitor.BuildJoinKey`와 **동일 의미**(Trim + `` 구분, OrdinalIgnoreCase 짝짓기). copy-paste 대신 `internal static string LimitMonitor.BuildComparisonKey(...)` 노출을 우선 검토(시그니처 비파괴 추가). SmokeTests 프로젝트에서 internal 접근 필요 시 `InternalsVisibleTo` 기존 설정 재사용 여부 확인(없으면 helper를 public 비노출 대신 Analyzer 내부 동일 로직 복제 + 테스트로 동치 고정).
   - Δ 부호: Current − Prior. New(N만)=Prev 측 0, Resolved(N-1만)=Current 측 0.
-  - Movement 분류 우선순위(결정적): (1) 한쪽 결측 → New/Resolved. (2) 양측 존재 & 한쪽 이상 상태가 {NoLimit,InvalidLimit,MappingError} 이거나 상태가 바뀜 → StateTransition(숫자 mover에서 제외). (3) 양측 Normal/Warning/Breach & UsageRatioDelta>0 → Increased, <0 → Decreased, =0 → Unchanged.
+  - Movement 분류 우선순위(결정적): (1) 한쪽 결측 → New/Resolved. (2) 양측 존재 & 한쪽 이상 상태가 {NoLimit,InvalidLimit,MappingError,DuplicateLimit} 이거나 상태가 바뀜 → StateTransition(숫자 mover에서 제외). (3) 양측 Normal/Warning/Breach & UsageRatioDelta>0 → Increased, <0 → Decreased, =0 → Unchanged.
   - 모든 출력 순서 완전 정렬(ComparisonTable: PortfolioId→RiskFactor Ordinal; Movers: |Δ| desc → PortfolioId → RiskFactor). HashSet/Dictionary 열거 순서를 출력에 노출 금지.
   - `IsDeterministic=true` 보장(부동소수 미사용, decimal만). DraftNotice 등 텍스트는 리터럴 상수(LLM 호출 0).
 - **보안 조건**(Gate A): 외부 NuGet PackageReference 0(System.* 인박스만) · 외부 API/Telemetry/AutoUpdate 0 · SQL/VBA/Golden6 자동실행 0 · 차트/시각화 라이브러리 0(본 WP는 시각화 없음) · Vector/Embedding/LLM/모델파일 0 · 실데이터·실 테이블/컬럼명·내부규정/NCR 원문 미포함(테스트 fixture는 더미명 PF_*/RF_*/BASE_DT만) · 쓰기 경로 `logs/`·`reports/`·`config/` 한정(본 WP는 파일쓰기 없음 권장) · 원문 미저장(필요 시 해시 Audit). LLM/통계 라이브러리 도입 필요해지면 **STOP**(§11.5).
@@ -423,9 +423,9 @@
   1. "prior-day comparison" — N/N-1 동일 키 양측 존재 시 Current/Prev/Δ 정확, Movement(Increased/Decreased/Unchanged) 정확.
   2. "prior-day New/Resolved movers" — N만/N-1만 키 → New/Resolved 분류, 결측 측 금액=0.
   3. "prior-day TopN movers ordering" — |UsageRatio Δ| 내림차순 + 동순위 PortfolioId→RiskFactor 결정적 순서.
-  4. "prior-day state-transition non-numeric mover" — Normal→NoLimit 전이가 숫자 mover가 아니라 StateTransition으로 분류 + Hidden-Risk finding.
-  5. "prior-day BASE_DT format mismatch hidden risk" — 두 일자 포맷 상이 시 비교 0건 + `BASE_DT_FORMAT_MISMATCH` Hidden-Risk finding(임의 보정 없음).
-  6. "prior-day 4-section contract deterministic" — 동일 입력 2회 → DataFact/Methodology/UserValidation/HiddenRisk 동일(서명 비교), DraftNotice("검토용 초안") 존재, `Current`/`Prior` 가 기존 **7상태** `LimitAnalysisResult` 계약 보존(NormalCount·DuplicateLimitCount 등) 확인.
+  4. "prior-day state-transition non-numeric mover" — Normal→NoLimit 전이가 숫자 mover가 아니라 StateTransition으로 분류 + Hidden-Risk finding. **양일 DuplicateLimit 동일 상태도 비숫자 StateTransition으로 분류하고 mover 랭킹에서 제외**(R2-WP-01 hardening 신호 은폐 금지).
+  5. "prior-day BASE_DT format mismatch hidden risk" — 한 일자가 데이터 BASE_DT와 미매칭(해당 측 0행) → 그 측 New/Resolved + `BASE_DT_FORMAT_MISMATCH` 또는 `PRIOR_DAY_NO_ROWS` Hidden-Risk finding(임의 보정 없음). **두 일자 인자 포맷 차이만으로 전체 비교 0건을 강제하지 않고, 매칭된 행은 계속 비교**한다. 정규화 후 동일일자(`Current.BaseDate == Prior.BaseDate`)는 별도 same-day guard로 차단/표면화.
+  6. "prior-day 4-section contract deterministic" — 동일 입력 2회 → DataFact/Methodology/UserValidation/HiddenRisk 동일(서명 비교), DraftNotice("검토용 초안") 존재, `Current`/`Prior` 가 기존 **7상태** `LimitAnalysisResult` 계약 보존(NormalCount·DuplicateLimitCount 등) 확인. **한도만 변경(노출 불변) 시 `LimitAmountDelta != 0`·`ExposureAmountDelta == 0` 회귀**.
   - **기존 SmokeTest Total 보존 + 신규 추가**(삭제·약화 0). Total 증가분은 R1 진행 원장/§5에 기록.
 - **완료 조건**: 로컬 `dotnet build` 0 error · `dotnet run --project tests/RiskManagementAI.SmokeTests` → `Total=N PASS / 0 FAIL`(N = 기존+신규, Unclassified=0) · 외부 NuGet 0 유지 · 결정성(동일 입력 동일 출력) · R1 **7상태**/RECON_*/LimitAnalysisResult/Dashboard=Report 계약 비파괴 · Claude 코드리뷰(Diff·보안·문서정합) 승인. 실 Test PC Gate B/C 증거 없으면 PASS 표기 금지(BLOCKED 유지).
 - **Branch**: `feature/r2-wp-03-prior-day-analytics`
@@ -434,7 +434,7 @@
   - [ ] `LimitMonitor.Analyze` 2회 호출만 — 조인/**7상태** 분류 **재구현 없음**, `LimitMonitorStatus` enum 미변경.
   - [ ] `LimitAnalysisResult`/`LimitAnalysisMetadata`/`LimitMonitorRow`/`LimitAnalysisKpis` positional ctor 비파괴(SmokeTestHelpers.EmptyLimitAnalysis·ExcelReportBuilder 호출부 무영향).
   - [ ] 키 정합: BuildJoinKey와 동일 의미(Trim/``), copy-paste 불일치 없음.
-  - [ ] NoLimit/InvalidLimit/MappingError 전이가 숫자 mover에서 제외(0除算·오해 Δ 없음) + Hidden-Risk.
+  - [ ] NoLimit/InvalidLimit/MappingError/DuplicateLimit 전이가 숫자 mover에서 제외(0除算·오해 Δ 없음) + Hidden-Risk.
   - [ ] priorBaseDate **자동 산출 없음**(달력·임의 증감 0); 선택 규칙 Methodology/Audit 기록.
   - [ ] 출력 완전 정렬·결정적(decimal만, HashSet/Dict 순서 미노출), DraftNotice "검토용 초안" 명시, LLM 호출 0.
   - [ ] 4구획 record 구조 정확(DataFact/Methodology/UserValidation/HiddenRisk).
@@ -465,7 +465,7 @@ Excel Report와 Risk Dashboard 화면에 **인박스(NuGet 0) 시각화**를 더
 2. **집계 시각화 데이터 시트(신규)**: `ExpectedSheetNames`에 `RISK_VISUAL`(또는 `TOPN`/`CONCENTRATION`/`HEATMAP`로 분리 가능, 최소 1개) 추가. 내용:
    - 상태분포(**7상태** 카운트·비율, DUPLICATE_LIMIT 포함),
    - TopN movers/노출 상위(예: ExposureAmount 또는 UsageRatio 내림차순 상위 N — 결정적 tie-break: PortfolioId Ordinal),
-   - 집중도: 상위N 비중(상위N Exposure 합 / 전체 Exposure 합), HHI(=Σ(share^2)) — 통화 혼합 시 의미 왜곡 주의(아래 보안조건),
+   - 집중도: 상위N 비중(상위N `Abs(ExposureAmount)` 합 / 전체 `Abs(ExposureAmount)` 합), HHI(=Σ(share^2)) — short/negative exposure를 signed 합산하지 않는다. 분모 0이면 graceful(빈 시각화·Finding) 처리. 통화 혼합 시 의미 왜곡 주의(아래 보안조건),
    - Heatmap 등급: UsageRatio를 결정적 임계(예: <0.8 LOW / 0.8~1.0 MID / >1.0 HIGH)로 등급화한 텍스트/숫자.
    - 시각화는 **inlineStr/Number 셀**과 옵션으로 **ASCII 막대(반복문자 길이=비율)** 텍스트로 표현(차트 part 없이도 100% 성립).
 3. **WPF in-box 차트(App, 화면 한정)**: `MainWindow.OnRunLimitMonitor` 결과를 받아 `RenderRiskCharts(LimitAnalysisResult)`(신규 메서드/컨트롤)가 Canvas+Shapes로 상태 막대·집중도 막대·Heatmap 셀을 그린다. 색상은 SolidColorBrush. DataGrid/TextBlock 기존 표시는 보존.
@@ -501,7 +501,7 @@ Excel Report와 Risk Dashboard 화면에 **인박스(NuGet 0) 시각화**를 더
 
 ### 8. 구현세부 (Implementation Detail)
 - **카운트 SoT**: `BuildExceptionRows`와 `CountExceptions`가 동일 입력(analysis.ExceptionList + validationFindings의 Blocker/High)을 쓰되, NO_EXCEPTION placeholder·헤더는 카운트에서 제외. SUMMARY의 `ExceptionCount = Number(CountExceptions(...))`. (예외 0건이면 0.)
-- **집중도/TopN**: 통화 혼합(`LimitMonitorRow.CurrencyCode` 존재) 시 단순 합산은 의미 왜곡 → 동일 통화 그룹별 집계 또는 통화 표기를 명시하고, 혼합 시 `MIXED_CURRENCY` 주석/Finding을 시각화 시트에 남긴다(R2-WP-01 통화/단위 매핑과 정합, 본 WP는 합산 전제를 명시만). decimal 반올림 자리수 고정(예: 비율 4자리).
+- **집중도/TopN**: 집중도/HHI share는 `Abs(ExposureAmount)` 기준으로 계산한다(`LimitMonitor`의 사용률 ABS 규칙과 정합). signed exposure 합산 금지. 전체 절대노출 분모가 0이면 빈 집중도/HHI + Finding으로 graceful 처리한다. 통화 혼합(`LimitMonitorRow.CurrencyCode` 존재) 시 단순 합산은 의미 왜곡 → 동일 통화 그룹별 집계 또는 통화 표기를 명시하고, 혼합 시 `MIXED_CURRENCY` 주석/Finding을 시각화 시트에 남긴다(R2-WP-01 통화/단위 매핑과 정합, 본 WP는 합산 전제를 명시만). decimal 반올림 자리수 고정(예: 비율 4자리).
 - **결정적 정렬**: 모든 TopN/등급 산출은 `(키 내림차순, PortfolioId Ordinal 오름차순)` tie-break로 비결정성 제거.
 - **Excel 2021 게이트**: 신규 셀에 수식 추가 시 `Excel2021FunctionChecker.CheckFormula`를 통과해야 함(EXCEL_365_FUNCTION 금지 — VSTACK/TEXTSPLIT/GROUPBY 등 §6 금지군 사용 불가). 가급적 시각화는 Number/inlineStr 정적 값으로 기록(수식 최소화)해 게이트 위험 0.
 - **신규 시트 배선**: `ExpectedSheetNames`에 항목 추가만으로 `WriteWorkbookPackage`가 Content_Types/workbook/rels/app.xml override·sheet{n}.xml를 자동 생성(코드 확인됨). styles rId(`rId{Count+1}`) 자동 시프트. **단 OOXML 무결성은 로컬 Excel 열기로 검증**(BLOCKED 증거는 Test PC).
@@ -520,7 +520,7 @@ Excel Report와 Risk Dashboard 화면에 **인박스(NuGet 0) 시각화**를 더
 신규 단언은 **Report/Limit/DataProfile 도메인 키워드**로 명명해 분류기 Unclassified=0 유지(예: "ExcelReport ... ", "report ...", "EXCEPTION_LIST ...", "LIMIT_MONITORING ...", "RECON_ ...", "BASE_DT ...", "concentration ... limit ...", "TopN limit ...").
 - 정확 카운트: 예외 N건 입력 시 SUMMARY `ExceptionCount` Number == N(헤더/NO_EXCEPTION 제외), 0건 시 0. (기존 `=COUNTA` 의존 단언은 갱신.)
 - 신규 시트 배선: `ExpectedSheetNames`에 신규 시트 포함, ZIP에 `xl/worksheets/sheet{N}.xml` 존재, `SheetNames.SequenceEqual(ExpectedSheetNames)` 유지. PackagingTests의 시트 인벤토리/개수 동반 갱신.
-- TopN/집중도 결정성: 동일 입력 2회 → 동일 순서·동일 비율(decimal). tie-break(PortfolioId Ordinal) 단언.
+- TopN/집중도 결정성: 동일 입력 2회 → 동일 순서·동일 비율(decimal). tie-break(PortfolioId Ordinal) 단언. 집중도/HHI는 `Abs(ExposureAmount)` 분모·share를 사용하고, raw signed 합산 0/음수 케이스를 graceful하게 처리.
 - Heatmap 등급: 임계 경계값(0.8/1.0)에서 등급 결정적.
 - 통화 혼합: MIXED_CURRENCY 주석/Finding 노출 단언.
 - 회귀 보존: ReportTests의 **7상태**(DUPLICATE_LIMIT 포함)·RECON_*·ReconciliationPassed PASS/FAIL·NO_LIMIT_ROW·NuGet 0 단언 전부 유지.
