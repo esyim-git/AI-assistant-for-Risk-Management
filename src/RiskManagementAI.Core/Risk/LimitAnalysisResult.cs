@@ -24,6 +24,8 @@ public sealed record LimitAnalysisResult(
     public int InvalidLimitCount => Kpis.InvalidLimitCount;
 
     public int MappingErrorCount => Kpis.MappingErrorCount;
+
+    public int DuplicateLimitCount => Kpis.DuplicateLimitCount;
 }
 
 public sealed record LimitAnalysisKpis(
@@ -34,6 +36,7 @@ public sealed record LimitAnalysisKpis(
     int NoLimitCount,
     int InvalidLimitCount,
     int MappingErrorCount,
+    int DuplicateLimitCount,
     decimal ExposureAmountSum,
     decimal LimitAmountSum,
     decimal RemainingLimitSum)
@@ -48,6 +51,7 @@ public sealed record LimitAnalysisKpis(
             rows.Count(row => row.Status == LimitMonitorStatus.NoLimit),
             rows.Count(row => row.Status == LimitMonitorStatus.InvalidLimit),
             rows.Count(row => row.Status == LimitMonitorStatus.MappingError),
+            rows.Count(row => row.Status == LimitMonitorStatus.DuplicateLimit),
             rows.Sum(row => row.ExposureAmount),
             rows.Sum(row => row.LimitAmount),
             rows.Sum(row => row.RemainingLimit));
@@ -60,7 +64,8 @@ public sealed record LimitAnalysisMetadata(
     string LimitSourceName,
     bool ColumnMappingUsedFallback,
     IReadOnlyList<string> ColumnMappingWarnings,
-    bool IsDeterministic);
+    bool IsDeterministic,
+    IReadOnlyList<string> JoinAudit);
 
 public sealed record LimitException(
     string Code,

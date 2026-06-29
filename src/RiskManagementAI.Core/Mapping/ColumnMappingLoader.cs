@@ -12,7 +12,15 @@ public static class ColumnMappingLoader
         AllowTrailingCommas = true
     };
 
-    private static readonly LogicalColumn[] RequiredColumns = Enum.GetValues<LogicalColumn>();
+    private static readonly LogicalColumn[] RequiredColumns =
+    [
+        LogicalColumn.BaseDate,
+        LogicalColumn.PortfolioId,
+        LogicalColumn.RiskFactor,
+        LogicalColumn.ExposureAmount,
+        LogicalColumn.LimitAmount,
+        LogicalColumn.UseYn
+    ];
 
     public static ColumnMappingLoadResult LoadDefault()
     {
@@ -114,6 +122,7 @@ public static class ColumnMappingLoader
 
         var duplicatePhysicalColumn = mappingValues.Values
             .Select(value => value.Trim())
+            .Where(value => !string.IsNullOrWhiteSpace(value))
             .GroupBy(value => value, StringComparer.OrdinalIgnoreCase)
             .FirstOrDefault(group => group.Count() > 1);
         return duplicatePhysicalColumn is null

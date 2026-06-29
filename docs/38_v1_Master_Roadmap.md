@@ -46,7 +46,7 @@ Offline · 외부 NuGet 0 · 외부 API/Telemetry/AutoUpdate 0 · SQL/VBA/Golden
 | Smart Assist **Core**(Engine·Context·Item·Provider 계약·Registry·NoModel) + Accept 해시 Audit | UX(v0.7.x) | **VERIFIED**(local-gate; UX-WP-01 #70. 계약+코어 한정) |
 | 정적 Provider(SQL/VBA/Excel2021+365차단/SafetyHint/RiskPhrase) | UX(v0.7.x) | **VERIFIED**(local-gate; UX-WP-02 #72. 정적·NoModel·RuleSet 단일원천 재사용 한정; 실 LLM 랭킹=R4 미구현) |
 | WPF Completion Popup(Ctrl+Space·선택 삽입·자동삽입 없음) | UX(v0.7.x) | **VERIFIED**(local-gate; UX-WP-03 #73. WPF 기본 컨트롤·외부 Editor 0·자동삽입 0 한정; 실 Test PC Gate B/C BLOCKED) |
-| Risk Semantic Hardening(중복키/통화·단위 매핑/RECON_UNIT) | R2 | NOT_IMPLEMENTED |
+| Risk Semantic Hardening(중복키/통화·단위 매핑/RECON_UNIT) | R2 | **PARTIAL**(Codex local-gate PASS, PR review pending) |
 | Streaming/대용량 · 전일 대비 · 차트/Heatmap/TopN/집중도 · Excel Report 강화 | R2 | NOT_IMPLEMENTED |
 | 공개 규정 **원문 Clause/Chunk 검색** | KB | NOT_IMPLEMENTED (현재 Catalog/Metadata까지) |
 | 승인 NCR Rule Pack · 내부 Knowledge Pack | NCR/KB | APPROVAL_REQUIRED (Prod 적재, repo 미포함) |
@@ -77,7 +77,7 @@ R1(DONE) ─► R3(DONE) ─► STAB(v0.6.1) ─► R2(v0.7) ─► KB(v0.8) ─
 | C-24 | WPF Completion Popup (Ctrl+Space·선택 삽입·자동삽입 없음) | UX-WP-03 | 자동삽입 없음·Source/Kind/RequiresReview 노출·결과패널 연계 | A | **VERIFIED**(local-gate, #73. WPF 기본 컨트롤·외부 Editor 0 한정; 실 Test PC Gate BLOCKED) |
 | C-25 | Resizable Editor Layout (GridSplitter·고정높이 제거·창 Min·TextBox Stretch) | STAB-UX-01 | GridSplitter 존재·EditorRow 비고정·MinWidth/MinHeight·SQL/VBA Stretch·XAML Contract·기존 SmokeTest 보존 | A | **VERIFIED**(#68, local-gate; XAML Contract +7, 기능변경 0) |
 | C-26 | Resizable Layout Persistence (창 크기·분할 비율·Safety 너비 세션 영속) | STAB-UX-02 | round-trip·손상→기본값 fallback·config 경로가드·clamp·**무결성 critical 비대상**·.gitignore | A | **VERIFIED**(local-gate, #76; `Total 631→646`, 무결성 미변경, NuGet 0) |
-| C-13 | Risk Semantic Hardening | R2-WP-01 | 중복키 차단(DUPLICATE_LIMIT)·통화/단위 ColumnMapping·RECON_UNIT 활성·BASE_DT 검증/정규화·Join Audit | Data | NOT_IMPLEMENTED (프롬프트 READY; 설계만, 인박스 NuGet 0) |
+| C-13 | Risk Semantic Hardening | R2-WP-01 | 중복키 차단(DUPLICATE_LIMIT)·통화/단위 ColumnMapping·RECON_UNIT 활성·BASE_DT 검증/정규화·Join Audit | Data | **PARTIAL**(Codex branch `feature/r2-wp-01-semantic-hardening`, local-gate `Total=671 PASS=671 FAIL=0`; Claude review/merge pending) |
 | C-14 | Streaming/Perf (대용량 streaming·행/바이트 상한·Welford 온라인 분산·중복 해시·결정적 프로파일) | R2-WP-02 | streaming==기존 결정성·상한 `InvalidDataException`·Welford 정확·`DuplicateRowCount` 불변·(선택)벤치 | Data | NOT_IMPLEMENTED (프롬프트 READY; 인박스 NuGet 0) |
 | C-15 | 전일 대비(Prior-Day Analytics: Current/Prev/Δ·TopN movers·BASE_DT prior-day 결합·4구획 출력계약) | R2-WP-03 | prior-day comparison/New·Resolved/TopN ordering/state-transition 비숫자 mover/BASE_DT format mismatch/4구획 결정성·R1 6상태 보존 (LimitReconciliationTests +6) | Data | **NOT_IMPLEMENTED**(설계; Branch `feature/r2-wp-03-prior-day-analytics`, 논리 선행=R2-WP-01 BASE_DT 정규화) |
 | C-16 | Visualization/Report(인박스 차트·Heatmap·TopN·집중도·정확 Exception Count) | R2-WP-04 | 정확 Exception Count(Number SoT)·신규 RISK_VISUAL 시트 배선·TopN/집중도 결정성·Heatmap 등급·NuGet 0 | Data | NOT_IMPLEMENTED (TODO) |
@@ -102,7 +102,7 @@ R1(DONE) ─► R3(DONE) ─► STAB(v0.6.1) ─► R2(v0.7) ─► KB(v0.8) ─
 | **RR-14** | **핵심 파일(policy/rules/template/KB) 변조 미탐지** | 中 | STAB-WP-03a manifest + 03b 런타임 시작 검증(운영 Fail-Closed, #61). 잔여 co-tamper/런타임 DLL은 STAB-WP-05 서명 | 부분해소(03a/03b) · 서명 잔여 OPEN |
 | RR-06 | Local LLM 무단 도입 | 高(원칙) | R4 설계만·STOP·Model Approval Gate | 통제 |
 | RR-08 | 대용량/손상 파일 메모리 | 中 | R2-WP-02 Streaming·상한 | 계획 |
-| RR-15 | 중복 한도키 임의선택(group.Last) | 中 | R2-WP-01 명시 차단/상태 | 계획 |
+| RR-15 | 중복 한도키 임의선택(group.Last) | 中 | R2-WP-01 명시 차단/상태 | **PARTIAL**(Codex local-gate PASS; PR review pending) |
 | RR-09 | main 직접 push 우회 | 中 | soft guard 유지(`docs/32`) | 통제 |
 | RR-10 | 기존 테스트 약화 | 高 | 삭제/약화 금지·회귀 게이트 | 통제 |
 | RR-16 | 실 Test PC 증거 없이 Gate PASS 표기(과대표기) | 高(신뢰) | 증거 없으면 BLOCKED 유지(`docs/45`) | 통제 |
