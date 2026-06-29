@@ -8,6 +8,7 @@ public sealed record SafetyRuleSet(
     IReadOnlyList<RulePattern> VbaRequiredPresentRules,
     IReadOnlyList<string> ExcelBlockedFunctions,
     IReadOnlyList<string> ExcelPreferredFunctions,
+    IReadOnlyList<string> ExcelCompletionAllowFunctions,
     string RuleVersion,
     bool UsedFallback,
     IReadOnlyList<string> LoadWarnings

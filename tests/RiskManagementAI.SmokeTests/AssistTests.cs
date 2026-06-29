@@ -53,6 +53,81 @@ internal static class AssistTests
         context.AssertTrue(safetyResult.Findings.Count == 2 && safetyResult.Findings.Any(finding => finding.Code == blockedFinding.Code) && safetyResult.Findings.Any(finding => finding.Code == reviewFinding.Code), "Assist completion result findings should survive recommendation cap");
         context.AssertTrue(safetyResult.Items.All(item => item.RequiresReview), "Assist completion safety items should always require review");
 
+        var ruleSet = RuleLoader.LoadDefault();
+        var staticProviderRegistry = new CompletionProviderRegistry(StaticCompletionProviderFactory.CreateDefault(ruleSet));
+        var staticProviderEngine = new CompletionEngine(staticProviderRegistry, maxInsertableItems: 50);
+
+        var sqlProviderResult = staticProviderEngine.GetCompletions(new CompletionContext(
+            CompletionLanguage.Sql,
+            "DELETE FROM <TABLE_NAME> WHERE BASE_DT = :BASE_DT",
+            46,
+            "DEL",
+            CompletionEngine.NoModelMode));
+        context.AssertTrue(sqlProviderResult.Items.Any(item => item.Kind == CompletionItemKind.BlockedHint && item.Finding?.Code == "SQL_DML_DELETE"), "Assist SQL completion provider should return BlockedHint for DML");
+        context.AssertTrue(sqlProviderResult.Items.Where(item => item.Insertable).All(item => !ContainsAny(item.InsertText, "INSERT", "UPDATE", "DELETE", "MERGE", "CREATE", "ALTER", "DROP", "TRUNCATE", "GRANT", "REVOKE", "EXEC", "CALL", "COMMIT", "ROLLBACK")), "Assist SQL completion provider should not recommend DML or DDL text");
+        context.AssertTrue(staticProviderEngine.GetCompletions(new CompletionContext(CompletionLanguage.Sql, "SEL", 3, "SEL", CompletionEngine.NoModelMode)).Items.Any(item => item.Label == "SELECT" && item.Insertable), "Assist SQL completion provider should recommend read-only SELECT keyword");
+
+        var vbaProviderResult = staticProviderEngine.GetCompletions(new CompletionContext(
+            CompletionLanguage.Vba,
+            "Option Explicit\nSub Test()\nShell \"cmd.exe\"\nEnd Sub",
+            53,
+            "She",
+            CompletionEngine.NoModelMode));
+        context.AssertTrue(vbaProviderResult.Items.Any(item => item.Kind == CompletionItemKind.BlockedHint && item.Finding?.Code == "VBA_SHELL"), "Assist VBA completion provider should return BlockedHint for forbidden Shell API");
+        context.AssertTrue(vbaProviderResult.Items.Where(item => item.Insertable).All(item => !ContainsAny(item.InsertText, "Shell", "WScript.Shell", "Kill", "FileSystemObject", "Declare PtrSafe", "Outlook.Application", "WinHttp", "MSXML2.XMLHTTP", "FollowHyperlink")), "Assist VBA completion provider should not recommend forbidden API text");
+
+        var excelProvider = new Excel2021CompletionProvider(ruleSet);
+        var excelItems = excelProvider.GetCompletions(new CompletionContext(CompletionLanguage.Excel, "=X", 2, "X", CompletionEngine.NoModelMode));
+        context.AssertTrue(excelItems.Any(item => item.Label == "XLOOKUP" && item.InsertText == "XLOOKUP(" && item.Insertable), "Assist Excel completion provider should recommend Excel 2021 allowed functions");
+        var nonFunctionLabels = new[] { "PivotTable", "HelperColumn", "VBA", "SQLAggregation" };
+        context.AssertTrue(nonFunctionLabels.All(label => !ruleSet.ExcelCompletionAllowFunctions.Contains(label, StringComparer.OrdinalIgnoreCase)), "Assist Excel completion allow rules should exclude non-function labels");
+        context.AssertTrue(excelProvider.GetCompletions(new CompletionContext(CompletionLanguage.Excel, string.Empty, 0, string.Empty, CompletionEngine.NoModelMode)).All(item => !nonFunctionLabels.Contains(item.Label, StringComparer.OrdinalIgnoreCase)), "Assist Excel completion provider should not recommend non-function labels");
+
+        var excelBlockedProvider = new Excel365BlockedHintProvider(ruleSet);
+        var blockedFunctionsCovered = ruleSet.ExcelBlockedFunctions
+            .Where(functionName => excelBlockedProvider
+                .GetCompletions(new CompletionContext(CompletionLanguage.Excel, $"={functionName}(A1:A3)", 0, functionName, CompletionEngine.NoModelMode))
+                .Any(item => item.Kind == CompletionItemKind.BlockedHint && item.Finding?.Code == "EXCEL_365_FUNCTION"))
+            .ToArray();
+        context.AssertTrue(blockedFunctionsCovered.SequenceEqual(ruleSet.ExcelBlockedFunctions), "Assist Excel 365 blocked provider should stay in sync with RuleSet blocked functions");
+        var excelBlockedResult = staticProviderEngine.GetCompletions(new CompletionContext(CompletionLanguage.Excel, "=TEXTSPLIT(A1,\",\")", 18, "TEXTSPLIT", CompletionEngine.NoModelMode));
+        context.AssertTrue(excelBlockedResult.Items.Any(item => item.Kind == CompletionItemKind.BlockedHint && item.SafetyNote?.Contains("Excel 2021", StringComparison.OrdinalIgnoreCase) == true), "Assist Excel 365 blocked provider should emit Excel 2021 replacement guidance");
+
+        var expectedSqlFinding = new SqlSafetyChecker(ruleSet)
+            .Check("DELETE FROM <TABLE_NAME>")
+            .First(finding => finding.Code == "SQL_DML_DELETE");
+        var safetyHintProvider = new SafetyHintProvider(ruleSet);
+        var safetyHintItems = safetyHintProvider.GetCompletions(new CompletionContext(CompletionLanguage.Sql, "DELETE FROM <TABLE_NAME>", 24, "DELETE", CompletionEngine.NoModelMode));
+        context.AssertTrue(safetyHintItems.Any(item => item.Kind == CompletionItemKind.SafetyHint && !item.Insertable && item.InsertText.Length == 0 && item.Finding == expectedSqlFinding), "Assist SafetyHint provider should preserve checker structured finding");
+        var safetyHintEngineResult = new CompletionEngine(new CompletionProviderRegistry([safetyHintProvider])).GetCompletions(new CompletionContext(CompletionLanguage.Sql, "DELETE FROM <TABLE_NAME>", 24, "DELETE", CompletionEngine.NoModelMode));
+        context.AssertTrue(safetyHintEngineResult.Findings.Contains(expectedSqlFinding), "Assist SafetyHint provider should preserve finding in CompletionResult");
+
+        foreach (var languageContext in new[]
+        {
+            new CompletionContext(CompletionLanguage.Sql, "DELETE FROM <TABLE_NAME>", 24, "DEL", CompletionEngine.NoModelMode),
+            new CompletionContext(CompletionLanguage.Vba, "Option Explicit\nSub Test()\nShell \"cmd.exe\"\nEnd Sub", 53, "Opt", CompletionEngine.NoModelMode),
+            new CompletionContext(CompletionLanguage.Excel, "=TEXTSPLIT(A1,\",\")", 18, "T", CompletionEngine.NoModelMode),
+            new CompletionContext(CompletionLanguage.RiskComment, string.Empty, 0, string.Empty, CompletionEngine.NoModelMode)
+        })
+        {
+            context.AssertTrue(staticProviderEngine.GetCompletions(languageContext).Items.All(item => item.RequiresReview), $"Assist completion provider items should require review for {languageContext.Language}");
+        }
+
+        var riskPhraseItems = staticProviderEngine.GetCompletions(new CompletionContext(CompletionLanguage.RiskComment, string.Empty, 0, string.Empty, CompletionEngine.NoModelMode)).Items;
+        context.AssertTrue(riskPhraseItems.Any(item => item.Kind == CompletionItemKind.Phrase && item.Insertable), "Assist RiskPhrase provider should recommend review-only risk phrases");
+        var forbiddenRiskPhraseTerms = new[]
+        {
+            "pass" + "word",
+            "Data" + " Source",
+            "User" + " Id",
+            "Initial" + " Catalog",
+            "주민등록",
+            "고객명",
+            "계좌번호",
+            "내부규정 원문"
+        };
+        context.AssertTrue(riskPhraseItems.All(item => !ContainsAny(item.Label + item.InsertText, forbiddenRiskPhraseTerms)), "Assist RiskPhrase provider should avoid real data and internal text seeds");
+
         var logPath = Path.Combine("logs", "smoke_assist_suggestion_log.jsonl");
         if (File.Exists(logPath))
         {
@@ -88,6 +163,11 @@ internal static class AssistTests
             result.Items.Select(item => $"{item.Source}:{item.Label}:{item.InsertText}:{item.Kind}:{item.Insertable}:{item.RequiresReview}:{item.SortKey}"))
             + "::"
             + string.Join("|", result.Findings.Select(finding => $"{finding.Code}:{finding.Severity}:{finding.Position}"));
+    }
+
+    private static bool ContainsAny(string text, params string[] values)
+    {
+        return values.Any(value => text.Contains(value, StringComparison.OrdinalIgnoreCase));
     }
 
     private sealed class StaticAssistProvider : ICompletionProvider

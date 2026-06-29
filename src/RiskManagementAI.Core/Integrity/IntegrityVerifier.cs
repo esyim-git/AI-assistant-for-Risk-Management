@@ -54,6 +54,7 @@ public static class IntegrityVerifier
         "kb/ncr_placeholder.md",
         "kb/public_regulation_catalog.csv",
         "rules/excel_2021_blocked_functions.txt",
+        "rules/excel_2021_completion_allow_functions.txt",
         "rules/excel_2021_preferred_functions.txt",
         "rules/sql_deny_patterns.txt",
         "rules/sql_warn_patterns.txt",
