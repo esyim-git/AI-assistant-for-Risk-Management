@@ -431,5 +431,28 @@ context.AssertTrue(PriorDaySignature(priorDayDeterministicA) == PriorDaySignatur
 context.AssertTrue(priorDayDeterministicA.Contract.Methodology.DraftNotice.Contains("검토용 초안", StringComparison.Ordinal) && priorDayDeterministicA.Contract.UserValidation.ChecklistItems.Count >= 3, "prior-day 4-section limit contract should include draft notice and user validation checklist");
 context.AssertTrue(priorDayDeterministicA.Current.DuplicateLimitCount == priorDayDeterministicA.Current.Kpis.DuplicateLimitCount && priorDayDeterministicA.Prior.DuplicateLimitCount == priorDayDeterministicA.Prior.Kpis.DuplicateLimitCount, "prior-day 4-section limit contract should preserve seven-state LimitAnalysisResult counters");
 context.AssertTrue(priorDayLimitOnly.LimitAmountDelta == -20m && priorDayLimitOnly.ExposureAmountDelta == 0m && priorDayLimitOnly.Movement == PriorDayMovement.Increased, "prior-day limit delta should capture limit-only changes without exposure delta");
+
+var priorDayDupKeyExposureCsv = Path.Combine(priorDayDirectory, "prior_day_duplicate_key_exposure.csv");
+var priorDayDupKeyLimitCsv = Path.Combine(priorDayDirectory, "prior_day_duplicate_key_limit.csv");
+WriteCsvRows(
+    priorDayDupKeyExposureCsv,
+    [
+        new[] { "BASE_DT", "DESK_CD", "PORTFOLIO_ID", "PRODUCT_TYPE", "RISK_FACTOR", "CCY_CD", "EXPOSURE_AMT" },
+        new[] { "20260616", "EQD", "PF_MULTI", "ELS", "RF_MULTI", "KRW", "10" },
+        new[] { "20260617", "EQD", "PF_MULTI", "ELS", "RF_MULTI", "KRW", "20" },
+        new[] { "20260617", "EQD", "PF_MULTI", "ELS", "RF_MULTI", "KRW", "30" }
+    ]);
+WriteCsvRows(
+    priorDayDupKeyLimitCsv,
+    [
+        new[] { "BASE_DT", "PORTFOLIO_ID", "RISK_FACTOR", "LIMIT_AMT", "USE_YN" },
+        new[] { "20260616", "PF_MULTI", "RF_MULTI", "100", "Y" },
+        new[] { "20260617", "PF_MULTI", "RF_MULTI", "100", "Y" }
+    ]);
+var priorDayDupKey = priorDayAnalyzer.Analyze(priorDayDupKeyExposureCsv, priorDayDupKeyLimitCsv, "20260617", "20260616");
+context.AssertTrue(
+    priorDayDupKey.Contract.HiddenRisk.Findings.Any(finding => finding.Code == "PRIOR_DAY_DUPLICATE_KEY")
+        && priorDayDupKey.Contract.DataFact.ComparisonTable.Count(row => row.PortfolioId == "PF_MULTI") == 1,
+    "prior-day limit duplicate join key should emit Hidden-Risk finding and compare deterministically");
     }
 }

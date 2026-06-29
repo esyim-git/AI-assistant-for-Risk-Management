@@ -95,6 +95,8 @@ public sealed class PriorDayAnalyzer
 
         var currentRows = BuildRowDictionary(current.MonitoringTable);
         var priorRows = BuildRowDictionary(prior.MonitoringTable);
+        AddDuplicateKeyFindings(current.MonitoringTable, "Current", current.BaseDate, hiddenRisks);
+        AddDuplicateKeyFindings(prior.MonitoringTable, "Prior", prior.BaseDate, hiddenRisks);
         var keys = currentRows.Keys
             .Union(priorRows.Keys, StringComparer.OrdinalIgnoreCase)
             .OrderBy(key => RowForKey(key, currentRows, priorRows).PortfolioId, StringComparer.Ordinal)
@@ -244,6 +246,31 @@ public sealed class PriorDayAnalyzer
                     .ThenBy(row => row.StatusCode, StringComparer.Ordinal)
                     .First(),
                 StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static void AddDuplicateKeyFindings(
+        IReadOnlyList<LimitMonitorRow> rows,
+        string side,
+        string baseDate,
+        List<SafetyFinding> hiddenRisks)
+    {
+        var duplicateRows = rows
+            .GroupBy(row => LimitMonitor.BuildComparisonKey(row.PortfolioId, row.RiskFactor), StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Count() > 1)
+            .Select(group => group
+                .OrderBy(row => row.PortfolioId, StringComparer.Ordinal)
+                .ThenBy(row => row.RiskFactor, StringComparer.Ordinal)
+                .First())
+            .OrderBy(row => row.PortfolioId, StringComparer.Ordinal)
+            .ThenBy(row => row.RiskFactor, StringComparer.Ordinal);
+
+        foreach (var row in duplicateRows)
+        {
+            hiddenRisks.Add(new SafetyFinding(
+                "PRIOR_DAY_DUPLICATE_KEY",
+                SafetySeverity.Medium,
+                $"{side} BASE_DT={baseDate} 동일 Join Key({row.PortfolioId}/{row.RiskFactor}) 다중 행 - 전일 대비는 결정적 단일 행만 비교하므로 원천 데이터 확인이 필요합니다."));
+        }
     }
 
     private static LimitMonitorRow RowForKey(
