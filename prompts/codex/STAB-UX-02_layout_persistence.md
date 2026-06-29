@@ -27,7 +27,7 @@ git switch -c feature/stab-ux-02-layout-persistence origin/main
 - **최상위 Grid** ColumnDefinitions: `220 / *(MinWidth=480) / Auto(GridSplitter x:Name="WorkspaceSafetySplitter") / 340(MinWidth=280 MaxWidth=560)`. → **저장 대상 = Safety 컬럼(마지막) 너비**.
 
 ## 작업 범위
-1. **레이아웃 store**(신규, `Core/Config/UiLayoutStore.cs` 권장 — App에 둬도 무방):
+1. **레이아웃 store**(신규, **반드시 `Core/Config/UiLayoutStore.cs`** — App 배치 금지): SmokeTest 프로젝트는 `RiskManagementAI.Core`만 참조(`net8.0`)하고 App은 `net8.0-windows`라, store가 App에 있으면 round-trip/fallback/경로가드 SmokeTest가 Windows 전용 App 참조 없이 접근 불가하다. 따라서 store 로직(직렬화·경로가드·clamp·fallback)은 Core에 두고 MainWindow(App)는 이를 호출만 한다.
    - record `UiLayout(double WindowWidth, double WindowHeight, double EditorRowStar, double ResultRowStar, double SafetyColumnWidth, int SchemaVersion)` + 안전 기본값(STAB-UX-01 기본: 1180/720/2/1/340, SchemaVersion=1).
    - `static UiLayout Load(string path = "config/ui_layout.local.json")` / `static void Save(UiLayout, string path = ...)`. JSON = `System.Text.Json`.
    - **경로 가드**: `PolicyLoader`/`LogPathResolver`와 동일하게 `config/`-상대 JSON만 허용(traversal/rooted/`config` 밖 거부 → `ArgumentException`).
@@ -46,18 +46,21 @@ git switch -c feature/stab-ux-02-layout-persistence origin/main
 ## ★ 무결성 제약 (필수)
 `config/ui_layout.local.json`은 **런타임 사용자 가변 파일**이다. 따라서:
 - `build/01`(manifest 생성)·`IntegrityVerifier`(`MandatoryEntries`/`RequiredCriticalEntries`/`CriticalGlobs`)·`PackagingTests`/패키징 인벤토리·Release ZIP **어디에도 추가하지 않는다**. (추가 시 사용자가 레이아웃을 바꿀 때마다 STAB-WP-03b 런타임 Fail-Closed가 오발한다.)
+- **★ publish 복사 제외 (필수)**: `build/01_publish-win-x64.ps1`은 `$RequiredAssetFolders`에 `config`를 포함해 **`config/` 전체를 `Copy-Item -Recurse -Force`로 복사**한다. 따라서 패키징 직전 개발 PC에 `config/ui_layout.local.json`이 존재하면(앱/레이아웃 육안 점검 후) **그대로 Release ZIP에 유입**된다 — manifest 미등록만으로는 부족하다. build/01의 config 복사에서 **`*.local.json`(최소 `ui_layout.local.json`)을 제외**(예: `Copy-Item ... -Exclude '*.local.json'` 또는 복사 후 publish 출력에서 제거)하고, **publish 출력/ZIP에 `*.local.json`이 부재함을 검증**(build/03 금지스캔 또는 PackagingTests 음성 단언)한다. 사용자 로컬 UI 상태가 portable 패키지에 새거나 release 빌드가 패키저의 로컬 레이아웃에 의존하지 않게 한다.
 - 파일은 **config 루트**에 둔다(`config/ncr/`가 아님 → `CriticalGlobs("config/ncr","*.json")` 비대상 유지).
 - **`.gitignore`에 `config/ui_layout.local.json` 추가**(사용자 상태 커밋 금지).
 - 파일 부재/손상은 정상 상태 → **기본 레이아웃으로 fallback**(startup 차단·예외 금지).
 
-## 테스트 (SmokeTest, 외부 프레임워크 0; 이름에 `layout`/`UiLayout` 분류 키워드 → `UiContract`, Unclassified 0)
+## 테스트 (SmokeTest, 외부 프레임워크 0)
+- **★ 도메인 분류(필수)**: `SmokeDomain` 분류기(`SmokeTestContext.cs`)에는 **bare `layout`/`UiLayout` 키워드가 없다**(STAB-UX-01 테스트는 메시지가 `UI layout`으로 시작해 기존 `"UI "` 키워드로 `UiContract` 분류됨). 따라서 신규 단언 **메시지를 `UI layout ...`으로 시작**시켜 기존 `"UI "` 키워드로 `UiContract` 분류되게 한다(`Unclassified=0` 유지). 대안: 분류기 `UiContract` 라인에 `"UiLayout"`/`"layout persistence"` 키워드를 추가(이 경우 추가 사실을 보고). 둘 중 하나를 **반드시** 적용.
 - **round-trip**: Save→Load 동일 값.
 - **fallback**: 파일 부재 / 손상 JSON / SchemaVersion 불일치 → 예외 0, 기본 레이아웃.
 - **경로 가드**: `config/` 밖·`..` traversal·rooted 경로 → `ArgumentException`.
 - **clamp**: Min/Max 밖 저장값 로드 시 범위로 보정(SafetyColumnWidth 280~560 등).
 - **무결성 비대상**: `IntegrityVerifier`의 Mandatory/RequiredCritical/Critical glob 어디에도 `ui_layout.local.json`이 없음을 단언(레이아웃 파일 부재/변경이 startup Fail-Closed를 유발하지 않음).
+- **publish 부재**: 패키징 시 `*.local.json`이 publish 출력/Release ZIP에 포함되지 않음을 단언(build/03 금지스캔 또는 PackagingTests 음성).
 - **.gitignore**: `config/ui_layout.local.json` 포함 단언.
-- 기존 `Total=631` 보존 + 신규.
+- 기존 `Total=631` 보존 + 신규(전 신규 단언 `UiContract`, `Unclassified=0`).
 
 ## 검증 (로컬 Windows, .NET 8 SDK)
 ```powershell
