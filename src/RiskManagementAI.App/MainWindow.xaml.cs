@@ -716,13 +716,13 @@ public partial class MainWindow : Window
             var findings = result.Findings.ToList();
             var resultSeverity = result.BreachCount > 0 || result.MappingErrorCount > 0
                 ? SafetySeverity.High
-                : result.WarningCount > 0 || result.NoLimitCount > 0 || result.InvalidLimitCount > 0
+                : result.WarningCount > 0 || result.NoLimitCount > 0 || result.InvalidLimitCount > 0 || result.DuplicateLimitCount > 0
                     ? SafetySeverity.Medium
                     : SafetySeverity.Info;
             findings.Add(new SafetyFinding(
                 "RISK_DASHBOARD_RESULT",
                 resultSeverity,
-                $"Rows={result.Rows.Count:N0}, NORMAL={result.NormalCount:N0}, WARNING={result.WarningCount:N0}, BREACH={result.BreachCount:N0}, NO_LIMIT={result.NoLimitCount:N0}, INVALID_LIMIT={result.InvalidLimitCount:N0}, MAPPING_ERROR={result.MappingErrorCount:N0}."));
+                $"Rows={result.Rows.Count:N0}, NORMAL={result.NormalCount:N0}, WARNING={result.WarningCount:N0}, BREACH={result.BreachCount:N0}, NO_LIMIT={result.NoLimitCount:N0}, INVALID_LIMIT={result.InvalidLimitCount:N0}, MAPPING_ERROR={result.MappingErrorCount:N0}, DUPLICATE_LIMIT={result.DuplicateLimitCount:N0}."));
 
             var auditFinding = AppendAuditLog(
                 "RiskLimitMonitor",

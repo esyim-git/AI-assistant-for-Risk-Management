@@ -60,6 +60,7 @@ using (var reportArchive = ZipFile.OpenRead(reportResult.ReportPath))
     context.AssertTrue(limitMonitoringSheet.Contains("PF_NOLIMIT", StringComparison.Ordinal) && limitMonitoringSheet.Contains("NO_LIMIT", StringComparison.Ordinal), "WP-07 report should expose analysis NO_LIMIT status");
     context.AssertTrue(limitMonitoringSheet.Contains("PF_ZERO", StringComparison.Ordinal) && limitMonitoringSheet.Contains("INVALID_LIMIT", StringComparison.Ordinal), "WP-07 report should expose analysis INVALID_LIMIT status");
     context.AssertTrue(summarySheet.Contains("ReconciliationPassed", StringComparison.Ordinal) && summarySheet.Contains("FAIL", StringComparison.Ordinal), "WP-07 report summary should expose reconciliation PASS/FAIL");
+    context.AssertTrue(summarySheet.Contains("DuplicateLimitCount", StringComparison.Ordinal), "Excel report SUMMARY should expose duplicate limit count");
     context.AssertTrue(exceptionSheet.Contains("RECON_EXPOSURE_NO_LIMIT", StringComparison.Ordinal) && exceptionSheet.Contains("RECON_NONPOSITIVE_LIMIT", StringComparison.Ordinal), "WP-07 report exception list should include analysis RECON exceptions");
     context.AssertTrue(exceptionSheet.Contains("REPORT_VALIDATION_HIGH_SMOKE", StringComparison.Ordinal), "WP-07 report exception list should merge high validation findings");
 }

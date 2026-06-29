@@ -143,6 +143,7 @@ public sealed class ExcelReportBuilder
                 Row("NoLimitCount", Number(request.Analysis.Kpis.NoLimitCount)),
                 Row("InvalidLimitCount", Number(request.Analysis.Kpis.InvalidLimitCount)),
                 Row("MappingErrorCount", Number(request.Analysis.Kpis.MappingErrorCount)),
+                Row("DuplicateLimitCount", Number(request.Analysis.Kpis.DuplicateLimitCount)),
                 Row("ExposureAmountSum", Number(request.Analysis.Kpis.ExposureAmountSum)),
                 Row("LimitAmountSum", Number(request.Analysis.Kpis.LimitAmountSum)),
                 Row("RemainingLimitSum", Number(request.Analysis.Kpis.RemainingLimitSum)),

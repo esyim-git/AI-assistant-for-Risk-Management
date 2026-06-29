@@ -35,6 +35,30 @@ context.AssertTrue(
         && !customColumnMappingResult.Mapping.TryPhysical(LogicalColumn.UnitCode, out _),
     "ColumnMappingLoader should treat optional currency and unit mappings as absent without fallback for six-column configs");
 
+var blankOptionalColumnMappingPath = Path.Combine("config", "smoke_column_mapping_r2_blank_optional.json");
+File.WriteAllText(blankOptionalColumnMappingPath, """
+{
+  "Mappings": {
+    "BaseDate": "BASE_DATE",
+    "PortfolioId": "PORT_ID",
+    "RiskFactor": "RISK_NM",
+    "ExposureAmount": "EXPOSURE",
+    "LimitAmount": "LIMIT",
+    "UseYn": "ACTIVE_YN",
+    "CurrencyCode": "",
+    "UnitCode": ""
+  }
+}
+""");
+var blankOptionalColumnMappingResult = ColumnMappingLoader.LoadFromFile(blankOptionalColumnMappingPath);
+File.Delete(blankOptionalColumnMappingPath);
+context.AssertTrue(!blankOptionalColumnMappingResult.UsedFallback, "ColumnMappingLoader should treat blank optional currency and unit mappings as absent without fallback");
+context.AssertTrue(
+    blankOptionalColumnMappingResult.Mapping.Physical(LogicalColumn.PortfolioId) == "PORT_ID"
+        && !blankOptionalColumnMappingResult.Mapping.TryPhysical(LogicalColumn.CurrencyCode, out _)
+        && !blankOptionalColumnMappingResult.Mapping.TryPhysical(LogicalColumn.UnitCode, out _),
+    "ColumnMapping blank optional values should preserve required custom mappings and disable optional comparisons");
+
 var partialColumnMappingPath = Path.Combine("config", "smoke_column_mapping_wp04_partial.json");
 File.WriteAllText(partialColumnMappingPath, """
 {

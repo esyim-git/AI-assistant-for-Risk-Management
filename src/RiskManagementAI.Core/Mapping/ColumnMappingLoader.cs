@@ -122,6 +122,7 @@ public static class ColumnMappingLoader
 
         var duplicatePhysicalColumn = mappingValues.Values
             .Select(value => value.Trim())
+            .Where(value => !string.IsNullOrWhiteSpace(value))
             .GroupBy(value => value, StringComparer.OrdinalIgnoreCase)
             .FirstOrDefault(group => group.Count() > 1);
         return duplicatePhysicalColumn is null

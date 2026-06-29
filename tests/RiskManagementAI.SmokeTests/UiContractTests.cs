@@ -122,6 +122,10 @@ context.AssertTrue(
         && string.Equals((string?)button.Attribute("Click"), "OnRunLimitMonitor", StringComparison.Ordinal)),
     "Risk Dashboard should expose a limit monitoring action");
 context.AssertTrue(
+    mainWindowCode.Contains("DuplicateLimitCount", StringComparison.Ordinal)
+        && mainWindowCode.Contains("DUPLICATE_LIMIT", StringComparison.Ordinal),
+    "Risk Dashboard result summary should expose duplicate limit count");
+context.AssertTrue(
     mainWindowXaml.Descendants(wpf + "Button").Any(button =>
         string.Equals((string?)button.Attribute("Content"), "로그 새로고침", StringComparison.Ordinal)
         && string.Equals((string?)button.Attribute("Click"), "OnRefreshHistory", StringComparison.Ordinal)),

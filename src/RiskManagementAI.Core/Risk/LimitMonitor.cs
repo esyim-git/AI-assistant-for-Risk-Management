@@ -358,7 +358,10 @@ public sealed class LimitMonitor
             }
         }
 
-        foreach (var group in limitGroups.Where(group => group.Rows.Count > 1))
+        var duplicateLimitGroups = limitGroups
+            .Where(group => group.Rows.Count > 1)
+            .ToArray();
+        foreach (var group in duplicateLimitGroups)
         {
             exceptions.Add(CreateException(
                 ReconDuplicateLimit,
@@ -421,7 +424,9 @@ public sealed class LimitMonitor
                 .ThenBy(exception => exception.Message, StringComparer.Ordinal)
                 .ToArray(),
             currencyApplicable,
-            unitApplicable);
+            unitApplicable,
+            duplicateLimitGroups.Length,
+            duplicateLimitGroups.Sum(group => group.Rows.Count));
     }
 
     private static void AddBaseDateMismatchExceptions(
@@ -751,11 +756,11 @@ public sealed class LimitMonitor
         ReconciliationComputation reconciliationComputation,
         RequiredColumns columns)
     {
-        var duplicateLimitCount = rows.Count(row => row.Status == LimitMonitorStatus.DuplicateLimit);
+        var blockedExposureRows = rows.Count(row => row.Status == LimitMonitorStatus.DuplicateLimit);
         return
         [
             $"JoinKey={columns.BaseDate}+{columns.PortfolioId}+{columns.RiskFactor}",
-            $"DuplicateLimitRule=blocked; duplicateExposureRows={duplicateLimitCount:N0}",
+            $"DuplicateLimitRule=blocked; duplicateLimitKeys={reconciliationComputation.DuplicateLimitKeyCount:N0}; duplicateLimitRows={reconciliationComputation.DuplicateLimitRowCount:N0}; blockedExposureRows={blockedExposureRows:N0}",
             $"CurrencyApplicable={reconciliationComputation.CurrencyApplicable}",
             $"UnitApplicable={reconciliationComputation.UnitApplicable}",
             $"BaseDateRequested={baseDateValidation.RequestedBaseDate}; normalized={baseDateValidation.NormalizedBaseDate}; valid={baseDateValidation.IsValid}; formats={string.Join("|", BaseDateInputFormats)}"
@@ -965,7 +970,9 @@ public sealed class LimitMonitor
     private sealed record ReconciliationComputation(
         IReadOnlyList<LimitException> Exceptions,
         bool CurrencyApplicable,
-        bool UnitApplicable);
+        bool UnitApplicable,
+        int DuplicateLimitKeyCount,
+        int DuplicateLimitRowCount);
 
     private sealed record LimitRowGroup(
         string Key,

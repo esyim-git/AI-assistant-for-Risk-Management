@@ -135,9 +135,30 @@ context.AssertTrue(ReconciliationExceptionCount(duplicateLimitResult, "RECON_ROW
 context.AssertTrue(duplicateLimitResult.Rows.Count == 1 && duplicateLimitResult.Kpis.TotalCount == 1, "WP-06 duplicate limit checks should not change existing monitoring row counts");
 context.AssertTrue(!duplicateLimitResult.Reconciliation.Passed, "WP-06 row amplification should fail reconciliation");
 var duplicateJoinAudit = string.Join("|", duplicateLimitResult.Metadata.JoinAudit);
-context.AssertTrue(duplicateJoinAudit.Contains("DuplicateLimitRule=blocked", StringComparison.Ordinal) && duplicateJoinAudit.Contains("duplicateExposureRows=1", StringComparison.Ordinal), "LimitMonitor JoinAudit should record duplicate limit blocking policy");
+context.AssertTrue(
+    duplicateJoinAudit.Contains("DuplicateLimitRule=blocked", StringComparison.Ordinal)
+        && duplicateJoinAudit.Contains("duplicateLimitKeys=1", StringComparison.Ordinal)
+        && duplicateJoinAudit.Contains("duplicateLimitRows=2", StringComparison.Ordinal)
+        && duplicateJoinAudit.Contains("blockedExposureRows=1", StringComparison.Ordinal),
+    "LimitMonitor JoinAudit should record duplicate limit key counts and blocked exposure rows");
 var retiredDuplicateSelectionText = "group" + ".Last";
 context.AssertTrue(!duplicateJoinAudit.Contains(retiredDuplicateSelectionText, StringComparison.OrdinalIgnoreCase), "LimitMonitor JoinAudit should not mention arbitrary duplicate selection");
+
+var wp06OrphanDuplicateLimitCsv = Path.Combine(limitSmokeDirectory, "wp06_orphan_duplicate_limit.csv");
+WriteCsvRows(
+    wp06OrphanDuplicateLimitCsv,
+    [
+        new[] { "BASE_DT", "PORTFOLIO_ID", "RISK_FACTOR", "LIMIT_AMT", "USE_YN" },
+        new[] { "20260617", "PF_ORPHAN_DUP", "RF_ORPHAN_DUP", "100", "Y" },
+        new[] { "20260617", "PF_ORPHAN_DUP", "RF_ORPHAN_DUP", "120", "Y" }
+    ]);
+var orphanDuplicateLimitResult = limitMonitor.Analyze(wp06CleanExposureCsv, wp06OrphanDuplicateLimitCsv, "20260617");
+var orphanDuplicateJoinAudit = string.Join("|", orphanDuplicateLimitResult.Metadata.JoinAudit);
+context.AssertTrue(
+    ReconciliationExceptionCount(orphanDuplicateLimitResult, "RECON_DUPLICATE_LIMIT") == 1
+        && orphanDuplicateJoinAudit.Contains("duplicateLimitKeys=1", StringComparison.Ordinal)
+        && orphanDuplicateJoinAudit.Contains("blockedExposureRows=0", StringComparison.Ordinal),
+    "LimitMonitor JoinAudit should count duplicate limit keys even when no exposure row is blocked");
 
 var wp06MismatchExposureCsv = Path.Combine(limitSmokeDirectory, "wp06_basedate_mismatch_exposure.csv");
 var wp06MismatchLimitCsv = Path.Combine(limitSmokeDirectory, "wp06_basedate_mismatch_limit.csv");
