@@ -274,5 +274,162 @@ var mappingErrorResult = limitMonitor.Analyze(mappingErrorExposureCsv, wp05Limit
 context.AssertTrue(mappingErrorResult.MappingErrorCount == 1, "LimitMonitor should return graceful MAPPING_ERROR for missing mapped physical columns");
 context.AssertTrue(mappingErrorResult.ExceptionList.Any(exception => exception.Code == "MAPPING_ERROR" && exception.Severity == SafetySeverity.High), "LimitMonitor should include high severity MappingError exception");
 context.AssertTrue(mappingErrorResult.Findings.Any(finding => finding.Code == "LIMIT_MAPPING_ERROR"), "LimitMonitor should include MappingError finding instead of throwing");
+
+var priorDayAnalyzer = new PriorDayAnalyzer();
+var priorDayDirectory = Path.Combine("artifacts", "smoke-prior-day-r2-wp03");
+Directory.CreateDirectory(priorDayDirectory);
+
+var priorDayComparisonExposureCsv = Path.Combine(priorDayDirectory, "prior_day_comparison_exposure.csv");
+var priorDayComparisonLimitCsv = Path.Combine(priorDayDirectory, "prior_day_comparison_limit.csv");
+WriteCsvRows(
+    priorDayComparisonExposureCsv,
+    [
+        new[] { "BASE_DT", "DESK_CD", "PORTFOLIO_ID", "PRODUCT_TYPE", "RISK_FACTOR", "CCY_CD", "EXPOSURE_AMT" },
+        new[] { "20260616", "EQD", "PF_INC", "ELS", "RF_DELTA", "KRW", "40" },
+        new[] { "20260617", "EQD", "PF_INC", "ELS", "RF_DELTA", "KRW", "60" },
+        new[] { "20260616", "EQD", "PF_DEC", "ELS", "RF_DELTA", "KRW", "80" },
+        new[] { "20260617", "EQD", "PF_DEC", "ELS", "RF_DELTA", "KRW", "30" },
+        new[] { "20260616", "EQD", "PF_UNCH", "ELS", "RF_DELTA", "KRW", "50" },
+        new[] { "20260617", "EQD", "PF_UNCH", "ELS", "RF_DELTA", "KRW", "50" }
+    ]);
+WriteCsvRows(
+    priorDayComparisonLimitCsv,
+    [
+        new[] { "BASE_DT", "PORTFOLIO_ID", "RISK_FACTOR", "LIMIT_AMT", "USE_YN" },
+        new[] { "20260616", "PF_INC", "RF_DELTA", "100", "Y" },
+        new[] { "20260617", "PF_INC", "RF_DELTA", "100", "Y" },
+        new[] { "20260616", "PF_DEC", "RF_DELTA", "100", "Y" },
+        new[] { "20260617", "PF_DEC", "RF_DELTA", "100", "Y" },
+        new[] { "20260616", "PF_UNCH", "RF_DELTA", "100", "Y" },
+        new[] { "20260617", "PF_UNCH", "RF_DELTA", "100", "Y" }
+    ]);
+var priorDayComparison = priorDayAnalyzer.Analyze(priorDayComparisonExposureCsv, priorDayComparisonLimitCsv, "20260617", "20260616");
+var priorDayIncrease = priorDayComparison.Contract.DataFact.ComparisonTable.Single(row => row.PortfolioId == "PF_INC");
+var priorDayDecrease = priorDayComparison.Contract.DataFact.ComparisonTable.Single(row => row.PortfolioId == "PF_DEC");
+var priorDayUnchanged = priorDayComparison.Contract.DataFact.ComparisonTable.Single(row => row.PortfolioId == "PF_UNCH");
+context.AssertTrue(priorDayIncrease.Movement == PriorDayMovement.Increased && priorDayIncrease.UsageRatioDelta == 0.2m && priorDayIncrease.ExposureAmountDelta == 20m, "prior-day limit comparison should calculate Increased usage and exposure delta");
+context.AssertTrue(priorDayDecrease.Movement == PriorDayMovement.Decreased && priorDayDecrease.UsageRatioDelta == -0.5m && priorDayDecrease.ExposureAmountDelta == -50m, "prior-day limit comparison should calculate Decreased usage and exposure delta");
+context.AssertTrue(priorDayUnchanged.Movement == PriorDayMovement.Unchanged && priorDayUnchanged.UsageRatioDelta == 0m, "prior-day limit comparison should classify unchanged usage ratio");
+context.AssertTrue(priorDayComparison.Contract.DataFact.Kpis is { ComparedCount: 3, IncreasedCount: 1, DecreasedCount: 1, UnchangedCount: 1 }, "prior-day LimitMonitor KPIs should summarize comparison movements");
+
+var priorDayNewResolvedExposureCsv = Path.Combine(priorDayDirectory, "prior_day_new_resolved_exposure.csv");
+var priorDayNewResolvedLimitCsv = Path.Combine(priorDayDirectory, "prior_day_new_resolved_limit.csv");
+WriteCsvRows(
+    priorDayNewResolvedExposureCsv,
+    [
+        new[] { "BASE_DT", "DESK_CD", "PORTFOLIO_ID", "PRODUCT_TYPE", "RISK_FACTOR", "CCY_CD", "EXPOSURE_AMT" },
+        new[] { "20260617", "EQD", "PF_NEW", "ELS", "RF_FLOW", "KRW", "20" },
+        new[] { "20260616", "EQD", "PF_RESOLVED", "ELS", "RF_FLOW", "KRW", "40" }
+    ]);
+WriteCsvRows(
+    priorDayNewResolvedLimitCsv,
+    [
+        new[] { "BASE_DT", "PORTFOLIO_ID", "RISK_FACTOR", "LIMIT_AMT", "USE_YN" },
+        new[] { "20260617", "PF_NEW", "RF_FLOW", "100", "Y" },
+        new[] { "20260616", "PF_RESOLVED", "RF_FLOW", "100", "Y" }
+    ]);
+var priorDayNewResolved = priorDayAnalyzer.Analyze(priorDayNewResolvedExposureCsv, priorDayNewResolvedLimitCsv, "20260617", "20260616");
+var priorDayNew = priorDayNewResolved.Contract.DataFact.ComparisonTable.Single(row => row.PortfolioId == "PF_NEW");
+var priorDayResolved = priorDayNewResolved.Contract.DataFact.ComparisonTable.Single(row => row.PortfolioId == "PF_RESOLVED");
+context.AssertTrue(priorDayNew.Movement == PriorDayMovement.New && priorDayNew.PriorStatus is null && priorDayNew.PriorExposureAmount == 0m, "prior-day limit comparison should classify New rows and zero missing prior values");
+context.AssertTrue(priorDayResolved.Movement == PriorDayMovement.Resolved && priorDayResolved.CurrentStatus is null && priorDayResolved.CurrentExposureAmount == 0m, "prior-day limit comparison should classify Resolved rows and zero missing current values");
+
+var priorDayTopNExposureCsv = Path.Combine(priorDayDirectory, "prior_day_topn_exposure.csv");
+var priorDayTopNLimitCsv = Path.Combine(priorDayDirectory, "prior_day_topn_limit.csv");
+WriteCsvRows(
+    priorDayTopNExposureCsv,
+    [
+        new[] { "BASE_DT", "DESK_CD", "PORTFOLIO_ID", "PRODUCT_TYPE", "RISK_FACTOR", "CCY_CD", "EXPOSURE_AMT" },
+        new[] { "20260616", "EQD", "PF_BIG", "ELS", "RF_TOP", "KRW", "10" },
+        new[] { "20260617", "EQD", "PF_BIG", "ELS", "RF_TOP", "KRW", "50" },
+        new[] { "20260616", "EQD", "PF_A", "ELS", "RF_TOP", "KRW", "10" },
+        new[] { "20260617", "EQD", "PF_A", "ELS", "RF_TOP", "KRW", "30" },
+        new[] { "20260616", "EQD", "PF_B", "ELS", "RF_TOP", "KRW", "10" },
+        new[] { "20260617", "EQD", "PF_B", "ELS", "RF_TOP", "KRW", "30" }
+    ]);
+WriteCsvRows(
+    priorDayTopNLimitCsv,
+    [
+        new[] { "BASE_DT", "PORTFOLIO_ID", "RISK_FACTOR", "LIMIT_AMT", "USE_YN" },
+        new[] { "20260616", "PF_BIG", "RF_TOP", "100", "Y" },
+        new[] { "20260617", "PF_BIG", "RF_TOP", "100", "Y" },
+        new[] { "20260616", "PF_A", "RF_TOP", "100", "Y" },
+        new[] { "20260617", "PF_A", "RF_TOP", "100", "Y" },
+        new[] { "20260616", "PF_B", "RF_TOP", "100", "Y" },
+        new[] { "20260617", "PF_B", "RF_TOP", "100", "Y" }
+    ]);
+var priorDayTopN = priorDayAnalyzer.Analyze(priorDayTopNExposureCsv, priorDayTopNLimitCsv, "20260617", "20260616", topN: 3);
+context.AssertTrue(priorDayTopN.Contract.DataFact.Movers.TopByUsageRatioDelta.Select(row => row.PortfolioId).SequenceEqual(["PF_BIG", "PF_A", "PF_B"]), "prior-day limit TopN movers should order by absolute usage delta then PortfolioId");
+
+var priorDayTransitionExposureCsv = Path.Combine(priorDayDirectory, "prior_day_transition_exposure.csv");
+var priorDayTransitionLimitCsv = Path.Combine(priorDayDirectory, "prior_day_transition_limit.csv");
+WriteCsvRows(
+    priorDayTransitionExposureCsv,
+    [
+        new[] { "BASE_DT", "DESK_CD", "PORTFOLIO_ID", "PRODUCT_TYPE", "RISK_FACTOR", "CCY_CD", "EXPOSURE_AMT" },
+        new[] { "20260616", "EQD", "PF_TRANS", "ELS", "RF_STATE", "KRW", "10" },
+        new[] { "20260617", "EQD", "PF_TRANS", "ELS", "RF_STATE", "KRW", "10" },
+        new[] { "20260616", "EQD", "PF_DUP", "ELS", "RF_STATE", "KRW", "10" },
+        new[] { "20260617", "EQD", "PF_DUP", "ELS", "RF_STATE", "KRW", "10" }
+    ]);
+WriteCsvRows(
+    priorDayTransitionLimitCsv,
+    [
+        new[] { "BASE_DT", "PORTFOLIO_ID", "RISK_FACTOR", "LIMIT_AMT", "USE_YN" },
+        new[] { "20260616", "PF_TRANS", "RF_STATE", "100", "Y" },
+        new[] { "20260616", "PF_DUP", "RF_STATE", "100", "Y" },
+        new[] { "20260616", "PF_DUP", "RF_STATE", "120", "Y" },
+        new[] { "20260617", "PF_DUP", "RF_STATE", "100", "Y" },
+        new[] { "20260617", "PF_DUP", "RF_STATE", "120", "Y" }
+    ]);
+var priorDayTransition = priorDayAnalyzer.Analyze(priorDayTransitionExposureCsv, priorDayTransitionLimitCsv, "20260617", "20260616");
+var priorDayNormalToNoLimit = priorDayTransition.Contract.DataFact.ComparisonTable.Single(row => row.PortfolioId == "PF_TRANS");
+var priorDayDuplicateLimit = priorDayTransition.Contract.DataFact.ComparisonTable.Single(row => row.PortfolioId == "PF_DUP");
+context.AssertTrue(priorDayNormalToNoLimit.Movement == PriorDayMovement.StateTransition && priorDayNormalToNoLimit.CurrentStatus == LimitMonitorStatus.NoLimit, "prior-day limit state-transition should classify Normal to NoLimit as non-numeric movement");
+context.AssertTrue(priorDayDuplicateLimit.Movement == PriorDayMovement.StateTransition && priorDayDuplicateLimit.CurrentStatus == LimitMonitorStatus.DuplicateLimit && priorDayDuplicateLimit.PriorStatus == LimitMonitorStatus.DuplicateLimit, "prior-day limit state-transition should treat DuplicateLimit as non-numeric even on both days");
+context.AssertTrue(priorDayTransition.Contract.DataFact.Movers.TopByUsageRatioDelta.All(row => row.Movement != PriorDayMovement.StateTransition) && priorDayTransition.Contract.HiddenRisk.Findings.Any(finding => finding.Code == "PRIOR_DAY_STATE_TRANSITION"), "prior-day limit movers should exclude StateTransition rows and expose Hidden-Risk findings");
+
+var priorDayBaseDateMismatchExposureCsv = Path.Combine(priorDayDirectory, "prior_day_basedate_mismatch_exposure.csv");
+var priorDayBaseDateMismatchLimitCsv = Path.Combine(priorDayDirectory, "prior_day_basedate_mismatch_limit.csv");
+WriteCsvRows(
+    priorDayBaseDateMismatchExposureCsv,
+    [
+        new[] { "BASE_DT", "DESK_CD", "PORTFOLIO_ID", "PRODUCT_TYPE", "RISK_FACTOR", "CCY_CD", "EXPOSURE_AMT" },
+        new[] { "20260617", "EQD", "PF_CURRENT_ONLY", "ELS", "RF_DATE", "KRW", "10" }
+    ]);
+WriteCsvRows(
+    priorDayBaseDateMismatchLimitCsv,
+    [
+        new[] { "BASE_DT", "PORTFOLIO_ID", "RISK_FACTOR", "LIMIT_AMT", "USE_YN" },
+        new[] { "20260617", "PF_CURRENT_ONLY", "RF_DATE", "100", "Y" }
+    ]);
+var priorDayBaseDateMismatch = priorDayAnalyzer.Analyze(priorDayBaseDateMismatchExposureCsv, priorDayBaseDateMismatchLimitCsv, "20260617", "20260615");
+context.AssertTrue(priorDayBaseDateMismatch.Contract.DataFact.Kpis.NewCount == 1 && priorDayBaseDateMismatch.Prior.Rows.Count == 0, "prior-day limit BASE_DT mismatch should keep matched current rows as New when prior date selects no rows");
+context.AssertTrue(priorDayBaseDateMismatch.Contract.HiddenRisk.Findings.Any(finding => finding.Code == "BASE_DT_FORMAT_MISMATCH"), "prior-day limit BASE_DT mismatch should emit Hidden-Risk finding without arbitrary correction");
+context.AssertTrue(context.Throws<ArgumentException>(() => priorDayAnalyzer.Analyze(priorDayBaseDateMismatchExposureCsv, priorDayBaseDateMismatchLimitCsv, "20260617", "2026-06-17")), "prior-day LimitMonitor should reject same-day comparison after BASE_DT normalization");
+
+var priorDayDeterministicExposureCsv = Path.Combine(priorDayDirectory, "prior_day_deterministic_exposure.csv");
+var priorDayDeterministicLimitCsv = Path.Combine(priorDayDirectory, "prior_day_deterministic_limit.csv");
+WriteCsvRows(
+    priorDayDeterministicExposureCsv,
+    [
+        new[] { "BASE_DT", "DESK_CD", "PORTFOLIO_ID", "PRODUCT_TYPE", "RISK_FACTOR", "CCY_CD", "EXPOSURE_AMT" },
+        new[] { "20260616", "EQD", "PF_LIMIT_ONLY", "ELS", "RF_LIMIT", "KRW", "50" },
+        new[] { "20260617", "EQD", "PF_LIMIT_ONLY", "ELS", "RF_LIMIT", "KRW", "50" }
+    ]);
+WriteCsvRows(
+    priorDayDeterministicLimitCsv,
+    [
+        new[] { "BASE_DT", "PORTFOLIO_ID", "RISK_FACTOR", "LIMIT_AMT", "USE_YN" },
+        new[] { "20260616", "PF_LIMIT_ONLY", "RF_LIMIT", "100", "Y" },
+        new[] { "20260617", "PF_LIMIT_ONLY", "RF_LIMIT", "80", "Y" }
+    ]);
+var priorDayDeterministicA = priorDayAnalyzer.Analyze(priorDayDeterministicExposureCsv, priorDayDeterministicLimitCsv, "2026-06-17", "20260616");
+var priorDayDeterministicB = priorDayAnalyzer.Analyze(priorDayDeterministicExposureCsv, priorDayDeterministicLimitCsv, "2026-06-17", "20260616");
+var priorDayLimitOnly = priorDayDeterministicA.Contract.DataFact.ComparisonTable.Single();
+context.AssertTrue(PriorDaySignature(priorDayDeterministicA) == PriorDaySignature(priorDayDeterministicB), "prior-day 4-section limit contract should be deterministic for repeated inputs");
+context.AssertTrue(priorDayDeterministicA.Contract.Methodology.DraftNotice.Contains("검토용 초안", StringComparison.Ordinal) && priorDayDeterministicA.Contract.UserValidation.ChecklistItems.Count >= 3, "prior-day 4-section limit contract should include draft notice and user validation checklist");
+context.AssertTrue(priorDayDeterministicA.Current.DuplicateLimitCount == priorDayDeterministicA.Current.Kpis.DuplicateLimitCount && priorDayDeterministicA.Prior.DuplicateLimitCount == priorDayDeterministicA.Prior.Kpis.DuplicateLimitCount, "prior-day 4-section limit contract should preserve seven-state LimitAnalysisResult counters");
+context.AssertTrue(priorDayLimitOnly.LimitAmountDelta == -20m && priorDayLimitOnly.ExposureAmountDelta == 0m && priorDayLimitOnly.Movement == PriorDayMovement.Increased, "prior-day limit delta should capture limit-only changes without exposure delta");
     }
 }
