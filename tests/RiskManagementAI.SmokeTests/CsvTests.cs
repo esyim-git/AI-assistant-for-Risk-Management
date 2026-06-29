@@ -28,7 +28,7 @@ context.AssertTrue(cp949UhcTable.Rows.Single().GetValue("확장힣") == "힣값"
 context.AssertTrue(cp949UhcTable.Metadata.Cp949MappingSha256 == Cp949Decoder.ExpectedMappingSha256, "CsvReader CP949 metadata should expose mapping SHA256");
 context.AssertTrue(cp949UhcTable.Metadata.Cp949MappingEntryCount == Cp949Decoder.ExpectedMappingEntryCount, "CsvReader CP949 metadata should expose mapping entry count");
 context.AssertTrue(CsvReader.Read(cp949UhcCsv, CsvEncoding.Cp949).Rows.Single().GetValue("확장힣") == "힣값", "CsvReader should support explicit CP949");
-context.AssertTrue(CsvReader.ReadStreaming(cp949UhcCsv, CsvEncoding.Cp949).Rows.Single().GetValue("확장힣") == "힣값", "CsvReader CP949 streaming should reuse UHC decoder");
+context.AssertTrue(CsvReader.ReadStreaming(cp949UhcCsv, CsvEncoding.Cp949).Single().GetValue("확장힣") == "힣값", "CsvReader CP949 streaming should reuse UHC decoder");
 context.AssertTrue(context.Throws<InvalidDataException>(() => CsvReader.Read(cp949UhcCsv, CsvEncoding.Utf8)), "CsvReader explicit UTF-8 should reject CP949 bytes");
 
 var cp949Profile = profiler.ProfileCsv(cp949UhcCsv);

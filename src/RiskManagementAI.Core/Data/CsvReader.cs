@@ -24,8 +24,12 @@ public static class CsvReader
             header.Metadata);
     }
 
-    public static CsvTable ReadStreaming(string path, CsvEncoding encoding = CsvEncoding.Auto)
-        => Read(path, encoding);
+    public static IEnumerable<CsvRow> ReadStreaming(string path, CsvEncoding encoding = CsvEncoding.Auto)
+    {
+        var header = ReadHeader(path, encoding);
+        return StreamDataRows(header)
+            .Select(row => new CsvRow(header.Columns, row.Values, row.LineNumber));
+    }
 
     internal static CsvStreamHeader ReadHeader(string path, CsvEncoding encoding = CsvEncoding.Auto)
     {

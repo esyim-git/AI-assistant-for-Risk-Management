@@ -35,6 +35,35 @@ context.AssertTrue(
     welfordAmount.NonNullCount == 11 && welfordAmount.Sum == 1000m && welfordAmount.Min == 0m && welfordAmount.Max == 1000m && welfordAmount.OutlierCount == 1,
     "DataProfiler streaming welford numeric profile should preserve 3-sigma OutlierCount");
 
+var largeNumberOutlierCsv = Path.Combine(profileSmokeDirectory, "profile_welford_legacy_outlier_large_numbers.csv");
+using (var writer = new StreamWriter(largeNumberOutlierCsv, append: false, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)))
+{
+    writer.WriteLine("BASE_DT,AMT");
+    for (var index = 0; index < 9; index++)
+    {
+        writer.WriteLine("20260617,1000000000000000");
+    }
+
+    writer.WriteLine("20260617,1000000000000001");
+}
+var largeNumberLegacyProfile = profiler.ProfileCsv(largeNumberOutlierCsv);
+var largeNumberStreamingProfile = profiler.ProfileCsvStreaming(largeNumberOutlierCsv);
+context.AssertTrue(
+    largeNumberLegacyProfile.NumericColumns["AMT"].OutlierCount == 1
+    && largeNumberStreamingProfile.NumericColumns["AMT"].OutlierCount == 1,
+    "DataProfiler streaming welford should preserve legacy large-number OutlierCount");
+
+var mixedNonnumericOverflowCsv = Path.Combine(profileSmokeDirectory, "profile_mixed_nonnumeric_overflow.csv");
+File.WriteAllText(
+    mixedNonnumericOverflowCsv,
+    $"BASE_DT,MIXED_ID\n20260617,{decimal.MaxValue.ToString(System.Globalization.CultureInfo.InvariantCulture)}\n20260617,{decimal.MaxValue.ToString(System.Globalization.CultureInfo.InvariantCulture)}\n20260617,TEXT_ID\n",
+    new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+var mixedNonnumericLegacyProfile = profiler.ProfileCsv(mixedNonnumericOverflowCsv);
+var mixedNonnumericStreamingProfile = profiler.ProfileCsvStreaming(mixedNonnumericOverflowCsv);
+context.AssertTrue(
+    !mixedNonnumericLegacyProfile.NumericColumns.ContainsKey("MIXED_ID") && !mixedNonnumericStreamingProfile.NumericColumns.ContainsKey("MIXED_ID"),
+    "DataProfiler streaming should avoid overflow for duplicate mixed nonnumeric identifiers");
+
 var largeStreamingCsv = Path.Combine(profileSmokeDirectory, "profile_large_streaming_within_cap.csv");
 using (var writer = new StreamWriter(largeStreamingCsv, append: false, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)))
 {
