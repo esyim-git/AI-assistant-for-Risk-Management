@@ -10,6 +10,7 @@ internal sealed class TestRunner
         GenerationTests.Run(context);
         KbTests.Run(context);
         NcrTests.Run(context);
+        AssistTests.Run(context);
         AuditTests.Run(context);
         DataProfileTests.Run(context);
         LimitReconciliationTests.Run(context);
