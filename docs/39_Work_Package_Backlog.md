@@ -287,28 +287,262 @@
 - **Branch**: `feature/ux-wp-03-wpf-popup` · **Commit**: `feat: WPF completion popup integration (UX-WP-03)`
 - **Claude Review Checklist**: 외부 Editor 패키지 0 / **4종 입력창(RiskComment 포함)** / 자동삽입 없음 / 비삽입 힌트 / Source·Kind·RequiresReview / 구조화 Finding 결과패널 / 입력 원문 미저장 / Gate A.
 
-## R2-WP-01. Risk Semantic Hardening (RR-15)
-- **목표**: 중복 Limit Key를 `group.Last()`로 임의 선택하지 않고 **명시 차단/상태화**, 통화·단위 컬럼을 ColumnMapping으로 관리, **`RECON_UNIT_MISMATCH` 활성화**, BASE_DT 형식 검증·정규화, Join 선택 규칙을 Audit Metadata에 기록.
-- **선행조건**: STAB-WP-01~02.
-- **수정예상파일**: `Core/Risk/LimitMonitor.cs`, `Core/Mapping/ColumnMapping*`, `Core/Risk/LimitAnalysisResult.cs`, tests.
-- **테스트**: 중복키 양성/차단, 통화·단위 매핑, RECON_UNIT 양성/음성, BASE_DT 비정상 정규화, Audit 기록.
-- **Branch**: `feature/r2-wp-01-semantic-hardening` · **Commit**: `feat: risk semantic hardening (dup key, unit recon, base_dt) (R2-WP-01)`
-- **Claude Review Checklist**: 임의선택 제거 / RECON_UNIT / 매핑 일원화 / 결정성 / 기존 6상태·대사 불변 / Gate A.
+## R2-WP-01. Risk Semantic Hardening (RR-15) — 상태: NOT_IMPLEMENTED (설계)
+
+- **목표**: `LimitMonitor`의 R1 의미 결함 5개를 **결정적으로 경화(harden)**한다 — ① 중복 Limit Key를 `group.Last()` 임의선택 대신 **명시 차단·상태화(`DUPLICATE_LIMIT`)**, ② 통화(Currency)·단위(Unit) 컬럼을 LimitMonitor 하드코딩 const(`CCY_CD`)에서 **ColumnMapping(승인형)으로 이관**, ③ 단위 비교 컬럼이 존재할 때 **`RECON_UNIT_MISMATCH` 활성화**(현재 `UnitApplicable: false` 고정), ④ **BASE_DT 형식 검증·정규화** 단계 추가, ⑤ 중복키 처리·Join 선택 규칙을 **Audit Metadata에 기록**. R1 계약(6→7상태 확장은 추가만, 대사 9종 코드·`LimitAnalysisResult`·Dashboard=Report 일원화)은 **보존**.
+- **선행조건**: WP-04(ColumnMapping), WP-05(공통 `LimitAnalysisResult`·6상태), WP-06(대사 9종·`ReconciliationSummary`), STAB-WP-01~02(VERSION·정본 SmokeTest). 모두 완료(main).
+- **작업범위**:
+  1. **중복 Limit Key 차단/상태화**: `Analyze`의 `activeLimits` 빌드(`LimitMonitor.cs:133-136`)에서 `.ToDictionary(g=>g.Key, g=>g.Last())` 제거. 중복 그룹(`group.Rows.Count>1`)은 매칭 사전에서 **유효 한도로 채택하지 않고**, 해당 Join Key의 노출 행을 신규 상태 `LimitMonitorStatus.DuplicateLimit`(코드 `DUPLICATE_LIMIT`)로 산출·차단한다(`AddNoLimitRow`/`AddInvalidLimitRow` 패턴 재사용한 `AddDuplicateLimitRow` 헬퍼 신설). 기존 대사 `RECON_DUPLICATE_LIMIT`(Medium) 예외는 **그대로 유지**(분석 상태와 대사는 별개 정보).
+  2. **통화·단위 ColumnMapping 이관**: `LogicalColumn` enum에 `CurrencyCode`·`UnitCode` 추가, `SafeDefaults()`에 더미 물리명 `CCY_CD`·`UNIT_CD` 추가, `config/column_mapping.json`에 동일 키 추가. `LimitMonitor`의 `CurrencyCodeColumn` const 제거 후 `mapping.Physical(LogicalColumn.CurrencyCode)`로 치환, `UnitCode` 동일 도입. `CreateRow`·`AddCurrencyMismatchExceptions`가 일관되게 매핑 물리명 사용.
+  3. **RECON_UNIT_MISMATCH 활성**: `BuildReconciliationExceptions`의 `ReconciliationComputation` 생성(`LimitMonitor.cs:365-374`)에서 `UnitApplicable: false` 하드코딩 제거 → `currencyApplicable`과 동형으로 `unitApplicable = HasColumn(exposure, UnitCol) && HasColumn(limit, UnitCol) && canBuildExposureKey && canBuildLimitKey` 계산. `AddUnitMismatchExceptions`(통화용 `AddCurrencyMismatchExceptions:410-442` 복제, 코드 `RECON_UNIT_MISMATCH`/Medium) 신설. 컬럼 부재 시 `Applicable=false`·예외 0 유지(과대 단정 금지).
+  4. **BASE_DT 검증·정규화**: `Analyze`의 `normalizedBaseDate`(`LimitMonitor.cs:85`) 단계에 입력 `baseDate` 형식 검증(`yyyyMMdd` 등 허용 패턴, `DateTime.TryParseExact`/`CultureInfo.InvariantCulture` 인박스)을 추가. **비교키 의미는 보존**(현행 `StringComparison.Ordinal` 정확일치 유지) — 정규화는 입력 `baseDate` 인자 자체의 형식 검증·표준화로 **범위를 좁게 한정**(데이터 행의 BASE_DT 값 자체를 재해석/재매칭하지 않음). 불량 형식은 기존 `RECON_BASEDATE_MISMATCH`(Low) 또는 finding으로 상태화하며 throw 금지(graceful).
+  5. **Join 선택 규칙 Audit Metadata**: `LimitAnalysisMetadata`(`LimitAnalysisResult.cs:57-63`)에 Join/중복키 감사 필드(예: `IReadOnlyList<string> JoinAudit`)를 추가하고 `BuildResult`(`LimitMonitor.cs:224-260`)에서 채움 — 기록 항목: Join Key 구성(BASE_DT+PORTFOLIO_ID+RISK_FACTOR), 중복키 처리 방식(=`group.Last()` 폐지·차단), 통화/단위 적용여부(`CurrencyApplicable`/`UnitApplicable`), BASE_DT 정규화 결과. **`group.Last()` 임의선택 사실은 audit에 더 이상 나타나지 않아야 한다**(폐지됨).
+- **제외범위**: Streaming/대용량 상한·Welford(R2-WP-02), 전일대비(R2-WP-03), 차트/Heatmap/Excel Report 강화(R2-WP-04). 새 입력형식·신규 대사 코드 추가 금지(기존 9종 코드 보존, 의미만 활성). 데이터 행의 BASE_DT 재해석/멀티-기준일 재매칭 금지. **DUPLICATE_LIMIT을 `ReconciliationFailCodes`(Passed)로 격상하지 않는다**(R1 `Passed` 정의 보존; 정책 변경은 별도 ADR).
+- **읽을문서**: `AGENTS.md`, `CLAUDE.md §3·§4·§11.4·§11.5`, `docs/38`(§5 Traceability C-13·RR-15), `docs/39`(WP-04·05·06·R2-WP-01), `docs/40`(ADR), `docs/41 §1`(Data Gate), 기존 `Core/Risk/LimitMonitor.cs`·`LimitAnalysisResult.cs`·`Mapping/ColumnMapping.cs`·`ColumnMappingLoader.cs`·`config/column_mapping.json`.
+- **수정예상파일**: `src/RiskManagementAI.Core/Mapping/ColumnMapping.cs`(enum+SafeDefaults), `src/RiskManagementAI.Core/Mapping/ColumnMappingLoader.cs`(필수/선택 분리), `config/column_mapping.json`(더미 키 추가), `src/RiskManagementAI.Core/Risk/LimitMonitor.cs`, `src/RiskManagementAI.Core/Risk/LimitAnalysisResult.cs`, `tests/RiskManagementAI.SmokeTests/LimitReconciliationTests.cs`(+신규 회귀). Dashboard/Report 소비부는 컴파일 호환만 확인(기능변경 0).
+- **Public Interface**:
+  - `enum LogicalColumn { BaseDate, PortfolioId, RiskFactor, ExposureAmount, LimitAmount, UseYn, CurrencyCode, UnitCode }`(추가만).
+  - `enum LimitMonitorStatus { Normal, Warning, Breach, NoLimit, InvalidLimit, MappingError, DuplicateLimit }`(추가만); `LimitMonitorRow.StatusCode`에 `DuplicateLimit => "DUPLICATE_LIMIT"` 추가.
+  - `LimitAnalysisKpis`에 `int DuplicateLimitCount` 추가(`FromRows` 갱신), `LimitAnalysisResult`에 `int DuplicateLimitCount => Kpis.DuplicateLimitCount` 추가.
+  - `LimitAnalysisMetadata`에 `IReadOnlyList<string> JoinAudit`(또는 동등 전용 record) 추가 — 생성자 시그니처 변경 시 모든 호출부 동기 수정.
+  - `ColumnMapping.Physical(LogicalColumn)`·`ColumnMappingLoadResult`·`LimitMonitor.Analyze(CsvTable, CsvTable, string)` 시그니처 불변.
+- **구현세부 / 결정성**: 인박스만(NuGet 0, `System.Globalization` 등 기존 using). 동일 입력→동일 상태·예외·순서·audit(정렬 고정). 금액 `decimal` 유지. **CurrencyCode/UnitCode는 Optional 논리컬럼**으로 다뤄 `ColumnMappingLoader.ValidateCompleteMapping`의 필수 검사(`RequiredColumns`)에 포함시키지 않는다 — 기존 6열 config가 신규 키 없이도 fallback 없이 로드되도록 **필수=기존 6열 / 선택=Currency·Unit로 분리**(선택 컬럼 누락은 경고/fallback 사유 아님). DuplicateLimit 행 매칭 시 `RECON_ROW_AMPLIFICATION`/`RECON_SUM_BALANCE` 모집단 정의(기준일 필터 노출 행)와 정합 유지(증폭 오탐 금지). BASE_DT 정규화는 입력 인자 검증 한정.
+- **보안조건**: 읽기 전용. 외부 API/Telemetry/AutoUpdate 0. SQL/VBA/Golden6 자동실행 0. 합성 한도 미사용. `config/`만 읽기. `config/column_mapping.json` 추가 물리명은 **더미(`CCY_CD`/`UNIT_CD`)만** — 실데이터/실 테이블·컬럼명 repo 미포함. 해시 Audit·NoModelMode 불변.
+- **테스트(필수, 회귀 추가·기존 보존)**:
+  - 중복키 **양성**: 동일 BASE_DT·Join Key 한도 2건 주입 → 노출 행 상태 `DUPLICATE_LIMIT`(NORMAL/BREACH 산출 안 됨) + 기존 `RECON_DUPLICATE_LIMIT` 예외 동시 존재 / **음성**: 유일 한도 → 정상 분류·`DuplicateLimitCount=0`.
+  - 통화·단위 매핑: 커스텀 매핑으로 물리명 변경 시 통화/단위 비교가 매핑 경유 동작; 6열-only config는 fallback 없이 로드(`UsedFallback=false`).
+  - `RECON_UNIT_MISMATCH` **양성**(양쪽 단위 컬럼+상이 값 → 예외) / **음성**(단위 컬럼 부재 → `Applicable=false`·예외 0; 값 동일 → 예외 0).
+  - BASE_DT: 정상 형식 → 통과; 비정상 형식 → graceful 상태화(throw 없음, 결정적).
+  - Audit: `JoinAudit`에 중복키 차단·통화/단위 적용여부 기록; `group.Last` 임의선택 문구 부재.
+  - 결정성: 반복 호출 동일 결과. 기존 6상태·대사 9종 수치·`ReconciliationSummary.Passed` 불변(SmokeTest Total 보존+신규).
+- **완료조건**: `group.Last()` 임의선택 제거·`DUPLICATE_LIMIT` 7번째 상태로 차단; 통화/단위 ColumnMapping 일원화(const 제거); `RECON_UNIT_MISMATCH` 컬럼 존재 시 활성; BASE_DT 검증/정규화; Audit Metadata에 Join/중복키 규칙 기록. 로컬 `dotnet build` 0/0 + `dotnet run --project tests/RiskManagementAI.SmokeTests` → `Total=N PASS / 0 FAIL`(기존 보존+신규, Unclassified=0) + NuGet 0 + Gate A 0건.
+- **Branch**: `feature/r2-wp-01-semantic-hardening` · **Commit**: `feat: risk semantic hardening (dup key block, unit recon, base_dt, join audit) (R2-WP-01)`
+- **Claude Review Checklist**: `group.Last()` 임의선택 제거 / `DUPLICATE_LIMIT` 추가만(6상태 보존) / 통화·단위 매핑 일원화·const 제거 / Currency·Unit는 Optional(기존 6열 config fallback 미발생) / `RECON_UNIT_MISMATCH` 활성·과대단정 없음 / BASE_DT 정규화 범위 좁음(비교키 의미 보존) / `Passed` 정의·대사 9종 코드 불변 / Audit 기록 / 결정성 / NuGet 0·실데이터 0·자동실행 0 / SmokeTest Total 보존+신규·Unclassified=0 / Gate A.
 
 ## R2-WP-02. Streaming / Performance (RR-08)
-- **목표**: 전량 메모리 적재 제거 — 파일/행 상한, Streaming CSV, Progress/Cancellation/Timeout, 메모리 Peak 측정, **Welford 평균·분산**(전체 List 저장 제거), CSV 강화(quoted multiline/escaped quote/delimiter/CRLF·LF/Formula Injection/빈·중복 헤더/과대 cell), 대용량 샘플 Generator + 10K/100K/1M 벤치. **STOP**: 외부 의존 필요 시.
-- **Branch**: `feature/r2-wp-02-streaming` · **Commit**: `perf: streaming csv + bounded memory (R2-WP-02)`.
-- **Claude Review Checklist**: 상한/스트리밍 / Welford / Injection 탐지 / 벤치 / NuGet 0 / 기존 결과 동일.
 
-## R2-WP-03. Prior-Day Analytics
-- **목표**: 공통 Domain Model(Exposure/Limit Usage/VaR/Delta/Gamma/Vega/DV01/CS01/P&L/Exception)로 Current·Previous·Δ·%·New/Resolved/Increased/Decreased·TopN. **Data Fact / Methodology / User Validation / Hidden Risk 분리.**
-- **Branch**: `feature/r2-wp-03-prior-day` · **Commit**: `feat: prior-day comparison model (R2-WP-03)`.
-- **Claude Review Checklist**: 공통 결과 재사용 / 분리표기 / 결정성.
+- **상태**: **NOT_IMPLEMENTED**(설계만). 본 Linux 환경엔 .NET SDK 없음 → 구현·build·SmokeTest는 추후 Codex 로컬(Local-Gate).
+- **목표**: 대용량/손상 CSV 입력을 **메모리 안전한 streaming**으로 처리하고(행/바이트 안전 상한 도입), `DataProfiler`의 수치 통계를 **Welford 온라인 평균/분산(1-pass)**으로 전환해 전체 값 보관 없이 결정적으로 프로파일한다. **하나의 명확한 목표 = "전 행 메모리 적재 없이도 결정적·상한적·메모리 안전한 CSV 프로파일/리딩 경로를 추가한다."** 기존 `CsvReader.Read`/`DataProfiler.ProfileTable`/`ProfileCsv` 시그니처·동작·결과는 **불변 보존**(신규 옵트인 경로로만 추가). (선택) `System.Diagnostics.Stopwatch` 기반 벤치 훅을 `logs/` 한정 로컬 기록으로 추가.
+- **선행조건**: 없음(R1 WP-02 CsvReader·MVP-1 DataProfiler 기준선 존재). STOP 트리거 없음(인박스 `System.IO`/`System.Diagnostics`만).
+- **작업범위**:
+  1. **CSV streaming 리딩**: `File.ReadAllBytes` 전체 적재(`CsvReader.cs:26`) 대신 `StreamReader` 기반 forward-only 신규 경로(예: `CsvReader.ReadStreaming(...)` 또는 `IEnumerable<CsvRecord>` yield 파서). 기존 `Read` 시그니처·동작 보존.
+  2. **행/바이트 안전 상한**: `MaxRowCount`·`MaxByteSize` 상수 도입(`XlsxReader.cs:10-14` const 상한 패턴 동일 차용). 초과 시 `XlsxReader`와 **동일 예외형(`InvalidDataException`) + 동일 메시지 규약(`max=… , actual=…`)**. 손상/무한대 파일 차단.
+  3. **Welford 온라인 통계**: `DataProfiler` `NumericAccumulator`(`DataProfiler.cs:146`)의 `List<decimal> values` 전체 보관 + 2-pass 분산을 **Welford(count/mean/M2 스칼라 필드) 1-pass**로 교체. Sum/Min/Max는 스칼라 누적으로. **기존 결정적 결과 정확 재현**(population variance `/n`, n<4면 OutlierCount=0, 3σ 임계, std==0이면 0).
+  4. **중복행 검출 메모리 안전화**: `duplicateKeys` `HashSet<string>`(원문 행 전체 키 보관, `DataProfiler.cs:59,76`)을 **해시 기반(원문 미저장 원칙 부합) + 상한 가드**로 전환하되 `DuplicateRowCount` 결과는 기존과 동일.
+  5. **streaming 프로파일 진입점**: `DataProfiler.ProfileTable(CsvTable)`/`ProfileCsv(string)` 보존 + streaming 신규 오버로드(`IEnumerable<CsvRow>`/`IEnumerable<CsvRecord>` 소비) 추가.
+  6. (선택) **벤치 훅**: `Stopwatch` 측정값을 외부 전송 없이 `logs/` 로컬 로그로만 기록.
+- **제외범위**:
+  - **XLSX streaming**(`XlsxReader.cs:198` Descendants XDOM)은 이미 안전 상한 보유 → **이 WP 제외**(후순위). CSV streaming + Welford에 집중.
+  - **RFC4180 따옴표 내 개행 완전 지원**: `ParseRecords`는 `ReadLine` 단위라 streaming 전환 후에도 **따옴표 안 줄바꿈 미지원 한계 동일 유지**. streaming을 "RFC4180 완전 지원"으로 표기하지 않는다(과대표기 금지 §11.4).
+  - R1 계약(6상태 NORMAL/WARNING/BREACH/NO_LIMIT/INVALID_LIMIT/MAPPING_ERROR·RECON_*·`LimitAnalysisResult`·Dashboard=Report 일원화) 변경 0. 인코딩 탐지(CP949/UTF-8) 로직 변경 0.
+- **읽을문서**: `docs/38`(RR-08), `docs/39 §WP-02·§WP-03`(CsvReader·XlsxReader 상한 선례), `CLAUDE.md §3·§11.4·§11.6`, `AGENTS.md`.
+- **수정예상파일**: `Core/Data/CsvReader.cs`(streaming 신규 경로·상한 상수), `Core/Data/DataProfiler.cs`(`NumericAccumulator` Welford·중복 해시화·streaming 오버로드), `Core/Data/DataProfileResult.cs`(선택: Welford 평균/표준편차 말미 필드 추가, 기존 필드 순서·이름 보존), `tests/RiskManagementAI.SmokeTests/DataProfileTests.cs`·`CsvTests.cs`(회귀+신규), (선택) `Core/Diagnostics/` 벤치 훅. **`Risk/`·`Mapping/`·`Dashboard/`·`Report/` 비변경.**
+- **Public Interface**(신규는 옵트인, 기존 보존):
+  - 기존 보존: `CsvTable CsvReader.Read(string path, CsvEncoding encoding = CsvEncoding.Auto)`, `DataProfileResult DataProfiler.ProfileTable(CsvTable)`, `DataProfileResult DataProfiler.ProfileCsv(string)`.
+  - 신규(예시, Codex 확정): `DataProfileResult DataProfiler.ProfileCsvStreaming(string csvPath, CsvEncoding encoding = CsvEncoding.Auto)` 또는 `CsvReader.ReadStreaming(...)` + streaming 프로파일 오버로드. 상한 상수: `public const int CsvReader.MaxRowCount`, `public const long CsvReader.MaxByteSize`.
+  - 선택 확장: `NumericColumnProfile`에 `decimal Mean`·`decimal StdDev`(또는 double) **말미 추가**(기존 6필드 순서·이름 불변).
+- **구현세부**:
+  - **Welford**: `count`/`mean`/`M2` 누적. `RegisterValue`에서 `mean += (x-mean)/count; M2 += (x-mean_old)*(x-mean_new)`. population variance = `M2/count`. **부동소수 누적 일관성**: 기존 `(double)value` 평균/분산 규약과 동일하게 double로 누적해 OutlierCount 일치. Sum/Min/Max는 decimal 스칼라(누적 순서 입력순 고정 → 결정성). n<4면 OutlierCount=0, std==0이면 0 그대로.
+  - **결정성 회귀**: 동일 입력 CSV에 대해 `ProfileTable`(기존, 메모리)와 `ProfileCsvStreaming`(신규)의 `DataProfileResult`(RowCount·NullCounts·DuplicateRowCount·NumericColumns Sum/Min/Max/OutlierCount·BaseDateDistribution·Warnings)가 **완전 일치**함을 SmokeTest로 고정.
+  - **상한 예외**: `throw new InvalidDataException($"CSV 행 수가 안전 상한을 초과했습니다. max={MaxRowCount}, actual={...}")` — `XlsxReader.cs:61`/`:96` 규약 동형.
+  - **중복 해시**: 행 정규화 문자열을 SHA256(또는 안정 해시)로 환원해 `HashSet`에 해시만 보관(원문 미저장). 충돌 무시 가능(결정적·DuplicateRowCount 동일 보장 위해 알고리즘 고정).
+- **보안조건**: 외부 NuGet `PackageReference` 0(인박스 `System.IO`/`System.Diagnostics`/`System.Security.Cryptography`만). 외부 API/Telemetry 0. 자동실행 0. 실데이터 0(seed/샘플 더미명만). 쓰기 경로 `logs/`·`reports/`·`config/` 한정(벤치 훅 포함). 중복 검출 해시화는 **원문 행 미저장**(해시 Audit 원칙 부합). 손상/대용량 파일은 상한으로 Fail-Closed.
+- **테스트**(SmokeTest 정본 보존+신규, Unclassified=0):
+  - **결정성 회귀**: 동일 입력에 대해 기존 `ProfileTable` 결과 == streaming 결과(전 필드).
+  - **상한**: 행/바이트 상한 초과 → `InvalidDataException` + `max=/actual=` 메시지.
+  - **Welford 정확성**: 기존 기대 Sum/Min/Max/OutlierCount(3σ·n<4=0·std0=0) 회귀 고정.
+  - **중복 해시화**: `DuplicateRowCount` 기존 동일.
+  - **메모리 안전**: 대용량 더미 입력에서 전 행 보관 없이 처리(상한 내) — 결정적 단언.
+  - 신규 테스트는 **DataProfile/Reconciliation 도메인 키워드**(streaming·welford·MaxRowCount·MaxByteSize·duplicate·BASE_DT 등)로 분류(Unclassified=0). 기존 테스트 삭제·약화 0.
+- **완료조건**: 코드베이스에 외부 PackageReference 0 유지. 기존 `CsvReader.Read`/`ProfileTable`/`ProfileCsv` 결과 불변. streaming 경로가 동일 입력에 동일 결과(결정적). 행/바이트 상한 활성. Welford 1-pass·중복 해시화 적용. `dotnet build` 0/0 + SmokeTest `Total=정본+신규 PASS / 0 FAIL`(Local-Gate). Gate A 0. (선택) 벤치 훅 `logs/` 한정.
+- **Branch**: `feature/r2-wp-02-streaming-performance` · **Commit**: `feat: add streaming/Welford profiling path with row/byte caps (R2-WP-02)`
+- **Claude Review Checklist**:
+  - 기존 `CsvReader.Read`/`ProfileTable`/`ProfileCsv` 시그니처·동작·결과 불변(신규 옵트인만) 확인.
+  - 외부 NuGet `PackageReference` 0(인박스 System.*만), Vector DB/Embedding/LLM/charting lib 0 → STOP 트리거 없음 확인.
+  - Welford 결과가 기존 2-pass 분산·OutlierCount(3σ·n<4=0·std0=0)와 **결정적으로 일치**.
+  - 행/바이트 상한 예외형·메시지(`max=/actual=`)가 XlsxReader 규약과 동형.
+  - 중복 검출 해시화 = 원문 행 미저장(해시 Audit 원칙) + DuplicateRowCount 불변.
+  - RFC4180 따옴표 내 개행 미지원 한계 = 제외범위 명시(과대표기 없음).
+  - R1 계약(6상태·RECON_*·LimitAnalysisResult·Dashboard=Report) 비변경.
+  - SmokeTest 정본 보존 + 신규 회귀, Unclassified=0, 외부 프레임워크 0.
+  - 쓰기 경로 logs//reports//config/ 한정(벤치 훅 telemetry 0).
+  - 실데이터/실컬럼명 0(더미 seed만).
 
-## R2-WP-04. Visualization / Excel Report (NuGet 0)
-- **목표**: 인박스(WPF Canvas/Shape 또는 Excel OOXML Chart/조건부서식)로 한도사용률 Bar·전일대비 Trend·TopN·Desk×RiskFactor Heatmap·집중도·통화별·만기 Bucket·예외현황. 임의 데이터 생성 금지(공통 AnalysisResult만). Excel: RAW_DATA 명칭=내용 일치, Source Metadata 분리, MARKET/HEDGE/VALUATION/LIQUIDITY/REG_BASIS, 정확 Formula/Exception Count(Header/NO_EXCEPTION 제외). 외부 차트 필요 시 **STOP**.
-- **Branch**: `feature/r2-wp-04-visualization` · **Commit**: `feat: in-box visualization + report sections (R2-WP-04)`.
-- **Claude Review Checklist**: NuGet 0 / 공통 결과만 / 정확 카운트 / Excel 2021 호환.
+## R2-WP-03. 전일 대비 분석 (Prior-Day Analytics) — Current/Prev/Δ · TopN movers · 4구획 출력 계약 (Cap C-15, NOT_IMPLEMENTED)
+
+> 상태: **NOT_IMPLEMENTED**(설계). 본 WP는 실 구현 전이며, 아래는 설계 계약이다. 구현은 Codex 로컬에서 진행한다. R2-WP-04(Visualization/Report)는 본 WP의 **제외 범위**다.
+
+- **목표**: 하나의 명확한 목표 — 동일 (PortfolioId, RiskFactor) 단위로 **당일(BASE_DT=N) 대비 전일(N-1)** 한도분석 결과를 결정적으로 결합하여, 행별 Current/Prev/**Δ(증감)**, 상태전이(New/Resolved/Increased/Decreased/Unchanged), **TopN movers**, 그리고 **검토용 초안 4구획 출력 계약(Data-Fact / Methodology / User-Validation / Hidden-Risk)** 을 구조화 record로 산출한다. 새 분석 엔진·새 상태·새 분류 로직은 만들지 않고, 기존 `LimitMonitor.Analyze`를 두 번(N, N-1) 호출하여 그 결과를 차분(diff)한다.
+- **선행조건**: R1 완료(VERIFIED — `LimitMonitor`/`LimitAnalysisResult` 6상태·대사). **논리적 선행 = R2-WP-01 BASE_DT 정규화**(미완 시 `20260617` vs `2026-06-17` 형식 차이로 prior-day join이 전부 New/Resolved noise로 무너질 수 있음). R2-WP-01 미머지 상태에서 진행 시, 본 WP는 **두 BASE_DT가 동일 문자열 포맷임을 전제**로 하고 형식 불일치를 `BASE_DT_FORMAT_MISMATCH` Hidden-Risk finding으로만 표면화한다(임의 보정 금지).
+- **작업범위**:
+  1. 신규 `PriorDayAnalyzer`(sealed). 입력 = exposure/limit 두 `CsvTable`(또는 경로) + **명시적** currentBaseDate·priorBaseDate 두 문자열. 내부에서 `LimitMonitor.Analyze`를 N·N-1 두 번 호출(분류/조인 로직 재구현 금지).
+  2. (PortfolioId, RiskFactor) 키로 Current/Prev 행을 짝지어 행별 Δ(ExposureAmount·LimitAmount·UsageRatio·RemainingLimit) 계산. 짝이 한쪽에만 있으면 New(N만)/Resolved(N-1만)로 분류.
+  3. 상태전이 분류: 숫자 mover(Increased/Decreased/Unchanged) vs 상태전이(New/Resolved, 그리고 Normal↔NoLimit/InvalidLimit/MappingError 같은 비숫자 전이). NoLimit/InvalidLimit/MappingError 행은 LimitAmount/RemainingLimit=0이므로 **UsageRatio Δ를 숫자 mover로 계산하지 않고** 상태전이로만 분류한다(0除算·오해 Δ 방지).
+  4. TopN movers: |UsageRatio Δ| 내림차순(동순위 시 PortfolioId→RiskFactor Ordinal)으로 상위 N개. N은 파라미터(기본값 고정, 결정적).
+  5. **4구획 출력 계약**을 구조화 record로 산출(Data-Fact/Methodology/User-Validation/Hidden-Risk). 전부 결정적 plain record/string — LLM 생성 금지. "검토용 초안" 고지 문자열을 Methodology/User-Validation에 명시.
+  6. priorBaseDate 선택 규칙을 Methodology(및 신규 Audit metadata)에 기록.
+- **제외범위**: 차트/Heatmap/시각화·Excel Report 강화(전부 R2-WP-04). 영업일/달력 계산(priorBaseDate 자동 산출 금지 — 항상 호출자 명시 또는 `DataProfileResult.BaseDateDistribution`의 직전 distinct BASE_DT만 사용, 임의 증감 금지). 중복키 차단·통화/단위·RECON_UNIT(R2-WP-01). Streaming/Welford(R2-WP-02). `LimitMonitor`/`LimitAnalysisResult`/`LimitMonitorRow`/6상태 enum의 변경·확장. Dashboard UI 연결(별도). 가중치 학습.
+- **읽을 문서**: `CLAUDE.md` §3·§4·§11.4·§11.5 / `docs/38` §1·§3·§5(C-15) / `docs/39` Resume Brief·WP-05~06(공통 결과 계약) / `docs/40`(ADR — 결정성·인박스·NoModel). 코드: `src/RiskManagementAI.Core/Risk/{LimitMonitor.cs, LimitAnalysisResult.cs}`, `tests/RiskManagementAI.SmokeTests/{LimitReconciliationTests.cs, SmokeTestHelpers.cs, SmokeTestContext.cs}`.
+- **수정 예상 파일**:
+  - 신규 `src/RiskManagementAI.Core/Risk/PriorDayAnalyzer.cs`
+  - 신규 `src/RiskManagementAI.Core/Risk/PriorDayAnalysisResult.cs`(아래 record 묶음)
+  - (선택) `src/RiskManagementAI.Core/Risk/LimitMonitor.cs` — `BuildJoinKey` 동등 키를 내부 공유 helper로만 노출(`internal static`)할 경우. 시그니처 비파괴 추가만.
+  - 수정 `tests/RiskManagementAI.SmokeTests/LimitReconciliationTests.cs`(prior-day 회귀 테스트 추가) · (필요 시) `SmokeTestHelpers.cs`(N/N-1 더미 fixture 헬퍼 추가, 기존 헬퍼 변경 없이 추가).
+  - **금지**: `LimitAnalysisResult`/`LimitAnalysisMetadata`/`LimitMonitorRow`/`LimitAnalysisKpis`의 positional ctor 시그니처 변경(파괴). 신규 필드 필요 시 별도 record로.
+- **Public Interface**:
+  - `public sealed class PriorDayAnalyzer { public PriorDayAnalysisResult Analyze(CsvTable exposure, CsvTable limit, string currentBaseDate, string priorBaseDate, int topN = 10); public PriorDayAnalysisResult Analyze(string exposurePath, string limitPath, string currentBaseDate, string priorBaseDate, int topN = 10); }` — 내부에서 `LimitMonitor.Analyze` 2회 호출.
+  - `public enum PriorDayMovement { New, Resolved, Increased, Decreased, Unchanged, StateTransition }`
+  - `public sealed record PriorDayComparisonRow(string PortfolioId, string RiskFactor, string CurrentBaseDate, string PriorBaseDate, LimitMonitorStatus? CurrentStatus, LimitMonitorStatus? PriorStatus, decimal CurrentUsageRatio, decimal PriorUsageRatio, decimal UsageRatioDelta, decimal CurrentExposureAmount, decimal PriorExposureAmount, decimal ExposureAmountDelta, decimal CurrentRemainingLimit, decimal PriorRemainingLimit, decimal RemainingLimitDelta, PriorDayMovement Movement)` — Current/Prev 한쪽만 있으면 해당 측 nullable status, 결측 측 금액=0.
+  - `public sealed record PriorDayKpis(int ComparedCount, int NewCount, int ResolvedCount, int IncreasedCount, int DecreasedCount, int UnchangedCount, int StateTransitionCount)` + `static FromRows(IReadOnlyList<PriorDayComparisonRow>)`.
+  - `public sealed record PriorDayMovers(IReadOnlyList<PriorDayComparisonRow> TopByUsageRatioDelta)` — |UsageRatioDelta| desc, tie PortfolioId→RiskFactor Ordinal, 상위 topN.
+  - **4구획 출력 계약**(구조화 record): `public sealed record PriorDayContract(PriorDayDataFact DataFact, PriorDayMethodology Methodology, PriorDayUserValidation UserValidation, PriorDayHiddenRisk HiddenRisk)`
+    - `public sealed record PriorDayDataFact(string CurrentBaseDate, string PriorBaseDate, PriorDayKpis Kpis, IReadOnlyList<PriorDayComparisonRow> ComparisonTable, PriorDayMovers Movers)` — 사실(수치)만.
+    - `public sealed record PriorDayMethodology(string PriorBaseDateSelectionRule, string JoinKeyRule, string MoverRankingRule, string DraftNotice)` — 방법·priorBaseDate 선택 규칙·조인키·랭킹 규칙·"검토용 초안" 고지.
+    - `public sealed record PriorDayUserValidation(IReadOnlyList<string> ChecklistItems)` — 사용자 확인 항목(예: BASE_DT 포맷 일치, prior-day 데이터 존재 여부).
+    - `public sealed record PriorDayHiddenRisk(IReadOnlyList<SafetyFinding> Findings)` — BASE_DT 포맷 불일치, prior-day 행 0건, 비숫자 상태전이, 한쪽 결측 대량 등.
+  - `public sealed record PriorDayAnalysisResult(PriorDayContract Contract, LimitAnalysisResult Current, LimitAnalysisResult Prior, bool IsDeterministic)` — 두 입력 일자 분석 결과는 그대로 보존(R1 계약 비파괴).
+- **구현 세부**:
+  - currentBaseDate/priorBaseDate 모두 비거나 동일하면 `ArgumentException`(또는 동일 시 Hidden-Risk finding + 빈 비교표 — 결정적 택1, 테스트로 고정).
+  - 키 정합: `LimitMonitor.BuildJoinKey`와 **동일 의미**(Trim + `` 구분, OrdinalIgnoreCase 짝짓기). copy-paste 대신 `internal static string LimitMonitor.BuildComparisonKey(...)` 노출을 우선 검토(시그니처 비파괴 추가). SmokeTests 프로젝트에서 internal 접근 필요 시 `InternalsVisibleTo` 기존 설정 재사용 여부 확인(없으면 helper를 public 비노출 대신 Analyzer 내부 동일 로직 복제 + 테스트로 동치 고정).
+  - Δ 부호: Current − Prior. New(N만)=Prev 측 0, Resolved(N-1만)=Current 측 0.
+  - Movement 분류 우선순위(결정적): (1) 한쪽 결측 → New/Resolved. (2) 양측 존재 & 한쪽 이상 상태가 {NoLimit,InvalidLimit,MappingError} 이거나 상태가 바뀜 → StateTransition(숫자 mover에서 제외). (3) 양측 Normal/Warning/Breach & UsageRatioDelta>0 → Increased, <0 → Decreased, =0 → Unchanged.
+  - 모든 출력 순서 완전 정렬(ComparisonTable: PortfolioId→RiskFactor Ordinal; Movers: |Δ| desc → PortfolioId → RiskFactor). HashSet/Dictionary 열거 순서를 출력에 노출 금지.
+  - `IsDeterministic=true` 보장(부동소수 미사용, decimal만). DraftNotice 등 텍스트는 리터럴 상수(LLM 호출 0).
+- **보안 조건**(Gate A): 외부 NuGet PackageReference 0(System.* 인박스만) · 외부 API/Telemetry/AutoUpdate 0 · SQL/VBA/Golden6 자동실행 0 · 차트/시각화 라이브러리 0(본 WP는 시각화 없음) · Vector/Embedding/LLM/모델파일 0 · 실데이터·실 테이블/컬럼명·내부규정/NCR 원문 미포함(테스트 fixture는 더미명 PF_*/RF_*/BASE_DT만) · 쓰기 경로 `logs/`·`reports/`·`config/` 한정(본 WP는 파일쓰기 없음 권장) · 원문 미저장(필요 시 해시 Audit). LLM/통계 라이브러리 도입 필요해지면 **STOP**(§11.5).
+- **테스트**(신규, `LimitReconciliationTests.cs`에 추가 → 도메인 분류 Limit/Reconciliation, Unclassified=0):
+  1. "prior-day comparison" — N/N-1 동일 키 양측 존재 시 Current/Prev/Δ 정확, Movement(Increased/Decreased/Unchanged) 정확.
+  2. "prior-day New/Resolved movers" — N만/N-1만 키 → New/Resolved 분류, 결측 측 금액=0.
+  3. "prior-day TopN movers ordering" — |UsageRatio Δ| 내림차순 + 동순위 PortfolioId→RiskFactor 결정적 순서.
+  4. "prior-day state-transition non-numeric mover" — Normal→NoLimit 전이가 숫자 mover가 아니라 StateTransition으로 분류 + Hidden-Risk finding.
+  5. "prior-day BASE_DT format mismatch hidden risk" — 두 일자 포맷 상이 시 비교 0건 + `BASE_DT_FORMAT_MISMATCH` Hidden-Risk finding(임의 보정 없음).
+  6. "prior-day 4-section contract deterministic" — 동일 입력 2회 → DataFact/Methodology/UserValidation/HiddenRisk 동일(서명 비교), DraftNotice("검토용 초안") 존재, `Current`/`Prior` 가 기존 6상태 `LimitAnalysisResult` 계약 보존(NormalCount 등) 확인.
+  - **기존 SmokeTest Total 보존 + 신규 추가**(삭제·약화 0). Total 증가분은 R1 진행 원장/§5에 기록.
+- **완료 조건**: 로컬 `dotnet build` 0 error · `dotnet run --project tests/RiskManagementAI.SmokeTests` → `Total=N PASS / 0 FAIL`(N = 기존+신규, Unclassified=0) · 외부 NuGet 0 유지 · 결정성(동일 입력 동일 출력) · R1 6상태/RECON_*/LimitAnalysisResult/Dashboard=Report 계약 비파괴 · Claude 코드리뷰(Diff·보안·문서정합) 승인. 실 Test PC Gate B/C 증거 없으면 PASS 표기 금지(BLOCKED 유지).
+- **Branch**: `feature/r2-wp-03-prior-day-analytics`
+- **Commit**: `feat: prior-day analytics (current/prev/delta, TopN movers, 4-section contract) (R2-WP-03)`
+- **Claude Review Checklist**:
+  - [ ] `LimitMonitor.Analyze` 2회 호출만 — 조인/6상태 분류 **재구현 없음**, `LimitMonitorStatus` enum 미변경.
+  - [ ] `LimitAnalysisResult`/`LimitAnalysisMetadata`/`LimitMonitorRow`/`LimitAnalysisKpis` positional ctor 비파괴(SmokeTestHelpers.EmptyLimitAnalysis·ExcelReportBuilder 호출부 무영향).
+  - [ ] 키 정합: BuildJoinKey와 동일 의미(Trim/``), copy-paste 불일치 없음.
+  - [ ] NoLimit/InvalidLimit/MappingError 전이가 숫자 mover에서 제외(0除算·오해 Δ 없음) + Hidden-Risk.
+  - [ ] priorBaseDate **자동 산출 없음**(달력·임의 증감 0); 선택 규칙 Methodology/Audit 기록.
+  - [ ] 출력 완전 정렬·결정적(decimal만, HashSet/Dict 순서 미노출), DraftNotice "검토용 초안" 명시, LLM 호출 0.
+  - [ ] 4구획 record 구조 정확(DataFact/Methodology/UserValidation/HiddenRisk).
+  - [ ] 외부 NuGet 0 / 시각화·LLM·Vector 0 / 실데이터·실컬럼명 0 / 파일쓰기 무(또는 허용경로 한정).
+  - [ ] SmokeTest Total 보존+신규, Unclassified=0, 기존 테스트 삭제·약화 0.
+  - [ ] §5 Traceability C-15 갱신, 상태 어휘 정확(과대표기 0).
+
+## R2-WP-04. Visualization / Report 강화 (인박스 차트·Heatmap·TopN·집중도 + 정확 Exception Count)
+
+> 상태: **NOT_IMPLEMENTED (설계)**. 본 WP는 실 구현 전 설계 문서이며, 빌드/실행 증거 없음(이 Linux 환경엔 .NET SDK 없음). 구현은 Codex 로컬.
+> 작업단위 = docs/39 14필드 WP. **하나의 명확한 목표**: 기존 결정적 분석 결과(`LimitAnalysisResult`)를 입력으로, (1) 정확 Exception Count, (2) 인박스 집계 시각화(TopN movers·집중도·Heatmap 등급) 데이터 시트, (3) WPF in-box 차트 화면 렌더를 추가하되 외부 charting NuGet 0 · 실데이터 0 · 자동실행 0 · 결정적을 유지한다.
+
+### 1. 목표 (Goal)
+Excel Report와 Risk Dashboard 화면에 **인박스(NuGet 0) 시각화**를 더하고 **Exception Count를 정확화**한다. 구체:
+- `ExcelReportBuilder`의 부정확한 `=COUNTA(EXCEPTION_LIST!A:A)` 예외 카운트를, 실제 예외 건수(Analysis ExceptionList + High/Blocker Validation)를 단일 진실원(SoT)에서 Number로 직접 기록하도록 교체한다.
+- 신규 집계 시각화 **데이터 시트**(TopN movers·집중도(상위N 비중/HHI)·Heatmap 등급)를 `LimitAnalysisResult`만으로 결정적 산출한다.
+- Risk Dashboard 탭에 **WPF in-box 차트**(System.Windows.Shapes / DrawingVisual / Canvas + SolidColorBrush)로 상태분포 막대·집중도 막대·Heatmap 셀을 렌더한다(화면 표시 한정).
+- 시각화는 **집계 데이터 계약**(TopN 정렬·집중도 비율·정확 카운트·Heatmap 등급)으로 결정적 테스트화한다. 차트 픽셀은 테스트하지 않는다.
+
+### 2. 선행조건 (Preconditions)
+- R1 `LimitAnalysisResult`(6상태 NORMAL/WARNING/BREACH/NO_LIMIT/INVALID_LIMIT/MAPPING_ERROR)·`LimitAnalysisKpis`·`ExceptionList`·`ReconciliationSummary` 계약 그대로 사용(변경 금지).
+- `ExcelReportBuilder`(in-box ZipFile + templates/report XML 치환, OpenXML SDK/Interop 미도입) 경로 유지.
+- SmokeTest 정본 Total 보존(현 기준 646; STAB-UX-02 #76 머지와 독립). 도메인 분류기 Unclassified=0 유지.
+- 쓰기 경로 `reports/` 한정(ResolveReportsDirectory 강제). 별도 이미지 파일 산출 금지.
+
+### 3. 작업범위 (Scope)
+1. **정확 Exception Count (SoT 분리)**: `BuildExceptionRows`가 emit하는 행 카운트(헤더·NO_EXCEPTION placeholder 제외)를 산출하는 헬퍼 `CountExceptions(analysis, validationFindings)`를 분리한다. SUMMARY 시트의 `ExceptionCount`는 이 값을 **Number**로 기록한다. 부정확한 `=COUNTA(EXCEPTION_LIST!A:A)` 수식은 제거하거나, 참조용으로 남기더라도 SUMMARY의 권위 카운트는 Number로 한다.
+2. **집계 시각화 데이터 시트(신규)**: `ExpectedSheetNames`에 `RISK_VISUAL`(또는 `TOPN`/`CONCENTRATION`/`HEATMAP`로 분리 가능, 최소 1개) 추가. 내용:
+   - 상태분포(6상태 카운트·비율),
+   - TopN movers/노출 상위(예: ExposureAmount 또는 UsageRatio 내림차순 상위 N — 결정적 tie-break: PortfolioId Ordinal),
+   - 집중도: 상위N 비중(상위N Exposure 합 / 전체 Exposure 합), HHI(=Σ(share^2)) — 통화 혼합 시 의미 왜곡 주의(아래 보안조건),
+   - Heatmap 등급: UsageRatio를 결정적 임계(예: <0.8 LOW / 0.8~1.0 MID / >1.0 HIGH)로 등급화한 텍스트/숫자.
+   - 시각화는 **inlineStr/Number 셀**과 옵션으로 **ASCII 막대(반복문자 길이=비율)** 텍스트로 표현(차트 part 없이도 100% 성립).
+3. **WPF in-box 차트(App, 화면 한정)**: `MainWindow.OnRunLimitMonitor` 결과를 받아 `RenderRiskCharts(LimitAnalysisResult)`(신규 메서드/컨트롤)가 Canvas+Shapes로 상태 막대·집중도 막대·Heatmap 셀을 그린다. 색상은 SolidColorBrush. DataGrid/TextBlock 기존 표시는 보존.
+4. **회귀 SmokeTest 추가**: 집계 계약(정확 카운트·TopN 정렬·집중도 비율·Heatmap 등급·신규 시트 배선)을 결정적으로 단언. 기존 ReportTests/PackagingTests의 시트 개수(10)·`sheet10.xml` 의존 단언을 신규 개수에 맞춰 **갱신**(약화/삭제 아님, 동반 갱신).
+
+### 4. 제외범위 (Out of Scope)
+- 외부 charting NuGet(OxyPlot/LiveCharts/ScottPlot 등) 도입 — **금지(STOP)**. Vector DB/Embedding/Local LLM/모델파일 — 본 WP 무관·금지.
+- 전일 대비(Current/Prev/Δ) 산출 — R2-WP-03 소관(중복 정의 금지, 출력 계약만 정합).
+- OOXML chartXML(c:barChart) + xl/drawings part 직접 생성 — **본 WP 기본 범위 아님**. 채택 시 별도 결정(ADR) 필요하며 상태는 SCAFFOLD_ONLY/PARTIAL로 보수 표기. 최소범위 = (A) WPF Shapes + (b2) 데이터 시각화 시트로 STOP 없이 달성.
+- 차트 이미지 파일을 reports/ 외부 또는 별도 파일로 떨구기 — 금지(시각화는 xlsx 내부 또는 WPF 화면 내 한정).
+- LimitMonitor 6상태/RECON_* 로직·`LimitAnalysisResult` 계약 변경.
+
+### 5. 읽을 문서 (Docs to Read)
+- `CLAUDE.md`(§3 절대원칙·§6 Excel 함수 제한·§11.4 상태어휘·§11.5 STOP), `AGENTS.md`
+- `docs/38`(Roadmap §5 Traceability), `docs/39`(WP 형식·Resume Brief), `docs/40`(ADR — DM-03 in-box xlsx)
+- `src/RiskManagementAI.Core/Report/ExcelReportBuilder.cs`, `src/RiskManagementAI.Core/Risk/LimitAnalysisResult.cs`, `LimitMonitor.cs`
+- `src/RiskManagementAI.Core/Dashboard/DashboardSnapshotBuilder.cs`, `src/RiskManagementAI.App/MainWindow.xaml(.cs)`
+- `tests/RiskManagementAI.SmokeTests/{ReportTests.cs, PackagingTests.cs, SmokeTestContext.cs}`
+
+### 6. 수정 예상 파일 (Files Likely Touched)
+- `src/RiskManagementAI.Core/Report/ExcelReportBuilder.cs` — `ExpectedSheetNames` 신규 시트, `BuildWorkbook`(정확 카운트 Number 기록), 신규 `CountExceptions`/`BuildRiskVisualRows`, SUMMARY 카운트 교체.
+- (신규) `src/RiskManagementAI.Core/Report/RiskVisualAggregator.cs`(또는 동등) — TopN·집중도·Heatmap 등급 결정적 산출(SoT). Report와 WPF가 공유.
+- `src/RiskManagementAI.App/MainWindow.xaml(.cs)` — `RenderRiskCharts` + Canvas/Shapes 컨트롤(Risk Dashboard 탭).
+- `templates/report/*.tpl` — 변경 불필요(인덱스 자동 배선). 신규 part 도입 안 함.
+- `tests/RiskManagementAI.SmokeTests/{ReportTests.cs, PackagingTests.cs}` — 시트 개수/sheetN 의존 갱신 + 신규 단언. (필요 시 신규 suite는 추가하지 않고 ReportTests에 흡수해 Report 도메인 분류 유지.)
+- `docs/38`(§5 Traceability·RR-08/RR-15 인접 표기), `docs/39`(본 WP), `prompts/codex/R2-WP-04_*.md`.
+
+### 7. Public Interface
+- `ExcelReportBuilder.BuildReport(ExcelReportRequest) -> ExcelReportResult` — **시그니처 불변**(요청/결과 레코드 그대로). 호출부(MainWindow.OnGenerateExcelReport) 변경 불필요.
+- (신규, Core) `RiskVisualAggregator.Aggregate(LimitAnalysisResult, int topN) -> RiskVisualModel` (결정적). `RiskVisualModel`: 상태분포·TopN movers·집중도(상위N 비중·HHI)·Heatmap 등급. decimal 비율, Ordinal tie-break.
+- (신규, App) `void RenderRiskCharts(LimitAnalysisResult result)` — 화면 렌더만, 반환 없음, 파일 산출 없음.
+- `ExcelReportBuilder.ExpectedSheetNames` — Count가 10→N(신규 시트 수만큼) 증가. 의존 테스트 동반 갱신.
+
+### 8. 구현세부 (Implementation Detail)
+- **카운트 SoT**: `BuildExceptionRows`와 `CountExceptions`가 동일 입력(analysis.ExceptionList + validationFindings의 Blocker/High)을 쓰되, NO_EXCEPTION placeholder·헤더는 카운트에서 제외. SUMMARY의 `ExceptionCount = Number(CountExceptions(...))`. (예외 0건이면 0.)
+- **집중도/TopN**: 통화 혼합(`LimitMonitorRow.CurrencyCode` 존재) 시 단순 합산은 의미 왜곡 → 동일 통화 그룹별 집계 또는 통화 표기를 명시하고, 혼합 시 `MIXED_CURRENCY` 주석/Finding을 시각화 시트에 남긴다(R2-WP-01 통화/단위 매핑과 정합, 본 WP는 합산 전제를 명시만). decimal 반올림 자리수 고정(예: 비율 4자리).
+- **결정적 정렬**: 모든 TopN/등급 산출은 `(키 내림차순, PortfolioId Ordinal 오름차순)` tie-break로 비결정성 제거.
+- **Excel 2021 게이트**: 신규 셀에 수식 추가 시 `Excel2021FunctionChecker.CheckFormula`를 통과해야 함(EXCEL_365_FUNCTION 금지 — VSTACK/TEXTSPLIT/GROUPBY 등 §6 금지군 사용 불가). 가급적 시각화는 Number/inlineStr 정적 값으로 기록(수식 최소화)해 게이트 위험 0.
+- **신규 시트 배선**: `ExpectedSheetNames`에 항목 추가만으로 `WriteWorkbookPackage`가 Content_Types/workbook/rels/app.xml override·sheet{n}.xml를 자동 생성(코드 확인됨). styles rId(`rId{Count+1}`) 자동 시프트. **단 OOXML 무결성은 로컬 Excel 열기로 검증**(BLOCKED 증거는 Test PC).
+- **WPF 차트**: System.Windows.Shapes(Rectangle/Line/Polyline)·Canvas·DrawingVisual·SolidColorBrush만. 외부 의존 0. 화면 표시일 뿐 '리포트 차트'로 표기 금지(과대표기 금지).
+- **출력 계약 정합(R2-WP-03)**: 시각화 산출은 Data-Fact / Methodology / User-Validation / Hidden-Risk 4구획 정신을 따르되, 본 WP는 결정적 집계·검토용 초안 명시.
+
+### 9. 보안조건 (Security Constraints)
+- 외부 NuGet PackageReference = 0(인박스 System.* 만). 외부 charting NuGet 도입 시 **STOP**. 외부 API/Telemetry/AutoUpdate 0.
+- 실데이터/실 테이블·컬럼명/내부규정·NCR 원문/모델파일 repo 미포함. seed/샘플은 일반 더미명만.
+- 쓰기 경로 `reports/`(리포트)·`logs/`(audit) 한정. 차트/이미지 별도 파일 금지.
+- Audit는 해시(원문 미저장) 유지 — SQL/UserId 평문 미기록(기존 TryAppendAuditLog 패턴 보존).
+- 자동실행 0(SQL/VBA/Golden6). 차트 렌더는 결과 표시만, 외부 실행 없음.
+- 통화 혼합 합산 왜곡을 시각화 시트에 명시(MIXED_CURRENCY)해 오해석 방지.
+
+### 10. 테스트 (Tests — SmokeTest, 외부 프레임워크 0, Unclassified=0)
+신규 단언은 **Report/Limit/DataProfile 도메인 키워드**로 명명해 분류기 Unclassified=0 유지(예: "ExcelReport ... ", "report ...", "EXCEPTION_LIST ...", "LIMIT_MONITORING ...", "RECON_ ...", "BASE_DT ...", "concentration ... limit ...", "TopN limit ...").
+- 정확 카운트: 예외 N건 입력 시 SUMMARY `ExceptionCount` Number == N(헤더/NO_EXCEPTION 제외), 0건 시 0. (기존 `=COUNTA` 의존 단언은 갱신.)
+- 신규 시트 배선: `ExpectedSheetNames`에 신규 시트 포함, ZIP에 `xl/worksheets/sheet{N}.xml` 존재, `SheetNames.SequenceEqual(ExpectedSheetNames)` 유지. PackagingTests의 시트 인벤토리/개수 동반 갱신.
+- TopN/집중도 결정성: 동일 입력 2회 → 동일 순서·동일 비율(decimal). tie-break(PortfolioId Ordinal) 단언.
+- Heatmap 등급: 임계 경계값(0.8/1.0)에서 등급 결정적.
+- 통화 혼합: MIXED_CURRENCY 주석/Finding 노출 단언.
+- 회귀 보존: ReportTests의 6상태·RECON_*·ReconciliationPassed PASS/FAIL·NO_LIMIT_ROW·NuGet 0 단언 전부 유지.
+- 완료 시 `Total=N PASS=N FAIL=0`, 모든 신규 단언 분류됨(Unclassified=0).
+
+### 11. 완료조건 (Definition of Done)
+- 로컬 `dotnet build RiskManagementAI.sln -c Release` 0 error / 0 warning, `dotnet run --project tests/RiskManagementAI.SmokeTests` → `Total=N PASS=N FAIL=0`(기존 646 + 신규, 도메인 Unclassified=0).
+- `git grep PackageReference` → 0(Core/App). 외부 charting 의존 0.
+- 생성 xlsx가 로컬 Excel 2021에서 손상 경고 없이 열림(**BLOCKED 증거 — Test PC**). SDK 없는 Linux에서는 코드 정합·게이트만 사전검증.
+- 정확 Exception Count·신규 시각화 시트·WPF 차트 렌더 동작. 기존 R1 계약(6상태·RECON_*·Dashboard=Report 일원화) 회귀 0.
+- Claude 4축 리뷰(Diff·보안 Gate A·테스트 보존+회귀·문서 정합) APPROVE.
+- 상태 표기: 데이터 시각화 시트 + 정확 카운트 = (로컬 게이트 후) VERIFIED 가능. WPF Shapes 화면 = VERIFIED(화면 한정 명시). OOXML chartXML part(미채택) = N/A. **과대표기 금지.**
+
+### 12. Branch
+`feature/r2-wp-04-visualization-report`
+
+### 13. Commit 규약
+- Subject(영문, 명령형, 72자 이내) + `(#PR)` 머지 시. 예: `Add in-box risk visualization sheet and exact exception count (#NN)`.
+- 1 WP = 1 PR(squash 머지). force push·hard reset·main 직접 push 금지. 작업은 feature 브랜치에서만.
+- 커밋 본문에 NuGet 0·실데이터 0·외부 charting 미도입·SmokeTest Total 변화(646→N) 명시.
+
+### 14. Claude Review Checklist
+- [ ] **외부 NuGet 0**: Core/App csproj에 PackageReference 0(charting 포함). STOP 트리거(charting/Vector/LLM) 부재.
+- [ ] **계약 보존**: `LimitAnalysisResult` 6상태·KPI·ExceptionList·RECON_* 불변. `BuildReport` 시그니처 불변(호출부 무변경).
+- [ ] **정확 카운트 SoT**: SUMMARY ExceptionCount = `CountExceptions(...)` Number, 헤더/NO_EXCEPTION 제외, EXCEPTION_LIST 실 행수와 일치.
+- [ ] **결정적**: TopN/집중도/Heatmap 동일 입력 동일 출력, Ordinal tie-break, decimal 자리수 고정.
+- [ ] **Excel 2021 게이트**: 신규 수식(있다면) EXCEL_365_FUNCTION 미검출. §6 금지 함수 미사용.
+- [ ] **쓰기 경로**: reports/·logs/ 한정, 차트 이미지 별도 파일 0. 통화 혼합 MIXED_CURRENCY 명시.
+- [ ] **테스트 보존+신규**: 기존 ReportTests/PackagingTests 약화·삭제 0, 시트개수/sheetN 동반 갱신, 신규 단언 Report/Limit/DataProfile 도메인 분류(Unclassified=0), Total 보존+증가.
+- [ ] **Audit**: 해시 유지, SQL/UserId 평문 미기록.
+- [ ] **과대표기 금지**: WPF Shapes = 화면 한정 표기, OOXML chart part 미채택, 상태어휘 정확. 로컬 게이트 증거 없으면 PASS 금지(BLOCKED).
+- [ ] **문서 정합**: docs/38 §5 Traceability(C-16 신규 행) 상태 갱신, docs/39 본 WP·Resume Brief 정합.
 
 ## KB-WP-01. Knowledge Pack Contract (설계 우선)
 - **목표**: Application Source ↔ Knowledge Pack 분리 계약 — Pack Manifest/Version/Hash, Document Metadata, **Clause/Chunk Schema(Deterministic Chunk ID)**, As-of Date, Superseded, License/Approval Status, Access Classification, Source Text Hash, Upgrade/Rollback. **원문 repo 미포함**(별도 승인 Data Pack). **Vector/Embedding 미도입 — keyword/inverted index만.**
