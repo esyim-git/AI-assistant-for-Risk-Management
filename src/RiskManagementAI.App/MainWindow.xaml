@@ -4,12 +4,12 @@
         xmlns:controls="clr-namespace:RiskManagementAI.App.Controls"
         Title="Risk Management AI Assistant" Height="720" Width="1180" MinHeight="720" MinWidth="1180"
         ResizeMode="CanResize" SizeToContent="Manual">
-    <Grid>
+    <Grid x:Name="RootGrid">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="220" />
             <ColumnDefinition Width="*" MinWidth="480" />
             <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="340" MinWidth="280" MaxWidth="560" />
+            <ColumnDefinition x:Name="SafetyPanelColumn" Width="340" MinWidth="280" MaxWidth="560" />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="64" />
@@ -40,11 +40,11 @@
             </StackPanel>
         </Border>
 
-        <Grid Grid.Row="1" Grid.Column="1" Margin="18">
+        <Grid x:Name="WorkspaceGrid" Grid.Row="1" Grid.Column="1" Margin="18">
             <Grid.RowDefinitions>
-                <RowDefinition Height="2*" MinHeight="260" />
+                <RowDefinition x:Name="EditorRow" Height="2*" MinHeight="260" />
                 <RowDefinition Height="8" />
-                <RowDefinition Height="*" MinHeight="180" />
+                <RowDefinition x:Name="ResultRow" Height="*" MinHeight="180" />
             </Grid.RowDefinitions>
 
             <GridSplitter x:Name="EditorResultSplitter" Grid.Row="1"

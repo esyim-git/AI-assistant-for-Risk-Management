@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Linq;
 using System.IO;
 using System.Text;
@@ -70,6 +71,8 @@ public partial class MainWindow : Window
         }
 
         InitializeComponent();
+        Loaded += OnMainWindowLoaded;
+        Closing += OnMainWindowClosing;
         _tabsByKey = new Dictionary<MainTabKey, TabItem>
         {
             [MainTabKey.Dashboard] = DashboardTab,
@@ -110,6 +113,51 @@ public partial class MainWindow : Window
 
         FindingList.ItemsSource = startupFindings;
         FindingSummaryText.Text = $"{startupFindings.Count} startup finding(s)";
+    }
+
+    private void OnMainWindowLoaded(object sender, RoutedEventArgs e)
+    {
+        ApplySavedLayout();
+    }
+
+    private void OnMainWindowClosing(object? sender, CancelEventArgs e)
+    {
+        SaveCurrentLayout();
+    }
+
+    private void ApplySavedLayout()
+    {
+        var layout = UiLayoutStore.Load();
+        Width = layout.WindowWidth;
+        Height = layout.WindowHeight;
+        EditorRow.Height = new GridLength(layout.EditorRowStar, GridUnitType.Star);
+        ResultRow.Height = new GridLength(layout.ResultRowStar, GridUnitType.Star);
+        SafetyPanelColumn.Width = new GridLength(layout.SafetyColumnWidth, GridUnitType.Pixel);
+    }
+
+    private void SaveCurrentLayout()
+    {
+        try
+        {
+            UiLayoutStore.Save(new UiLayout(
+                WindowWidth: ActualWidth > 0 ? ActualWidth : Width,
+                WindowHeight: ActualHeight > 0 ? ActualHeight : Height,
+                EditorRowStar: StarOrFallback(EditorRow.Height, UiLayoutStore.Default.EditorRowStar),
+                ResultRowStar: StarOrFallback(ResultRow.Height, UiLayoutStore.Default.ResultRowStar),
+                SafetyColumnWidth: SafetyPanelColumn.ActualWidth > 0 ? SafetyPanelColumn.ActualWidth : SafetyPanelColumn.Width.Value,
+                SchemaVersion: UiLayoutStore.CurrentSchemaVersion));
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException or UnauthorizedAccessException)
+        {
+            // Layout persistence is convenience state only; app shutdown must remain non-blocking.
+        }
+    }
+
+    private static double StarOrFallback(GridLength length, double fallback)
+    {
+        return length.IsStar && length.Value > 0
+            ? length.Value
+            : fallback;
     }
 
     private void InitializeCompletionAssist()

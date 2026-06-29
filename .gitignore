@@ -51,6 +51,7 @@ logs/*
 reports/*
 !logs/.gitkeep
 !reports/.gitkeep
+config/ui_layout.local.json
 
 # Office temp files
 ~$*.xlsx

@@ -11,6 +11,10 @@ foreach (var buildScript in new[] { "01_publish-win-x64.ps1", "02_package-releas
     context.AssertTrue(scriptText.Contains("does not match VERSION file", StringComparison.Ordinal), $"build/{buildScript} should fail when -Version mismatches the VERSION file");
 }
 context.AssertTrue(!File.ReadAllText(Path.Combine("build", "01_publish-win-x64.ps1")).Contains("signed assembly", StringComparison.OrdinalIgnoreCase), "build/01 manifest logging should not overstate signed-assembly trust anchor before STAB-WP-05");
+var build01TextForLocalConfig = File.ReadAllText(Path.Combine("build", "01_publish-win-x64.ps1"));
+var build03TextForLocalConfig = File.ReadAllText(Path.Combine("build", "03_verify-package.ps1"));
+context.AssertTrue(build01TextForLocalConfig.Contains("*.local.json", StringComparison.Ordinal) && build01TextForLocalConfig.Contains("Remove-Item", StringComparison.Ordinal), "build/01 packaging should exclude local layout json from publish output");
+context.AssertTrue(build03TextForLocalConfig.Contains("*.local.json", StringComparison.Ordinal) && build03TextForLocalConfig.Contains("Local runtime config present in package", StringComparison.Ordinal), "build/03 packaging should fail if local layout json is present in release package");
 context.AssertTrue(System.Text.RegularExpressions.Regex.IsMatch(File.ReadAllText("VERSION").Trim(), @"^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$"), "VERSION file should be a non-empty semver string (single source of truth; no hardcoded value in tests)");
 context.AssertTrue(File.Exists("global.json") && File.ReadAllText("global.json").Contains("8.0", StringComparison.Ordinal), "global.json should pin the .NET 8 SDK band (ADR-005/006)");
 // === STAB-WP-03b: runtime fail-closed integrity gate (manifest). Domain keyword "manifest" => Packaging. ===
