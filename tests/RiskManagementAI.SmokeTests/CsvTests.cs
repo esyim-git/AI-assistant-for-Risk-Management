@@ -28,11 +28,14 @@ context.AssertTrue(cp949UhcTable.Rows.Single().GetValue("확장힣") == "힣값"
 context.AssertTrue(cp949UhcTable.Metadata.Cp949MappingSha256 == Cp949Decoder.ExpectedMappingSha256, "CsvReader CP949 metadata should expose mapping SHA256");
 context.AssertTrue(cp949UhcTable.Metadata.Cp949MappingEntryCount == Cp949Decoder.ExpectedMappingEntryCount, "CsvReader CP949 metadata should expose mapping entry count");
 context.AssertTrue(CsvReader.Read(cp949UhcCsv, CsvEncoding.Cp949).Rows.Single().GetValue("확장힣") == "힣값", "CsvReader should support explicit CP949");
+context.AssertTrue(CsvReader.ReadStreaming(cp949UhcCsv, CsvEncoding.Cp949).Single().GetValue("확장힣") == "힣값", "CsvReader CP949 streaming should reuse UHC decoder");
 context.AssertTrue(context.Throws<InvalidDataException>(() => CsvReader.Read(cp949UhcCsv, CsvEncoding.Utf8)), "CsvReader explicit UTF-8 should reject CP949 bytes");
 
 var cp949Profile = profiler.ProfileCsv(cp949UhcCsv);
 context.AssertTrue(cp949Profile.SourceName == "cp949_uhc_sample_cp949.csv" && cp949Profile.RowCount == 1, "DataProfiler should use common CsvReader for CP949 files");
 context.AssertTrue(cp949Profile.NumericColumns["AMT"].Sum == 10m, "DataProfiler should preserve numeric profiling through common CsvReader");
+var cp949StreamingProfile = profiler.ProfileCsvStreaming(cp949UhcCsv, CsvEncoding.Cp949);
+context.AssertTrue(cp949StreamingProfile.NumericColumns["AMT"].Sum == 10m && cp949StreamingProfile.BaseDateDistribution["20260617"] == 1, "DataProfiler CP949 streaming should preserve BASE_DT numeric profile");
 
 var cp949LimitResult = limitMonitor.Analyze(
     Path.Combine("samples", "dummy_data", "risk_exposure_sample_cp949.csv"),

@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using RiskManagementAI.Core.Mapping;
 
 namespace RiskManagementAI.Core.Data;
@@ -43,11 +45,31 @@ public sealed class DataProfiler
         return ProfileTable(CsvReader.Read(csvPath));
     }
 
+    public DataProfileResult ProfileCsvStreaming(string csvPath, CsvEncoding encoding = CsvEncoding.Auto)
+    {
+        var header = CsvReader.ReadHeader(csvPath, encoding);
+        return ProfileRows(
+            header.SourceName,
+            header.Columns,
+            () => CsvReader.StreamDataRows(header).Select(row => new ProfileInputRow(row.Values, row.RawFieldCount, row.LineNumber)));
+    }
+
     public DataProfileResult ProfileTable(CsvTable table)
     {
         ArgumentNullException.ThrowIfNull(table);
 
-        var columns = table.Columns.ToArray();
+        return ProfileRows(
+            table.SourceName,
+            table.Columns,
+            () => table.Rows.Select(row => new ProfileInputRow(row.Values, row.RawFieldCount, row.LineNumber)));
+    }
+
+    private DataProfileResult ProfileRows(
+        string sourceName,
+        IReadOnlyList<string> inputColumns,
+        Func<IEnumerable<ProfileInputRow>> rowFactory)
+    {
+        var columns = inputColumns.ToArray();
 
         if (columns.Length == 0 || columns.Any(string.IsNullOrWhiteSpace))
         {
@@ -63,7 +85,7 @@ public sealed class DataProfiler
         var baseDateColumnName = columnMappingLoadResult.Mapping.Physical(LogicalColumn.BaseDate);
         var baseDateIndex = Array.FindIndex(columns, column => string.Equals(column, baseDateColumnName, StringComparison.OrdinalIgnoreCase));
         var rowCount = 0;
-        foreach (var row in table.Rows)
+        foreach (var row in rowFactory())
         {
             if (row.RawFieldCount != columns.Length)
             {
@@ -73,7 +95,7 @@ public sealed class DataProfiler
             var normalizedValues = NormalizeValues(row.Values, columns.Length);
             rowCount++;
 
-            var rowKey = string.Join('\u001F', normalizedValues);
+            var rowKey = HashNormalizedRow(normalizedValues);
             if (!duplicateKeys.Add(rowKey))
             {
                 duplicateRowCount++;
@@ -103,9 +125,81 @@ public sealed class DataProfiler
             }
         }
 
+        var outlierWork = numericCandidates.Values
+            .Where(candidate => candidate.IsNumericColumn)
+            .Select(candidate => new { candidate.ColumnName, Work = candidate.CreateOutlierWork() })
+            .Where(item => item.Work is not null)
+            .ToDictionary(item => item.ColumnName, item => item.Work!, StringComparer.OrdinalIgnoreCase);
+        var outlierCounts = numericCandidates.Values
+            .Where(candidate => candidate.IsNumericColumn)
+            .ToDictionary(candidate => candidate.ColumnName, _ => 0, StringComparer.OrdinalIgnoreCase);
+
+        if (outlierWork.Count > 0)
+        {
+            foreach (var row in rowFactory())
+            {
+                var normalizedValues = NormalizeValues(row.Values, columns.Length);
+                for (var index = 0; index < columns.Length; index++)
+                {
+                    var column = columns[index];
+                    if (!outlierWork.TryGetValue(column, out var work))
+                    {
+                        continue;
+                    }
+
+                    var value = normalizedValues[index].Trim();
+                    if (IsNullValue(value))
+                    {
+                        continue;
+                    }
+
+                    if (decimal.TryParse(value, NumberStyles.Number | NumberStyles.AllowExponent, CultureInfo.InvariantCulture, out var parsed))
+                    {
+                        work.AddVariance(parsed);
+                    }
+                }
+            }
+
+            var outlierBoundaries = outlierWork
+                .Select(item => new { item.Key, Boundary = item.Value.CreateBoundary() })
+                .Where(item => item.Boundary is not null)
+                .ToDictionary(item => item.Key, item => item.Boundary!, StringComparer.OrdinalIgnoreCase);
+
+            if (outlierBoundaries.Count > 0)
+            {
+                foreach (var row in rowFactory())
+                {
+                    var normalizedValues = NormalizeValues(row.Values, columns.Length);
+                    for (var index = 0; index < columns.Length; index++)
+                    {
+                        var column = columns[index];
+                        if (!outlierBoundaries.TryGetValue(column, out var boundary))
+                        {
+                            continue;
+                        }
+
+                        var value = normalizedValues[index].Trim();
+                        if (IsNullValue(value))
+                        {
+                            continue;
+                        }
+
+                        if (decimal.TryParse(value, NumberStyles.Number | NumberStyles.AllowExponent, CultureInfo.InvariantCulture, out var parsed)
+                            && boundary.IsOutlier(parsed))
+                        {
+                            outlierCounts[column]++;
+                        }
+                    }
+                }
+            }
+        }
+
         var numericColumns = numericCandidates.Values
             .Where(candidate => candidate.IsNumericColumn)
-            .ToDictionary(candidate => candidate.ColumnName, candidate => candidate.ToProfile(), StringComparer.OrdinalIgnoreCase);
+            .ToDictionary(
+                candidate => candidate.ColumnName,
+                candidate => candidate.ToProfile(outlierCounts.GetValueOrDefault(candidate.ColumnName)),
+                StringComparer.OrdinalIgnoreCase);
 
         if (baseDateIndex < 0)
         {
@@ -113,7 +207,7 @@ public sealed class DataProfiler
         }
 
         return new DataProfileResult(
-            table.SourceName,
+            sourceName,
             rowCount,
             columns.Length,
             columns,
@@ -143,9 +237,60 @@ public sealed class DataProfiler
             || string.Equals(value, "NA", StringComparison.OrdinalIgnoreCase);
     }
 
+    private static string HashNormalizedRow(IReadOnlyList<string> normalizedValues)
+    {
+        var rowKey = string.Join('\u001F', normalizedValues);
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rowKey))).ToLowerInvariant();
+    }
+
+    private readonly record struct ProfileInputRow(IReadOnlyList<string> Values, int RawFieldCount, int LineNumber);
+
+    private sealed class OutlierWork
+    {
+        private readonly int count;
+        private readonly double mean;
+        private double varianceSum;
+
+        public OutlierWork(int count, double mean)
+        {
+            this.count = count;
+            this.mean = mean;
+        }
+
+        public void AddVariance(decimal value)
+        {
+            var delta = (double)value - mean;
+            varianceSum += delta * delta;
+        }
+
+        public OutlierBoundary? CreateBoundary()
+        {
+            var standardDeviation = Math.Sqrt(varianceSum / count);
+            if (standardDeviation == 0)
+            {
+                return null;
+            }
+
+            return new OutlierBoundary(mean, standardDeviation * 3);
+        }
+    }
+
+    private sealed record OutlierBoundary(double Mean, double Threshold)
+    {
+        public bool IsOutlier(decimal value)
+            => Math.Abs((double)value - Mean) > Threshold;
+    }
+
     private sealed class NumericAccumulator
     {
-        private readonly List<decimal> values = [];
+        private int count;
+        private decimal sum;
+        private decimal min;
+        private decimal max;
+        private double mean;
+        private double m2;
+        private double legacyDoubleSum;
+        private bool sumOverflowed;
         private bool sawTextValue;
 
         public NumericAccumulator(string columnName)
@@ -155,7 +300,7 @@ public sealed class DataProfiler
 
         public string ColumnName { get; }
 
-        public bool IsNumericColumn => values.Count > 0 && !sawTextValue;
+        public bool IsNumericColumn => count > 0 && !sawTextValue;
 
         public void RegisterNull()
         {
@@ -163,9 +308,48 @@ public sealed class DataProfiler
 
         public void RegisterValue(string value)
         {
+            if (sawTextValue)
+            {
+                return;
+            }
+
             if (decimal.TryParse(value, NumberStyles.Number | NumberStyles.AllowExponent, CultureInfo.InvariantCulture, out var parsed))
             {
-                values.Add(parsed);
+                count++;
+                legacyDoubleSum += (double)parsed;
+                try
+                {
+                    sum += parsed;
+                }
+                catch (OverflowException)
+                {
+                    sumOverflowed = true;
+                }
+
+                if (count == 1)
+                {
+                    min = parsed;
+                    max = parsed;
+                    mean = (double)parsed;
+                    m2 = 0;
+                    return;
+                }
+
+                if (parsed < min)
+                {
+                    min = parsed;
+                }
+
+                if (parsed > max)
+                {
+                    max = parsed;
+                }
+
+                var sample = (double)parsed;
+                var delta = sample - mean;
+                mean += delta / count;
+                var deltaAfterMean = sample - mean;
+                m2 += delta * deltaAfterMean;
             }
             else
             {
@@ -173,39 +357,30 @@ public sealed class DataProfiler
             }
         }
 
-        public NumericColumnProfile ToProfile()
+        public OutlierWork? CreateOutlierWork()
         {
-            var sum = values.Sum();
-            return new NumericColumnProfile(
-                ColumnName,
-                values.Count,
-                sum,
-                values.Min(),
-                values.Max(),
-                CountSimpleOutliers());
+            if (count < 4)
+            {
+                return null;
+            }
+
+            return new OutlierWork(count, legacyDoubleSum / count);
         }
 
-        private int CountSimpleOutliers()
+        public NumericColumnProfile ToProfile(int outlierCount)
         {
-            if (values.Count < 4)
+            if (sumOverflowed)
             {
-                return 0;
+                throw new OverflowException("Numeric column sum exceeded decimal range.");
             }
 
-            var average = values.Average(value => (double)value);
-            var variance = values.Sum(value =>
-            {
-                var delta = (double)value - average;
-                return delta * delta;
-            }) / values.Count;
-            var standardDeviation = Math.Sqrt(variance);
-            if (standardDeviation == 0)
-            {
-                return 0;
-            }
-
-            var threshold = standardDeviation * 3;
-            return values.Count(value => Math.Abs((double)value - average) > threshold);
+            return new NumericColumnProfile(
+                ColumnName,
+                count,
+                sum,
+                min,
+                max,
+                outlierCount);
         }
     }
 }
