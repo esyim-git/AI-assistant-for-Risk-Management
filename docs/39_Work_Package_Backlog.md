@@ -7,7 +7,7 @@
 ---
 
 ## ★ Resume Brief (Codex 인수 — v0.6.0 기준선)
-- **현재 기준선**: main `5280d54` (R2-WP-02 머지 후), VERSION **0.6.0** (**v0.6.0 정식 릴리스 태그 = `3dfa80b`**; R2 트랙 v0.7.0 진행 중·미릴리스). R1(WP-01~08)·R3(R3-WP-01~05)·REL-v0.6 가드(#54)·**STAB-WP-01~04(#56/#57/#59/#61/#66)·STAB-UX-01(#68)·UX-WP-01(#70)·UX-WP-02(#72)·UX-WP-03(#73)·STAB-UX-02(#76)·R2-WP-01(#79)·R2-WP-02(#81)** 모두 **DONE**. 추가 머지: truth-sync(#63·#67·#69·#74·#78·#80). SmokeTest **`Total=680 PASS=680 FAIL=0`**(local-gate; 631 + STAB-UX-02 +15 + R2-WP-01 +25 + R2-WP-02 +9; **680은 파생값** — 리뷰본 65dca55=678 확인 + 머지 델타 +2, 머지본 `5280d54` 로컬 게이트 재확인 권장). **UX/STAB 트랙 완료 + R2-WP-01·R2-WP-02 완료** — VERIFIED 범위는 **정적·NoModel·외부 Editor 0·자동삽입 0** 한정이며 실 LLM 랭킹/학습=**R4(NOT_IMPLEMENTED)**, 실 오프라인 Test PC Gate B/C=**BLOCKED**(과대표기 금지). STAB-WP-05(코드서명)=APPROVAL_REQUIRED.
+- **현재 기준선**: main `5280d54` (R2-WP-02 머지 후), VERSION **0.6.0** (**v0.6.0 정식 릴리스 태그 = `3dfa80b`**; R2 트랙 v0.7.0 진행 중·미릴리스). R1(WP-01~08)·R3(R3-WP-01~05)·REL-v0.6 가드(#54)·**STAB-WP-01~04(#56/#57/#59/#61/#66)·STAB-UX-01(#68)·UX-WP-01(#70)·UX-WP-02(#72)·UX-WP-03(#73)·STAB-UX-02(#76)·R2-WP-01(#79)·R2-WP-02(#81)** 모두 **DONE**. 추가 머지: truth-sync(#63·#67·#69·#74·#78·#80). SmokeTest **`Total=680 PASS=680 FAIL=0`**(직접 local-gate 재확인: `dotnet build` 0/0 + SmokeTest, 2026-06-30; 631 + STAB-UX-02 +15 + R2-WP-01 +25 + R2-WP-02 +9). **UX/STAB 트랙 완료 + R2-WP-01·R2-WP-02 완료** — VERIFIED 범위는 **정적·NoModel·외부 Editor 0·자동삽입 0** 한정이며 실 LLM 랭킹/학습=**R4(NOT_IMPLEMENTED)**, 실 오프라인 Test PC Gate B/C=**BLOCKED**(과대표기 금지). STAB-WP-05(코드서명)=APPROVAL_REQUIRED.
 - **STAB-WP-03a DONE (#59, local-gate PASS)**: build측 Release 보안(PDB 0·Dev/Test config 0·UnsafeBinaryFormatter false) + Integrity Manifest 생성(build/01)·검증(build/03 — 필수항목 강제·경로 traversal 차단·hash/size/version). 증거: manifest 25 entries, ZIP SHA256 `3C7D3926…`, PDB/Dev-Test 0, SmokeTest 513. RR-13 + RR-14(build측) 해소.
 - **STAB-WP-03b DONE (#61 merged, 2026-06-28, main `682f1d8`, VERIFIED — local-gate; review thread 7건 resolve)**: runtime Fail-Closed(Design 3 interim). 신규 `Core/Integrity/`(IntegrityStatus·IntegrityResult·IntegrityVerifier·IntegrityGate)가 build/03 §4를 in-process 포팅(SHA256 전용, NuGet 0, build/01·03 미변경, 513 불변). `App.OnStartup` 최상단에서 검증→FailClosed=Shutdown(2). 데이터/자산 변조 + manifest 부재/축소/버전불일치 차단. dev 스위치 강화(`RMAI_DEV_ALLOW_UNVERIFIED=1` + `Debugger.IsAttached`). **잔여 위험(미탐지, 명시)**: manifest 독립 앵커 부재(co-tamper)·self-contained 런타임 DLL 미해시·폴더 동반 변조 → **코드 서명(APPROVAL_REQUIRED)** 후속(`STAB-WP-05`). **Codex local-gate(2026-06-28, latest PR #61 delta incl. `947f532`/`8866a07` + RequiredCriticalEntries co-deletion fix) = VERIFIED**: `dotnet build` 0/0, SmokeTest `Total=572 PASS=572 FAIL=0`, Gate A 0, NuGet `PackageReference` 0, build/00~03 PASS(ZIP SHA256 `E3995BD54A1D1DCAA55FEDCD968E18906191255DCF564BA4047A0A59E8402021`). 봇 P2 4건(`99fc508`: ① null 엔트리 ② malformed path try/catch ③ mandatory를 manifest `required` 플래그와 무관하게 path로 강제 ④ 플랫폼 무관 rooted/UNC 거부) 검증 PASS. 추가 P2(`947f532`/`8866a07`) 검증 PASS: ⑤ **manifest 축소 가드** — build/01 critical 글롭(rules/templates/config·ncr/kb) 디스크 스캔으로 미선언 critical 파일 FailClosed(엔트리 드롭+파일 잔존/변조 차단, build/01 lock-step); ⑥ **critical 글롭 required-by-path** — 글롭 자산은 manifest `required` 플래그와 무관하게 필수 강제(엔트리 유지+`required:false`+파일 삭제 차단); ⑥' mandatory 자산 **co-deletion**(엔트리+파일 동시 삭제)은 hard-coded declared-check로 차단(앵커). **추가 보강 검증 PASS**: `RequiredCriticalEntries`로 현 build/01 critical asset inventory를 pin해 비-mandatory critical **co-deletion**(엔트리+파일 동시 삭제)도 FailClosed로 닫음. **잔여(미탐지 고정)**: 파일+manifest hash/size lock-step **co-tamper**(콘텐츠 동시 변조) + self-contained 런타임 DLL 미해시만 남음 → **코드 서명(STAB-WP-05, APPROVAL_REQUIRED)** 후속. (비-mandatory critical **co-deletion**은 `RequiredCriticalEntries` 핀으로 **해소**.)
 - **STAB-WP-04 DONE (#66 merged, main `f6b1405`, VERIFIED — local-gate)**: 비대한 단일 `Program.cs`를 외부 프레임워크 0으로 내부 Suite로 분리(`Program.cs`는 3줄 runner 호출만; `SmokeTestContext`+13개 suite 파일 SafetyTests/CsvTests/XlsxTests/MappingTests/LimitReconciliationTests/ReportTests/KbTests/NcrTests/PackagingTests/UiContractTests/GenerationTests/DataProfileTests/AuditTests + `TestRunner`+`SmokeTestHelpers`+`GlobalUsings`). **RR-10 보존 검증(Claude review)**: AssertTrue 호출 426=426, Throws 25=25, 문자열 리터럴 0건 누락(comm -23), `SmokeDomain` 분류·`=== SmokeTest Summary ===`·`Total=N PASS=N FAIL=N`·fail exit code 보존, `Total=572 PASS=572 FAIL=0` 불변, 외부 PackageReference 0. 기능 코드 변경 없음(7개 Core `string.Split`는 SDK 8.0.100 collection-expression 회피용 `new[]{}`로 동작 동일).
@@ -332,8 +332,8 @@
 
 ## R2-WP-02. Streaming / Performance (RR-08) — 상태: DONE (#81 merged `5280d54`, VERIFIED — local-gate; Claude 4축 리뷰 APPROVE)
 
-- **상태**: **VERIFIED**(local-gate, #81 `5280d54`; Claude 4축 리뷰 APPROVE). `dotnet build` 0/0, SmokeTest `Total≈680 PASS/0 FAIL`(파생값, 리뷰본 65dca55=678 + 머지 델타 +2; `5280d54` 로컬 게이트 재확인 권장), Unclassified=0, NuGet 0. CP949 streaming 결정성·OutlierCount 2-pass bit-동일·상한 `InvalidDataException`·중복행 SHA256·기존 경로 불변 검증. **머지 델타(`65dca55`→`5280d54`)**: `ReadStreaming` 진짜 streaming화·OutlierCount legacy two-pass 정정(리뷰 nit 반영)·overflow 가드·회귀 +2, post-merge 검증 완료. 실 Test PC Gate B/C=**BLOCKED**.
-- **목표**: 대용량/손상 CSV 입력을 **메모리 안전한 streaming**으로 처리하고(행/바이트 안전 상한 도입), `DataProfiler`의 수치 통계를 **Welford 온라인 평균/분산(1-pass)**으로 전환해 전체 값 보관 없이 결정적으로 프로파일한다. **하나의 명확한 목표 = "전 행 메모리 적재 없이도 결정적·상한적·메모리 안전한 CSV 프로파일/리딩 경로를 추가한다."** 기존 `CsvReader.Read`/`DataProfiler.ProfileTable`/`ProfileCsv` 시그니처·동작·결과는 **불변 보존**(신규 옵트인 경로로만 추가). (선택) `System.Diagnostics.Stopwatch` 기반 벤치 훅을 `logs/` 한정 로컬 기록으로 추가.
+- **상태**: **VERIFIED**(local-gate, #81 `5280d54`; Claude 4축 리뷰 APPROVE). `dotnet build` 0/0, SmokeTest `Total=680 PASS=680 FAIL=0`(직접 local-gate 재확인, 2026-06-30), Unclassified=0, NuGet 0. CP949 streaming 결정성·OutlierCount 2-pass bit-동일·상한 `InvalidDataException`·중복행 SHA256·기존 경로 불변 검증. **머지 델타(`65dca55`→`5280d54`)**: `ReadStreaming` 진짜 streaming화·OutlierCount legacy two-pass 정정(리뷰 nit 반영)·overflow 가드·회귀 +2, post-merge 검증 완료. 실 Test PC Gate B/C=**BLOCKED**.
+- **목표**: 대용량/손상 CSV 입력을 **메모리 안전한 streaming**으로 처리하고(행/바이트 안전 상한 도입), `DataProfiler`의 수치 통계는 Welford 누산으로 전 값 보관을 피하되 기존 OutlierCount와 bit-동일한 결과를 위해 legacy-compatible 추가 streaming pass를 허용한다. **하나의 명확한 목표 = "전 행 메모리 적재 없이도 결정적·상한적·메모리 안전한 CSV 프로파일/리딩 경로를 추가한다."** 기존 `CsvReader.Read`/`DataProfiler.ProfileTable`/`ProfileCsv` 시그니처·동작·결과는 **불변 보존**(신규 옵트인 경로로만 추가). (선택) `System.Diagnostics.Stopwatch` 기반 벤치 훅을 `logs/` 한정 로컬 기록으로 추가.
 - **선행조건**: 없음(R1 WP-02 CsvReader·MVP-1 DataProfiler 기준선 존재). STOP 트리거 없음(인박스 `System.IO`/`System.Diagnostics`만).
 - **작업범위**:
   1. **CSV streaming 리딩**: `File.ReadAllBytes` 전체 적재(`CsvReader.cs:26`) 대신 `StreamReader` 기반 forward-only 신규 경로(예: `CsvReader.ReadStreaming(...)` 또는 `IEnumerable<CsvRecord>` yield 파서). 기존 `Read` 시그니처·동작 보존.
@@ -365,7 +365,7 @@
   - **중복 해시화**: `DuplicateRowCount` 기존 동일.
   - **메모리 안전**: 대용량 더미 입력에서 전 행 보관 없이 처리(상한 내) — 결정적 단언.
   - 신규 테스트는 **DataProfile/Reconciliation 도메인 키워드**(streaming·welford·MaxRowCount·MaxByteSize·duplicate·BASE_DT 등)로 분류(Unclassified=0). 기존 테스트 삭제·약화 0.
-- **완료조건**: 코드베이스에 외부 PackageReference 0 유지. 기존 `CsvReader.Read`/`ProfileTable`/`ProfileCsv` 결과 불변. streaming 경로가 동일 입력에 동일 결과(결정적). 행/바이트 상한 활성. Welford 1-pass·중복 해시화 적용. `dotnet build` 0/0 + SmokeTest `Total=정본+신규 PASS / 0 FAIL`(Local-Gate). Gate A 0. (선택) 벤치 훅 `logs/` 한정.
+- **완료조건**: 코드베이스에 외부 PackageReference 0 유지. 기존 `CsvReader.Read`/`ProfileTable`/`ProfileCsv` 결과 불변. streaming 경로가 동일 입력에 동일 결과(결정적). 행/바이트 상한 활성. Welford 누산·legacy-compatible OutlierCount·중복 해시화 적용. `dotnet build` 0/0 + SmokeTest `Total=정본+신규 PASS / 0 FAIL`(Local-Gate). Gate A 0. (선택) 벤치 훅 `logs/` 한정.
 - **Branch**: `feature/r2-wp-02-streaming-performance` · **Commit**: `feat: add streaming/Welford profiling path with row/byte caps (R2-WP-02)`
 - **Claude Review Checklist**:
   - 기존 `CsvReader.Read`/`ProfileTable`/`ProfileCsv` 시그니처·동작·결과 불변(신규 옵트인만) 확인.
@@ -458,7 +458,7 @@ Excel Report와 Risk Dashboard 화면에 **인박스(NuGet 0) 시각화**를 더
 ### 2. 선행조건 (Preconditions)
 - R1 `LimitAnalysisResult`(**7상태** NORMAL/WARNING/BREACH/NO_LIMIT/INVALID_LIMIT/MAPPING_ERROR/**DUPLICATE_LIMIT**, R2-WP-01 #79)·`LimitAnalysisKpis`(`DuplicateLimitCount` 포함)·`ExceptionList`·`ReconciliationSummary` 계약 그대로 사용(변경 금지).
 - `ExcelReportBuilder`(in-box ZipFile + templates/report XML 치환, OpenXML SDK/Interop 미도입) 경로 유지.
-- SmokeTest 정본 Total 보존(현 기준 671; R2-WP-01 #79 머지 후). 도메인 분류기 Unclassified=0 유지.
+- SmokeTest 정본 Total 보존(현 기준 680; R2-WP-02 #81 머지 후, `5280d54` 직접 local-gate 재확인). 도메인 분류기 Unclassified=0 유지.
 - 쓰기 경로 `reports/` 한정(ResolveReportsDirectory 강제). 별도 이미지 파일 산출 금지.
 
 ### 3. 작업범위 (Scope)
@@ -528,7 +528,7 @@ Excel Report와 Risk Dashboard 화면에 **인박스(NuGet 0) 시각화**를 더
 - 완료 시 `Total=N PASS=N FAIL=0`, 모든 신규 단언 분류됨(Unclassified=0).
 
 ### 11. 완료조건 (Definition of Done)
-- 로컬 `dotnet build RiskManagementAI.sln -c Release` 0 error / 0 warning, `dotnet run --project tests/RiskManagementAI.SmokeTests` → `Total=N PASS=N FAIL=0`(기존 671 + 신규, 도메인 Unclassified=0).
+- 로컬 `dotnet build RiskManagementAI.sln -c Release` 0 error / 0 warning, `dotnet run --project tests/RiskManagementAI.SmokeTests` → `Total=N PASS=N FAIL=0`(기존 정본 680 + R2-WP-03/R2-WP-04 신규, 도메인 Unclassified=0).
 - `git grep PackageReference` → 0(Core/App). 외부 charting 의존 0.
 - 생성 xlsx가 로컬 Excel 2021에서 손상 경고 없이 열림(**BLOCKED 증거 — Test PC**). SDK 없는 Linux에서는 코드 정합·게이트만 사전검증.
 - 정확 Exception Count·신규 시각화 시트·WPF 차트 렌더 동작. 기존 R1 계약(**7상태**·RECON_*·Dashboard=Report 일원화) 회귀 0.
@@ -541,7 +541,7 @@ Excel Report와 Risk Dashboard 화면에 **인박스(NuGet 0) 시각화**를 더
 ### 13. Commit 규약
 - Subject(영문, 명령형, 72자 이내) + `(#PR)` 머지 시. 예: `Add in-box risk visualization sheet and exact exception count (#NN)`.
 - 1 WP = 1 PR(squash 머지). force push·hard reset·main 직접 push 금지. 작업은 feature 브랜치에서만.
-- 커밋 본문에 NuGet 0·실데이터 0·외부 charting 미도입·SmokeTest Total 변화(671→N) 명시.
+- 커밋 본문에 NuGet 0·실데이터 0·외부 charting 미도입·SmokeTest Total 변화(기존 정본→N) 명시.
 
 ### 14. Claude Review Checklist
 - [ ] **외부 NuGet 0**: Core/App csproj에 PackageReference 0(charting 포함). STOP 트리거(charting/Vector/LLM) 부재.
