@@ -8,6 +8,7 @@ context.AssertTrue(loadedRuleSet.RuleVersion.StartsWith("ruleset-", StringCompar
 context.AssertTrue(loadedRuleSet.SqlDenyRules.Any(r => r.Code == "SQL_DML_DELETE"), "RuleLoader should map SQL deny patterns");
 context.AssertTrue(loadedRuleSet.VbaRequiredPresentRules.Any(r => r.Code == "VBA_OPTION_EXPLICIT_MISSING"), "RuleLoader should map REQUIRE_PRESENT rules");
 context.AssertTrue(loadedRuleSet.ExcelBlockedFunctions.Contains("MAP"), "RuleLoader should load Excel blocked functions");
+context.AssertTrue(loadedRuleSet.ExcelCompletionAllowFunctions.Contains("XLOOKUP") && !loadedRuleSet.ExcelCompletionAllowFunctions.Contains("PivotTable"), "RuleLoader should load Excel completion allow rules without non-function labels");
 
 var sqlChecker = new SqlSafetyChecker(loadedRuleSet);
 var sqlFindings = sqlChecker.Check("DELETE FROM TRADE_SAMPLE WHERE BASE_DT = :BASE_DT").ToList();

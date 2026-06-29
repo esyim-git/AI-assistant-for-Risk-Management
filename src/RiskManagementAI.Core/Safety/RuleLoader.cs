@@ -13,6 +13,7 @@ public static class RuleLoader
     private static readonly string[] RequiredRuleFiles =
     [
         "excel_2021_blocked_functions.txt",
+        "excel_2021_completion_allow_functions.txt",
         "excel_2021_preferred_functions.txt",
         "sql_deny_patterns.txt",
         "sql_warn_patterns.txt",
@@ -32,6 +33,12 @@ public static class RuleLoader
         "XLOOKUP", "XMATCH", "FILTER", "SORT", "SORTBY", "UNIQUE", "SEQUENCE",
         "LET", "SUMIFS", "COUNTIFS", "INDEX", "MATCH", "PivotTable",
         "HelperColumn", "VBA", "SQLAggregation"
+    ];
+
+    private static readonly string[] DefaultExcelCompletionAllowFunctions =
+    [
+        "XLOOKUP", "XMATCH", "FILTER", "SORT", "SORTBY", "UNIQUE", "SEQUENCE",
+        "LET", "SUMIFS", "COUNTIFS", "INDEX", "MATCH"
     ];
 
     private static readonly string[] DefaultSqlDenyPatterns =
@@ -117,12 +124,14 @@ public static class RuleLoader
             var vbaDenyPatterns = ReadActiveLines(fileContents["vba_deny_patterns.txt"]).ToArray();
             var (vbaWarnPatterns, vbaRequiredPatterns) = SplitRequiredPresent(ReadActiveLines(fileContents["vba_warn_patterns.txt"]));
             var excelBlockedFunctions = ReadActiveLines(fileContents["excel_2021_blocked_functions.txt"]).ToArray();
+            var excelCompletionAllowFunctions = ReadActiveLines(fileContents["excel_2021_completion_allow_functions.txt"]).ToArray();
             var excelPreferredFunctions = ReadActiveLines(fileContents["excel_2021_preferred_functions.txt"]).ToArray();
 
             ValidateMandatoryGroup("sql_deny_patterns.txt", sqlDenyPatterns);
             ValidateMandatoryGroup("vba_deny_patterns.txt", vbaDenyPatterns);
             ValidateMandatoryGroup("vba_warn_patterns.txt REQUIRE_PRESENT", vbaRequiredPatterns);
             ValidateMandatoryGroup("excel_2021_blocked_functions.txt", excelBlockedFunctions);
+            ValidateMandatoryGroup("excel_2021_completion_allow_functions.txt", excelCompletionAllowFunctions);
 
             var sqlDenyRules = BuildSqlRules(sqlDenyPatterns, SafetySeverity.Blocker, isDeny: true).ToArray();
             var sqlWarnRules = BuildSqlRules(sqlWarnPatterns, SafetySeverity.Medium, isDeny: false).ToArray();
@@ -140,6 +149,7 @@ public static class RuleLoader
                 vbaRequiredRules,
                 excelBlockedFunctions,
                 excelPreferredFunctions,
+                excelCompletionAllowFunctions,
                 ComputeRuleVersion(fileContents),
                 UsedFallback: false,
                 LoadWarnings: Array.Empty<string>());
@@ -162,6 +172,7 @@ public static class RuleLoader
         var fallbackContents = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             ["excel_2021_blocked_functions.txt"] = string.Join('\n', DefaultExcelBlockedFunctions),
+            ["excel_2021_completion_allow_functions.txt"] = string.Join('\n', DefaultExcelCompletionAllowFunctions),
             ["excel_2021_preferred_functions.txt"] = string.Join('\n', DefaultExcelPreferredFunctions),
             ["sql_deny_patterns.txt"] = string.Join('\n', DefaultSqlDenyPatterns),
             ["sql_warn_patterns.txt"] = string.Join('\n', DefaultSqlWarnPatterns),
@@ -177,6 +188,7 @@ public static class RuleLoader
             vbaRequiredRules,
             DefaultExcelBlockedFunctions,
             DefaultExcelPreferredFunctions,
+            DefaultExcelCompletionAllowFunctions,
             ComputeRuleVersion(fallbackContents),
             UsedFallback: true,
             LoadWarnings: [warning]);

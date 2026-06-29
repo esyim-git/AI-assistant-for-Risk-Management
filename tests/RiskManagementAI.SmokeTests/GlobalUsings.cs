@@ -4,6 +4,7 @@ global using System.Security;
 global using System.Text;
 global using System.Xml.Linq;
 global using RiskManagementAI.Core.Assist;
+global using RiskManagementAI.Core.Assist.Providers;
 global using RiskManagementAI.Core.Data;
 global using RiskManagementAI.Core.Config;
 global using RiskManagementAI.Core.Dashboard;
