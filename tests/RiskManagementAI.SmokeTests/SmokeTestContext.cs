@@ -93,6 +93,7 @@ internal sealed class SmokeTestContext
         if (Has("Ncr", "NCR Rule", "NCR 공식", "Rule Set")) return "Ncr";
         if (Has("KbIndex", "KbSearch", "RegulationCatalog", "Regulation", "catalog", "citation", "document", "source locator", "source text", "license", "approval", "metadata", "인용", "검색", "원문", "공개")) return "Kb";
         if (Has("build/0", "VERSION", "global.json", "packaging", "source-text", "KbRepositoryGuard", "manifest", "Expand-Archive", "PowerShell")) return "Packaging";
+        if (Has("completion", "smart assist", "suggestion", "provider", "popup", "assist")) return "Assist";
         if (Has("TaskLog", "FeedbackLog", "Audit", "Feedback", "PromotedExample", "ExamplePromotion", "user id", "request hash", "raw request")) return "Audit";
         if (Has("NoModelDraftService", "DraftPipeline", "draft", "NoModel", "NO_MODEL", "generated draft")) return "Generation";
         if (Has("DashboardSnapshot", "SecuritySettingsSnapshot", "SettingsSnapshot", "Offline Mode", "Local Model", "Promoted Examples", "Reports")) return "UiContract";
