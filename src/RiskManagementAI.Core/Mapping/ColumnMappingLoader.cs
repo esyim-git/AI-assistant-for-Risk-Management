@@ -12,7 +12,15 @@ public static class ColumnMappingLoader
         AllowTrailingCommas = true
     };
 
-    private static readonly LogicalColumn[] RequiredColumns = Enum.GetValues<LogicalColumn>();
+    private static readonly LogicalColumn[] RequiredColumns =
+    [
+        LogicalColumn.BaseDate,
+        LogicalColumn.PortfolioId,
+        LogicalColumn.RiskFactor,
+        LogicalColumn.ExposureAmount,
+        LogicalColumn.LimitAmount,
+        LogicalColumn.UseYn
+    ];
 
     public static ColumnMappingLoadResult LoadDefault()
     {

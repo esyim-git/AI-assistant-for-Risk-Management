@@ -6,6 +6,8 @@
     "RiskFactor": "RISK_FACTOR",
     "ExposureAmount": "EXPOSURE_AMT",
     "LimitAmount": "LIMIT_AMT",
-    "UseYn": "USE_YN"
+    "UseYn": "USE_YN",
+    "CurrencyCode": "CCY_CD",
+    "UnitCode": "UNIT_CD"
   }
 }

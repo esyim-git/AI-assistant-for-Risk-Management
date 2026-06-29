@@ -939,7 +939,8 @@ public partial class MainWindow : Window
                 string.IsNullOrWhiteSpace(limitSourceName) ? "N/A" : Path.GetFileName(limitSourceName),
                 ColumnMappingUsedFallback: false,
                 ColumnMappingWarnings: Array.Empty<string>(),
-                IsDeterministic: true),
+                IsDeterministic: true,
+                JoinAudit: Array.Empty<string>()),
             Array.Empty<LimitException>(),
             Array.Empty<SafetyFinding>(),
             new ReconciliationSummary(Passed: true, CheckCount: 0, Checks: Array.Empty<ReconciliationCheck>()));

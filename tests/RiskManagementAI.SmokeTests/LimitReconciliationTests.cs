@@ -98,6 +98,11 @@ WriteCsvRows(wp06CleanLimitCsv, wp06CleanLimitRows);
 var cleanReconciliationResult = limitMonitor.Analyze(wp06CleanExposureCsv, wp06CleanLimitCsv, "20260617");
 context.AssertTrue(cleanReconciliationResult.ExceptionList.All(exception => !exception.Code.StartsWith("RECON_", StringComparison.Ordinal)), "WP-06 clean inputs should not emit reconciliation exceptions");
 context.AssertTrue(cleanReconciliationResult.Reconciliation.Passed, "WP-06 clean inputs should pass reconciliation");
+context.AssertTrue(cleanReconciliationResult.DuplicateLimitCount == 0, "LimitMonitor should report zero duplicate limit rows for unique limit keys");
+
+var normalizedDashBaseDateResult = limitMonitor.Analyze(wp06CleanExposureCsv, wp06CleanLimitCsv, "2026-06-17");
+context.AssertTrue(normalizedDashBaseDateResult.Rows.Single().Status == LimitMonitorStatus.Normal && normalizedDashBaseDateResult.BaseDate == "20260617", "LimitMonitor should normalize yyyy-MM-dd BASE_DT input before exact row matching");
+context.AssertTrue(normalizedDashBaseDateResult.Metadata.JoinAudit.Any(audit => audit.Contains("valid=True", StringComparison.Ordinal) && audit.Contains("normalized=20260617", StringComparison.Ordinal)), "LimitMonitor JoinAudit should record valid BASE_DT normalization");
 
 var wp06OrphanLimitCsv = Path.Combine(limitSmokeDirectory, "wp06_orphan_limit.csv");
 WriteCsvRows(
@@ -120,10 +125,19 @@ WriteCsvRows(
         new[] { "20260617", "PF_CLEAN", "RF_CLEAN", "120", "Y" }
     ]);
 var duplicateLimitResult = limitMonitor.Analyze(wp06CleanExposureCsv, wp06DuplicateLimitCsv, "20260617");
+var duplicateLimitRow = duplicateLimitResult.Rows.Single();
+context.AssertTrue(duplicateLimitRow.Status == LimitMonitorStatus.DuplicateLimit && duplicateLimitRow.StatusCode == "DUPLICATE_LIMIT", "LimitMonitor should block duplicate limit keys as DUPLICATE_LIMIT status");
+context.AssertTrue(duplicateLimitResult.DuplicateLimitCount == 1 && duplicateLimitResult.Kpis.DuplicateLimitCount == 1, "LimitAnalysisResult KPIs should count duplicate limit rows");
+context.AssertTrue(duplicateLimitRow.Status != LimitMonitorStatus.Normal && duplicateLimitRow.Status != LimitMonitorStatus.Breach, "LimitMonitor duplicate limit rows should not be classified as NORMAL or BREACH");
+context.AssertTrue(duplicateLimitResult.ExceptionList.Any(exception => exception.Code == "DUPLICATE_LIMIT"), "LimitMonitor should include DUPLICATE_LIMIT exception for blocked duplicate joins");
 context.AssertTrue(ReconciliationExceptionCount(duplicateLimitResult, "RECON_DUPLICATE_LIMIT") == 1, "WP-06 should flag duplicate limit join keys");
 context.AssertTrue(ReconciliationExceptionCount(duplicateLimitResult, "RECON_ROW_AMPLIFICATION") == 1, "WP-06 should flag duplicate-limit row amplification risk");
 context.AssertTrue(duplicateLimitResult.Rows.Count == 1 && duplicateLimitResult.Kpis.TotalCount == 1, "WP-06 duplicate limit checks should not change existing monitoring row counts");
 context.AssertTrue(!duplicateLimitResult.Reconciliation.Passed, "WP-06 row amplification should fail reconciliation");
+var duplicateJoinAudit = string.Join("|", duplicateLimitResult.Metadata.JoinAudit);
+context.AssertTrue(duplicateJoinAudit.Contains("DuplicateLimitRule=blocked", StringComparison.Ordinal) && duplicateJoinAudit.Contains("duplicateExposureRows=1", StringComparison.Ordinal), "LimitMonitor JoinAudit should record duplicate limit blocking policy");
+var retiredDuplicateSelectionText = "group" + ".Last";
+context.AssertTrue(!duplicateJoinAudit.Contains(retiredDuplicateSelectionText, StringComparison.OrdinalIgnoreCase), "LimitMonitor JoinAudit should not mention arbitrary duplicate selection");
 
 var wp06MismatchExposureCsv = Path.Combine(limitSmokeDirectory, "wp06_basedate_mismatch_exposure.csv");
 var wp06MismatchLimitCsv = Path.Combine(limitSmokeDirectory, "wp06_basedate_mismatch_limit.csv");
@@ -142,6 +156,10 @@ WriteCsvRows(
 var baseDateMismatchResult = limitMonitor.Analyze(wp06MismatchExposureCsv, wp06MismatchLimitCsv, "20260617");
 context.AssertTrue(ReconciliationExceptionCount(baseDateMismatchResult, "RECON_BASEDATE_MISMATCH") >= 1, "WP-06 should flag requested BASE_DT missing when other dates exist");
 context.AssertTrue(baseDateMismatchResult.Reconciliation.Passed, "WP-06 base-date mismatch should remain non-fail severity in R1");
+var invalidBaseDateResult = limitMonitor.Analyze(wp06CleanExposureCsv, wp06CleanLimitCsv, "2026/06/17");
+context.AssertTrue(invalidBaseDateResult.Findings.Any(finding => finding.Code == "LIMIT_BASEDATE_FORMAT_INVALID"), "LimitMonitor should gracefully surface invalid BASE_DT format as a finding");
+context.AssertTrue(ReconciliationExceptionCount(invalidBaseDateResult, "RECON_BASEDATE_MISMATCH") >= 1, "LimitMonitor invalid BASE_DT format should be represented by non-fail reconciliation mismatch");
+context.AssertTrue(invalidBaseDateResult.Metadata.JoinAudit.Any(audit => audit.Contains("valid=False", StringComparison.Ordinal)), "LimitMonitor JoinAudit should record invalid BASE_DT validation state");
 
 var wp06BadAmountExposureCsv = Path.Combine(limitSmokeDirectory, "wp06_bad_amount_exposure.csv");
 WriteCsvRows(
@@ -168,6 +186,64 @@ CreateSingleSheetXlsx(wp05ExposureXlsx, wp05ExposureRows);
 CreateSingleSheetXlsx(wp05LimitXlsx, wp05LimitRows);
 var xlsxLimitResult = limitMonitor.Analyze(wp05ExposureXlsx, wp05LimitXlsx, "20260617");
 context.AssertTrue(xlsxLimitResult.Kpis == sixStateResult.Kpis, "LimitMonitor .xlsx path overload should match .csv path overload results");
+
+var r2Mapping = new ColumnMapping(new Dictionary<LogicalColumn, string>
+{
+    [LogicalColumn.BaseDate] = "BASE_DATE",
+    [LogicalColumn.PortfolioId] = "PORT_ID",
+    [LogicalColumn.RiskFactor] = "RISK_NAME",
+    [LogicalColumn.ExposureAmount] = "EXPOSURE",
+    [LogicalColumn.LimitAmount] = "LIMIT",
+    [LogicalColumn.UseYn] = "ACTIVE_YN",
+    [LogicalColumn.CurrencyCode] = "CCY_CUSTOM",
+    [LogicalColumn.UnitCode] = "UNIT_CUSTOM"
+});
+var r2MappedExposureCsv = Path.Combine(limitSmokeDirectory, "r2_mapped_exposure.csv");
+var r2MappedLimitMismatchCsv = Path.Combine(limitSmokeDirectory, "r2_mapped_limit_mismatch.csv");
+var r2MappedLimitCleanCsv = Path.Combine(limitSmokeDirectory, "r2_mapped_limit_clean.csv");
+WriteCsvRows(
+    r2MappedExposureCsv,
+    [
+        new[] { "BASE_DATE", "PORT_ID", "RISK_NAME", "EXPOSURE", "CCY_CUSTOM", "UNIT_CUSTOM" },
+        new[] { "20260617", "PF_R2", "RF_R2", "50", "KRW", "KRW_MN" }
+    ]);
+WriteCsvRows(
+    r2MappedLimitMismatchCsv,
+    [
+        new[] { "BASE_DATE", "PORT_ID", "RISK_NAME", "LIMIT", "ACTIVE_YN", "CCY_CUSTOM", "UNIT_CUSTOM" },
+        new[] { "20260617", "PF_R2", "RF_R2", "100", "Y", "USD", "KRW" }
+    ]);
+WriteCsvRows(
+    r2MappedLimitCleanCsv,
+    [
+        new[] { "BASE_DATE", "PORT_ID", "RISK_NAME", "LIMIT", "ACTIVE_YN", "CCY_CUSTOM", "UNIT_CUSTOM" },
+        new[] { "20260617", "PF_R2", "RF_R2", "100", "Y", "KRW", "KRW_MN" }
+    ]);
+var mappedMismatchResult = new LimitMonitor(r2Mapping).Analyze(r2MappedExposureCsv, r2MappedLimitMismatchCsv, "20260617");
+context.AssertTrue(mappedMismatchResult.Rows.Single().CurrencyCode == "KRW", "LimitMonitor should read mapped CurrencyCode from custom physical column");
+context.AssertTrue(ReconciliationCheckFor(mappedMismatchResult, "RECON_CURRENCY_MISMATCH").Applicable && ReconciliationExceptionCount(mappedMismatchResult, "RECON_CURRENCY_MISMATCH") == 1, "LimitMonitor should use ColumnMapping for currency reconciliation");
+context.AssertTrue(ReconciliationCheckFor(mappedMismatchResult, "RECON_UNIT_MISMATCH").Applicable && ReconciliationExceptionCount(mappedMismatchResult, "RECON_UNIT_MISMATCH") == 1, "LimitMonitor should activate RECON_UNIT_MISMATCH when mapped unit columns differ");
+var mappedCleanResult = new LimitMonitor(r2Mapping).Analyze(r2MappedExposureCsv, r2MappedLimitCleanCsv, "20260617");
+context.AssertTrue(ReconciliationCheckFor(mappedCleanResult, "RECON_UNIT_MISMATCH").Applicable && ReconciliationExceptionCount(mappedCleanResult, "RECON_UNIT_MISMATCH") == 0, "LimitMonitor should not emit RECON_UNIT_MISMATCH when mapped unit values match");
+var sixOnlyMapping = new ColumnMapping(new Dictionary<LogicalColumn, string>
+{
+    [LogicalColumn.BaseDate] = "BASE_DT",
+    [LogicalColumn.PortfolioId] = "PORTFOLIO_ID",
+    [LogicalColumn.RiskFactor] = "RISK_FACTOR",
+    [LogicalColumn.ExposureAmount] = "EXPOSURE_AMT",
+    [LogicalColumn.LimitAmount] = "LIMIT_AMT",
+    [LogicalColumn.UseYn] = "USE_YN"
+});
+var sixOnlyOptionalResult = new LimitMonitor(sixOnlyMapping).Analyze(wp06CleanExposureCsv, wp06CleanLimitCsv, "20260617");
+context.AssertTrue(
+    !ReconciliationCheckFor(sixOnlyOptionalResult, "RECON_CURRENCY_MISMATCH").Applicable
+        && !ReconciliationCheckFor(sixOnlyOptionalResult, "RECON_UNIT_MISMATCH").Applicable,
+    "LimitMonitor should keep optional currency and unit reconciliation inactive for six-column mappings");
+var repeatedDuplicateLimitResult = limitMonitor.Analyze(wp06CleanExposureCsv, wp06DuplicateLimitCsv, "20260617");
+context.AssertTrue(
+    repeatedDuplicateLimitResult.Rows.Select(row => row.StatusCode).SequenceEqual(duplicateLimitResult.Rows.Select(row => row.StatusCode))
+        && repeatedDuplicateLimitResult.Metadata.JoinAudit.SequenceEqual(duplicateLimitResult.Metadata.JoinAudit),
+    "LimitMonitor duplicate limit status and JoinAudit should be deterministic for repeated inputs");
 
 var mappingErrorExposureCsv = Path.Combine(limitSmokeDirectory, "wp05_missing_amount.csv");
 File.WriteAllText(

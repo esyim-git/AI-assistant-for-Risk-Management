@@ -9,7 +9,6 @@ public sealed class LimitMonitor
 {
     private const string DeskCodeColumn = "DESK_CD";
     private const string ProductTypeColumn = "PRODUCT_TYPE";
-    private const string CurrencyCodeColumn = "CCY_CD";
 
     private const string ReconExposureNoLimit = "RECON_EXPOSURE_NO_LIMIT";
     private const string ReconLimitNoExposure = "RECON_LIMIT_NO_EXPOSURE";
@@ -40,6 +39,8 @@ public sealed class LimitMonitor
         ReconRowAmplification,
         ReconSumBalance
     };
+
+    private static readonly string[] BaseDateInputFormats = ["yyyyMMdd", "yyyy-MM-dd"];
 
     private readonly ColumnMappingLoadResult columnMappingLoadResult;
 
@@ -75,19 +76,37 @@ public sealed class LimitMonitor
         }
 
         var mapping = columnMappingLoadResult.Mapping;
+        mapping.TryPhysical(LogicalColumn.CurrencyCode, out var currencyCodeColumn);
+        mapping.TryPhysical(LogicalColumn.UnitCode, out var unitCodeColumn);
         var columns = new RequiredColumns(
             mapping.Physical(LogicalColumn.BaseDate),
             mapping.Physical(LogicalColumn.PortfolioId),
             mapping.Physical(LogicalColumn.RiskFactor),
             mapping.Physical(LogicalColumn.ExposureAmount),
             mapping.Physical(LogicalColumn.LimitAmount),
-            mapping.Physical(LogicalColumn.UseYn));
-        var normalizedBaseDate = baseDate.Trim();
+            mapping.Physical(LogicalColumn.UseYn),
+            currencyCodeColumn,
+            unitCodeColumn);
+        var baseDateValidation = ValidateBaseDate(baseDate);
+        var normalizedBaseDate = baseDateValidation.NormalizedBaseDate;
         var rows = new List<LimitMonitorRow>();
         var exceptions = new List<LimitException>();
         var findings = columnMappingLoadResult.Warnings
             .Select(warning => new SafetyFinding("COLUMN_MAPPING_FALLBACK", SafetySeverity.Medium, warning))
             .ToList();
+
+        if (!baseDateValidation.IsValid)
+        {
+            var message = $"요청 기준일 형식이 유효하지 않습니다: '{baseDateValidation.RequestedBaseDate}'. 허용 형식은 yyyyMMdd 또는 yyyy-MM-dd입니다.";
+            findings.Add(new SafetyFinding("LIMIT_BASEDATE_FORMAT_INVALID", SafetySeverity.Low, message));
+            exceptions.Add(new LimitException(
+                ReconBaseDateMismatch,
+                SafetySeverity.Low,
+                message,
+                normalizedBaseDate,
+                string.Empty,
+                string.Empty));
+        }
 
         foreach (var warning in columnMappingLoadResult.Warnings)
         {
@@ -106,7 +125,7 @@ public sealed class LimitMonitor
             var message = $"노출 입력에 매핑된 물리 컬럼이 없습니다: {string.Join(", ", missingExposureColumns)}";
             AddAnalysisMappingError(rows, exceptions, normalizedBaseDate, message);
             findings.Add(new SafetyFinding("LIMIT_MAPPING_ERROR", SafetySeverity.High, message));
-            return BuildResult(normalizedBaseDate, exposure, limit, rows, exceptions, findings, columns);
+            return BuildResult(baseDateValidation, exposure, limit, rows, exceptions, findings, columns);
         }
 
         var exposures = exposure.Rows
@@ -127,13 +146,24 @@ public sealed class LimitMonitor
             }
 
             findings.Add(new SafetyFinding("LIMIT_MAPPING_ERROR", SafetySeverity.High, message));
-            return BuildResult(normalizedBaseDate, exposure, limit, rows, exceptions, findings, columns);
+            return BuildResult(baseDateValidation, exposure, limit, rows, exceptions, findings, columns);
         }
 
-        var activeLimits = limit.Rows
+        var limitGroupsForBaseDate = limit.Rows
             .Where(row => string.Equals(GetRequired(row, columns.BaseDate), normalizedBaseDate, StringComparison.Ordinal))
             .GroupBy(row => BuildJoinKey(GetRequired(row, columns.PortfolioId), GetRequired(row, columns.RiskFactor)), StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(group => group.Key, group => group.Last(), StringComparer.OrdinalIgnoreCase);
+            .Select(group => new LimitRowGroup(
+                group.Key,
+                GetRequired(group.First(), columns.PortfolioId),
+                GetRequired(group.First(), columns.RiskFactor),
+                group.ToArray()))
+            .ToArray();
+        var duplicateLimitCounts = limitGroupsForBaseDate
+            .Where(group => group.Rows.Count > 1)
+            .ToDictionary(group => group.Key, group => group.Rows.Count, StringComparer.OrdinalIgnoreCase);
+        var activeLimits = limitGroupsForBaseDate
+            .Where(group => group.Rows.Count == 1)
+            .ToDictionary(group => group.Key, group => group.Rows[0], StringComparer.OrdinalIgnoreCase);
 
         foreach (var exposureRow in exposures)
         {
@@ -149,6 +179,12 @@ public sealed class LimitMonitor
                     exposureRow,
                     columns,
                     $"{columns.ExposureAmount} 값이 숫자가 아닙니다.");
+                continue;
+            }
+
+            if (duplicateLimitCounts.TryGetValue(key, out var duplicateLimitCount))
+            {
+                AddDuplicateLimitRow(rows, exceptions, normalizedBaseDate, exposureRow, columns, exposureAmount, duplicateLimitCount);
                 continue;
             }
 
@@ -203,7 +239,12 @@ public sealed class LimitMonitor
             findings.Add(new SafetyFinding("LIMIT_MAPPING_ERROR", SafetySeverity.High, "매핑된 물리 컬럼이 입력과 일치하지 않는 항목이 있습니다."));
         }
 
-        return BuildResult(normalizedBaseDate, exposure, limit, rows, exceptions, findings, columns);
+        if (rows.Any(row => row.Status == LimitMonitorStatus.DuplicateLimit))
+        {
+            findings.Add(new SafetyFinding("LIMIT_DUPLICATE_LIMIT_DETECTED", SafetySeverity.Medium, "동일 기준일·동일 Join Key 한도 중복으로 차단된 항목이 있습니다."));
+        }
+
+        return BuildResult(baseDateValidation, exposure, limit, rows, exceptions, findings, columns);
     }
 
     private static CsvTable ReadTable(string path)
@@ -222,7 +263,7 @@ public sealed class LimitMonitor
     }
 
     private LimitAnalysisResult BuildResult(
-        string baseDate,
+        BaseDateValidation baseDateValidation,
         CsvTable exposure,
         CsvTable limit,
         IReadOnlyList<LimitMonitorRow> rows,
@@ -230,21 +271,22 @@ public sealed class LimitMonitor
         IReadOnlyList<SafetyFinding> findings,
         RequiredColumns columns)
     {
+        var baseDate = baseDateValidation.NormalizedBaseDate;
         var kpis = LimitAnalysisKpis.FromRows(rows);
-        var metadata = new LimitAnalysisMetadata(
-            baseDate,
-            exposure.SourceName,
-            limit.SourceName,
-            columnMappingLoadResult.UsedFallback,
-            columnMappingLoadResult.Warnings,
-            IsDeterministic: true);
-
         var reconciliationComputation = BuildReconciliationExceptions(baseDate, exposure, limit, rows, columns);
         var allExceptions = exceptions.Concat(reconciliationComputation.Exceptions).ToArray();
         var reconciliation = BuildReconciliationSummary(
             allExceptions,
             reconciliationComputation.CurrencyApplicable,
             reconciliationComputation.UnitApplicable);
+        var metadata = new LimitAnalysisMetadata(
+            baseDate,
+            exposure.SourceName,
+            limit.SourceName,
+            columnMappingLoadResult.UsedFallback,
+            columnMappingLoadResult.Warnings,
+            IsDeterministic: true,
+            BuildJoinAudit(baseDateValidation, rows, reconciliationComputation, columns));
         var reconciliationSeverity = reconciliation.Passed ? SafetySeverity.Info : SafetySeverity.High;
         var allFindings = findings
             .Concat(new[]
@@ -329,13 +371,22 @@ public sealed class LimitMonitor
 
         AddBaseDateMismatchExceptions(exceptions, baseDate, exposure, limit, columns);
 
-        var currencyApplicable = HasColumn(exposure, CurrencyCodeColumn)
-            && HasColumn(limit, CurrencyCodeColumn)
+        var currencyApplicable = HasOptionalColumn(exposure, columns.CurrencyCode)
+            && HasOptionalColumn(limit, columns.CurrencyCode)
             && canBuildExposureKey
             && canBuildLimitKey;
         if (currencyApplicable)
         {
             AddCurrencyMismatchExceptions(exceptions, baseDate, exposureRowsForBaseDate, limitGroupByKey, columns);
+        }
+
+        var unitApplicable = HasOptionalColumn(exposure, columns.UnitCode)
+            && HasOptionalColumn(limit, columns.UnitCode)
+            && canBuildExposureKey
+            && canBuildLimitKey;
+        if (unitApplicable)
+        {
+            AddUnitMismatchExceptions(exceptions, baseDate, exposureRowsForBaseDate, limitGroupByKey, columns);
         }
 
         if (HasColumn(limit, columns.LimitAmount))
@@ -370,7 +421,7 @@ public sealed class LimitMonitor
                 .ThenBy(exception => exception.Message, StringComparer.Ordinal)
                 .ToArray(),
             currencyApplicable,
-            UnitApplicable: false);
+            unitApplicable);
     }
 
     private static void AddBaseDateMismatchExceptions(
@@ -424,19 +475,59 @@ public sealed class LimitMonitor
                 continue;
             }
 
-            var exposureCurrency = GetOptional(exposureRow, CurrencyCodeColumn);
-            var limitCurrency = GetOptional(limitGroup.Rows.Last(), CurrencyCodeColumn);
-            if (!string.IsNullOrWhiteSpace(exposureCurrency)
-                && !string.IsNullOrWhiteSpace(limitCurrency)
-                && !string.Equals(exposureCurrency, limitCurrency, StringComparison.OrdinalIgnoreCase))
+            var exposureCurrency = GetOptional(exposureRow, columns.CurrencyCode);
+            var limitCurrencies = DistinctOptionalValues(limitGroup.Rows, columns.CurrencyCode);
+            foreach (var limitCurrency in limitCurrencies)
             {
-                exceptions.Add(CreateException(
-                    ReconCurrencyMismatch,
-                    SafetySeverity.Medium,
-                    $"노출 통화({exposureCurrency})와 한도 통화({limitCurrency})가 다릅니다.",
-                    baseDate,
-                    portfolioId,
-                    riskFactor));
+                if (!string.IsNullOrWhiteSpace(exposureCurrency)
+                    && !string.IsNullOrWhiteSpace(limitCurrency)
+                    && !string.Equals(exposureCurrency, limitCurrency, StringComparison.OrdinalIgnoreCase))
+                {
+                    exceptions.Add(CreateException(
+                        ReconCurrencyMismatch,
+                        SafetySeverity.Medium,
+                        $"노출 통화({exposureCurrency})와 한도 통화({limitCurrency})가 다릅니다.",
+                        baseDate,
+                        portfolioId,
+                        riskFactor));
+                }
+            }
+        }
+    }
+
+    private static void AddUnitMismatchExceptions(
+        List<LimitException> exceptions,
+        string baseDate,
+        IReadOnlyList<CsvRow> exposureRowsForBaseDate,
+        IReadOnlyDictionary<string, LimitRowGroup> limitGroupByKey,
+        RequiredColumns columns)
+    {
+        foreach (var exposureRow in exposureRowsForBaseDate)
+        {
+            var portfolioId = GetRequired(exposureRow, columns.PortfolioId);
+            var riskFactor = GetRequired(exposureRow, columns.RiskFactor);
+            var key = BuildJoinKey(portfolioId, riskFactor);
+            if (!limitGroupByKey.TryGetValue(key, out var limitGroup))
+            {
+                continue;
+            }
+
+            var exposureUnit = GetOptional(exposureRow, columns.UnitCode);
+            var limitUnits = DistinctOptionalValues(limitGroup.Rows, columns.UnitCode);
+            foreach (var limitUnit in limitUnits)
+            {
+                if (!string.IsNullOrWhiteSpace(exposureUnit)
+                    && !string.IsNullOrWhiteSpace(limitUnit)
+                    && !string.Equals(exposureUnit, limitUnit, StringComparison.OrdinalIgnoreCase))
+                {
+                    exceptions.Add(CreateException(
+                        ReconUnitMismatch,
+                        SafetySeverity.Medium,
+                        $"노출 단위({exposureUnit})와 한도 단위({limitUnit})가 다릅니다.",
+                        baseDate,
+                        portfolioId,
+                        riskFactor));
+                }
             }
         }
     }
@@ -631,6 +722,46 @@ public sealed class LimitMonitor
         exceptions.Add(CreateException("INVALID_LIMIT", SafetySeverity.Medium, row.Note, row));
     }
 
+    private static void AddDuplicateLimitRow(
+        List<LimitMonitorRow> rows,
+        List<LimitException> exceptions,
+        string baseDate,
+        CsvRow exposureRow,
+        RequiredColumns columns,
+        decimal exposureAmount,
+        int duplicateLimitCount)
+    {
+        var row = CreateRow(
+            baseDate,
+            exposureRow,
+            columns,
+            exposureAmount,
+            0m,
+            0m,
+            0m,
+            LimitMonitorStatus.DuplicateLimit,
+            $"동일 기준일·동일 Join Key 한도가 {duplicateLimitCount:N0}건이라 단정 불가: 검토 필요");
+        rows.Add(row);
+        exceptions.Add(CreateException("DUPLICATE_LIMIT", SafetySeverity.Medium, row.Note, row));
+    }
+
+    private static IReadOnlyList<string> BuildJoinAudit(
+        BaseDateValidation baseDateValidation,
+        IReadOnlyList<LimitMonitorRow> rows,
+        ReconciliationComputation reconciliationComputation,
+        RequiredColumns columns)
+    {
+        var duplicateLimitCount = rows.Count(row => row.Status == LimitMonitorStatus.DuplicateLimit);
+        return
+        [
+            $"JoinKey={columns.BaseDate}+{columns.PortfolioId}+{columns.RiskFactor}",
+            $"DuplicateLimitRule=blocked; duplicateExposureRows={duplicateLimitCount:N0}",
+            $"CurrencyApplicable={reconciliationComputation.CurrencyApplicable}",
+            $"UnitApplicable={reconciliationComputation.UnitApplicable}",
+            $"BaseDateRequested={baseDateValidation.RequestedBaseDate}; normalized={baseDateValidation.NormalizedBaseDate}; valid={baseDateValidation.IsValid}; formats={string.Join("|", BaseDateInputFormats)}"
+        ];
+    }
+
     private static void AddMappingErrorRow(
         List<LimitMonitorRow> rows,
         List<LimitException> exceptions,
@@ -674,7 +805,7 @@ public sealed class LimitMonitor
             GetOptional(exposureRow, columns.PortfolioId),
             GetOptional(exposureRow, ProductTypeColumn),
             GetOptional(exposureRow, columns.RiskFactor),
-            GetOptional(exposureRow, CurrencyCodeColumn),
+            GetOptional(exposureRow, columns.CurrencyCode),
             exposureAmount,
             limitAmount,
             usageRatio,
@@ -737,6 +868,22 @@ public sealed class LimitMonitor
         return decimal.TryParse(value, NumberStyles.Number | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out parsed);
     }
 
+    private static BaseDateValidation ValidateBaseDate(string baseDate)
+    {
+        var requestedBaseDate = baseDate.Trim();
+        if (DateTime.TryParseExact(
+            requestedBaseDate,
+            BaseDateInputFormats,
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.None,
+            out var parsedBaseDate))
+        {
+            return new BaseDateValidation(requestedBaseDate, parsedBaseDate.ToString("yyyyMMdd", CultureInfo.InvariantCulture), IsValid: true);
+        }
+
+        return new BaseDateValidation(requestedBaseDate, requestedBaseDate, IsValid: false);
+    }
+
     private static IReadOnlyList<string> MissingColumns(CsvTable table, IReadOnlyList<string> requiredColumns)
     {
         return requiredColumns
@@ -764,15 +911,46 @@ public sealed class LimitMonitor
         return table.Columns.Contains(columnName, StringComparer.OrdinalIgnoreCase);
     }
 
+    private static bool HasOptionalColumn(CsvTable table, string? columnName)
+    {
+        return !string.IsNullOrWhiteSpace(columnName)
+            && HasColumn(table, columnName);
+    }
+
     private static string GetRequired(CsvRow row, string columnName)
     {
         return row.GetValue(columnName);
     }
 
-    private static string GetOptional(CsvRow row, string columnName)
+    private static string GetOptional(CsvRow row, string? columnName)
     {
+        if (string.IsNullOrWhiteSpace(columnName))
+        {
+            return string.Empty;
+        }
+
         return row.TryGetValue(columnName, out var value) ? value : string.Empty;
     }
+
+    private static IReadOnlyList<string> DistinctOptionalValues(IReadOnlyList<CsvRow> rows, string? columnName)
+    {
+        if (string.IsNullOrWhiteSpace(columnName))
+        {
+            return Array.Empty<string>();
+        }
+
+        return rows
+            .Select(row => GetOptional(row, columnName))
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(value => value, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private sealed record BaseDateValidation(
+        string RequestedBaseDate,
+        string NormalizedBaseDate,
+        bool IsValid);
 
     private sealed record RequiredColumns(
         string BaseDate,
@@ -780,7 +958,9 @@ public sealed class LimitMonitor
         string RiskFactor,
         string ExposureAmount,
         string LimitAmount,
-        string UseYn);
+        string UseYn,
+        string? CurrencyCode,
+        string? UnitCode);
 
     private sealed record ReconciliationComputation(
         IReadOnlyList<LimitException> Exceptions,
@@ -816,6 +996,7 @@ public sealed record LimitMonitorRow(
         LimitMonitorStatus.NoLimit => "NO_LIMIT",
         LimitMonitorStatus.InvalidLimit => "INVALID_LIMIT",
         LimitMonitorStatus.MappingError => "MAPPING_ERROR",
+        LimitMonitorStatus.DuplicateLimit => "DUPLICATE_LIMIT",
         _ => Status.ToString().ToUpperInvariant()
     };
 }
@@ -827,5 +1008,6 @@ public enum LimitMonitorStatus
     Breach,
     NoLimit,
     InvalidLimit,
-    MappingError
+    MappingError,
+    DuplicateLimit
 }

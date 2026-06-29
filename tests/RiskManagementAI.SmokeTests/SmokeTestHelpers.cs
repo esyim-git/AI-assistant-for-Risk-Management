@@ -287,7 +287,7 @@ internal static LimitAnalysisResult EmptyLimitAnalysis(string baseDate = "202606
         baseDate,
         rows,
         LimitAnalysisKpis.FromRows(rows),
-        new LimitAnalysisMetadata(baseDate, "N/A", "N/A", ColumnMappingUsedFallback: false, ColumnMappingWarnings: Array.Empty<string>(), IsDeterministic: true),
+        new LimitAnalysisMetadata(baseDate, "N/A", "N/A", ColumnMappingUsedFallback: false, ColumnMappingWarnings: Array.Empty<string>(), IsDeterministic: true, JoinAudit: Array.Empty<string>()),
         Array.Empty<LimitException>(),
         Array.Empty<SafetyFinding>(),
         new ReconciliationSummary(Passed: true, CheckCount: 0, Checks: Array.Empty<ReconciliationCheck>()));

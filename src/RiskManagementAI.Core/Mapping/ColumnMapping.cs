@@ -7,7 +7,9 @@ public enum LogicalColumn
     RiskFactor,
     ExposureAmount,
     LimitAmount,
-    UseYn
+    UseYn,
+    CurrencyCode,
+    UnitCode
 }
 
 public sealed class ColumnMapping
@@ -30,7 +32,9 @@ public sealed class ColumnMapping
             [LogicalColumn.RiskFactor] = "RISK_FACTOR",
             [LogicalColumn.ExposureAmount] = "EXPOSURE_AMT",
             [LogicalColumn.LimitAmount] = "LIMIT_AMT",
-            [LogicalColumn.UseYn] = "USE_YN"
+            [LogicalColumn.UseYn] = "USE_YN",
+            [LogicalColumn.CurrencyCode] = "CCY_CD",
+            [LogicalColumn.UnitCode] = "UNIT_CD"
         });
 
     public string Physical(LogicalColumn col)
@@ -42,6 +46,19 @@ public sealed class ColumnMapping
         }
 
         throw new InvalidDataException($"Logical column '{col}' is not mapped to a physical column.");
+    }
+
+    public bool TryPhysical(LogicalColumn col, out string? physicalColumn)
+    {
+        if (physicalColumns.TryGetValue(col, out var mappedColumn)
+            && !string.IsNullOrWhiteSpace(mappedColumn))
+        {
+            physicalColumn = mappedColumn;
+            return true;
+        }
+
+        physicalColumn = null;
+        return false;
     }
 }
 
