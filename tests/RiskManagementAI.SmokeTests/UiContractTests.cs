@@ -212,5 +212,55 @@ context.AssertTrue(ResizableEditorOk("SqlRequestBox"), "UI SQL editor box should
 context.AssertTrue(ResizableEditorOk("VbaRequestBox"), "UI VBA editor box should stretch with Consolas font");
 context.AssertTrue(ResizableEditorOk("ExcelRequestBox"), "UI Excel editor box should stretch with Consolas font");
 context.AssertTrue(mainWindowXamlText.Contains("MinWidth=\"280\"", StringComparison.Ordinal) && mainWindowXamlText.Contains("MaxWidth=\"560\"", StringComparison.Ordinal), "UI Safety panel column should set MinWidth and MaxWidth bounds");
+
+// UX-WP-03: Smart Assist WPF popup contract.
+var completionPopupXamlPath = Path.Combine("src", "RiskManagementAI.App", "Controls", "CompletionPopup.xaml");
+var completionPopupCodePath = Path.Combine("src", "RiskManagementAI.App", "Controls", "CompletionPopup.xaml.cs");
+var completionPopupXaml = XDocument.Load(completionPopupXamlPath);
+var completionPopupXamlText = File.ReadAllText(completionPopupXamlPath);
+var completionPopupCode = File.ReadAllText(completionPopupCodePath);
+var completionEditorNames = new[] { "SqlRequestBox", "VbaRequestBox", "ExcelRequestBox", "RiskCommentRequestBox" };
+context.AssertTrue(
+    completionEditorNames.All(name => mainWindowXaml.Descendants(wpf + "TextBox").Any(t => (string?)t.Attribute(xaml + "Name") == name)),
+    "Assist completion UI should expose SQL/VBA/Excel/RiskComment input boxes");
+context.AssertTrue(ResizableEditorOk("RiskCommentRequestBox"), "Assist completion UI RiskComment box should stretch with Consolas font");
+context.AssertTrue(
+    mainWindowCode.Contains("RegisterCompletionTextBox(SqlRequestBox, CompletionLanguage.Sql)", StringComparison.Ordinal)
+    && mainWindowCode.Contains("RegisterCompletionTextBox(VbaRequestBox, CompletionLanguage.Vba)", StringComparison.Ordinal)
+    && mainWindowCode.Contains("RegisterCompletionTextBox(ExcelRequestBox, CompletionLanguage.Excel)", StringComparison.Ordinal)
+    && mainWindowCode.Contains("RegisterCompletionTextBox(RiskCommentRequestBox, CompletionLanguage.RiskComment)", StringComparison.Ordinal),
+    "Assist completion UI should map four input boxes to completion languages");
+context.AssertTrue(
+    completionPopupXaml.Descendants(wpf + "Popup").Any()
+    && completionPopupXaml.Descendants(wpf + "ListBox").Any(),
+    "Assist completion popup should use WPF Popup and ListBox only");
+context.AssertTrue(
+    completionPopupXamlText.Contains("{Binding Source}", StringComparison.Ordinal)
+    && completionPopupXamlText.Contains("{Binding Kind}", StringComparison.Ordinal)
+    && completionPopupXamlText.Contains("{Binding RequiresReview}", StringComparison.Ordinal),
+    "Assist completion popup should display Source Kind RequiresReview fields");
+context.AssertTrue(
+    mainWindowCode.Contains("Key.Space", StringComparison.Ordinal)
+    && mainWindowCode.Contains("Key.Enter", StringComparison.Ordinal)
+    && mainWindowCode.Contains("Key.Tab", StringComparison.Ordinal)
+    && mainWindowCode.Contains("Key.Escape", StringComparison.Ordinal),
+    "Assist completion UI should wire Ctrl+Space Enter Tab Esc keys");
+context.AssertTrue(
+    mainWindowCode.Contains("if (!item.Insertable)", StringComparison.Ordinal)
+    && mainWindowCode.Contains("안전 힌트는 정보 표시 전용", StringComparison.Ordinal),
+    "Assist completion UI should not insert SafetyHint or BlockedHint items");
+context.AssertTrue(
+    mainWindowCode.Contains("InsertCompletionText(_completionTargetBox, item.InsertText)", StringComparison.Ordinal)
+    && !mainWindowCode.Contains("TextChanged += OnCompletion", StringComparison.Ordinal),
+    "Assist completion UI should insert only on explicit selected completion accept");
+context.AssertTrue(
+    mainWindowCode.Contains("SuggestionLogEntry.FromAcceptedItem", StringComparison.Ordinal)
+    && mainWindowCode.Contains("LogHash.Sha256Hex(Environment.UserName)", StringComparison.Ordinal)
+    && !completionPopupCode.Contains("File.AppendAllText", StringComparison.Ordinal),
+    "Assist completion UI should audit accepted suggestions through hash-only SuggestionLogWriter");
+context.AssertTrue(
+    mainWindowCode.Contains("ShowFindings(\"Smart Assist\", _completionResult.Findings)", StringComparison.Ordinal)
+    && mainWindowCode.Contains("item.Finding", StringComparison.Ordinal),
+    "Assist completion UI should pass structured safety findings to the result panel");
     }
 }
