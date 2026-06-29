@@ -76,6 +76,7 @@ R1(DONE) ─► R3(DONE) ─► STAB(v0.6.1) ─► R2(v0.7) ─► KB(v0.8) ─
 | C-23 | 정적 Provider (SQL/VBA/Excel2021+365차단/SafetyHint/RiskPhrase) | UX-WP-02 | 차단 DML/금지 API 미추천·365 대체힌트·RuleSet 재사용·실데이터 0 | A | **VERIFIED**(local-gate, #72. 정적·NoModel 한정; 실 Test PC Gate BLOCKED) |
 | C-24 | WPF Completion Popup (Ctrl+Space·선택 삽입·자동삽입 없음) | UX-WP-03 | 자동삽입 없음·Source/Kind/RequiresReview 노출·결과패널 연계 | A | **VERIFIED**(local-gate, #73. WPF 기본 컨트롤·외부 Editor 0 한정; 실 Test PC Gate BLOCKED) |
 | C-25 | Resizable Editor Layout (GridSplitter·고정높이 제거·창 Min·TextBox Stretch) | STAB-UX-01 | GridSplitter 존재·EditorRow 비고정·MinWidth/MinHeight·SQL/VBA Stretch·XAML Contract·기존 SmokeTest 보존 | A | **VERIFIED**(#68, local-gate; XAML Contract +7, 기능변경 0) |
+| C-26 | Resizable Layout Persistence (창 크기·분할 비율·Safety 너비 세션 영속) | STAB-UX-02 | round-trip·손상→기본값 fallback·config 경로가드·clamp·**무결성 critical 비대상**·.gitignore | A | **NEXT**(프롬프트 READY; 레이아웃만 영속·NuGet 0) |
 | C-13 | Risk Semantic Hardening | R2-WP-01 | 중복키 차단·RECON_UNIT·BASE_DT 정규화 | Data | TODO |
 | C-14 | Streaming/Perf | R2-WP-02 | 상한·Welford·벤치 | Data | TODO |
 | C-15 | 전일 대비 | R2-WP-03 | Current/Prev/Δ·TopN | Data | TODO |
