@@ -99,3 +99,66 @@
 > 관련: `docs/46`(Smart Assist 설계)·`docs/39`(UX-WP-01~03)·`docs/38`(UX Track)·`docs/14`(UI)·`CLAUDE.md §4·§5·§6`.
 
 > 관련: `docs/39`(WP 백로그)·`docs/41`(Data/Model/Pilot Gate)·`docs/11`(ADR-001)·`docs/17`(RAG)·`docs/08`(NCR)·`CLAUDE.md §3·§11`.
+
+## ADR-011. R2 Analytics — 데이터 정확성 우선 · 인박스 분석/시각화 (R1 위 확장)
+
+- **상태**: 채택 (Accepted, 설계) — 구현은 추후 Codex 로컬(이 Linux 환경엔 .NET SDK 없음 → 본 ADR은 설계/계약만, 빌드·실행 증거 0). 실 오프라인 Test PC 게이트 증거 전까지 어떤 WP도 Gate PASS·VERIFIED로 표기하지 않는다(§11.4).
+- **범위**: R2 = Risk Analytics & Visualization 4개 WP(R2-WP-01 Risk Semantic Hardening / R2-WP-02 Streaming·Performance / R2-WP-03 Prior-Day Analytics / R2-WP-04 Visualization·Report). 기준선 = main `c5464b8`, VERSION 0.6.0, R1 완료(`LimitMonitor`·공통 `LimitAnalysisResult`·6상태·대사·`ColumnMapping`·`CsvReader`/`XlsxReader`·`DataProfiler`).
+- **제외 범위**: Local LLM/추론 Runtime/모델파일(ADR-003·009), Vector DB/Embedding(ADR-007), AI Commentary 본문 생성, 내부규정/NCR 원문 적재. R2는 **결정적(deterministic) 데이터 분석/시각화만** 다룬다.
+
+---
+
+### Context (맥락)
+
+1. **왜 데이터 정확성을 LLM보다 먼저 두는가.** 본 제품의 신뢰는 "수치가 맞다"에서 나온다. 분석 입력(Join·단위·중복키·기준일)이 부정확하면 그 위에 얹는 어떤 AI 코멘터리도 잘못된 전제를 증폭할 뿐이다. ADR-002가 단일 분석 진실원장(`LimitAnalysisResult`)을 세웠으나, R1 구현에는 **무성(silent) 부정확 경로**가 남아 있다(아래 코드 근거). LLM 능력 확장(R4, ADR-003·009 = 승인 게이트 BLOCKED)보다 먼저, R1 위에 데이터 semantic을 경화(harden)하는 것이 우선순위다.
+
+2. **R1 코드에서 확인된 부정확/미활성 경로**(직접 Read로 검증, main `c5464b8`):
+   - `LimitMonitor.cs:135-136` — 한도 테이블을 Join Key로 `GroupBy` 후 **`group.Last()`로 중복 키를 임의 1건 선택**. 동일 (PortfolioId, RiskFactor)에 한도가 2건 이상이면 어느 것이 채택됐는지 사용자에게 보이지 않고, 입력 순서에 따라 수치가 흔들린다(비결정성 위험).
+   - `LimitMonitor.cs:16,19` — `RECON_DUPLICATE_LIMIT`·`RECON_UNIT_MISMATCH` 상수는 존재하나 단위(통화·금액단위) 대사가 충분히 활성화되어 있지 않다. `ColumnMapping`(`LogicalColumn`)에는 통화/단위 논리컬럼이 없어(`BaseDate/PortfolioId/RiskFactor/ExposureAmount/LimitAmount/UseYn`만, `ColumnMapping.cs:3-11`) 통화·단위가 매핑·검증 대상에서 빠져 있다.
+   - BASE_DT는 Ordinal 문자열로 비교(`LimitMonitor.cs:113·134·752` 류)되어 포맷 정규화/검증이 없다. 전일대비(R2-WP-03)에서 두 일자 문자열 포맷이 어긋나면 Join이 전부 New/Resolved noise로 무너진다.
+   - `LimitAnalysisMetadata`(`LimitAnalysisResult.cs:57-63`)에 **Join 선택 규칙·중복키 처리 근거가 기록되지 않아** 사후 감사로 "왜 이 한도가 쓰였나"를 추적할 수 없다.
+
+3. **시각화 수요와 절대 원칙의 충돌.** 대시보드/리포트(R2-WP-04)는 차트·Heatmap·TopN·집중도를 요구하나, 외부 charting NuGet(OxyPlot/LiveCharts/ScottPlot 등) 도입은 NuGet-0 불변식(§11.5·ADR-001/004)을 깬다 → STOP 트리거.
+
+4. **대용량/손상 입력.** Golden6 export는 크고 깨질 수 있다. 전체 로드 기반 통계는 메모리/안정성 위험(RR-08)이 있어 streaming + 온라인 통계가 필요하다.
+
+---
+
+### Decision (결정)
+
+**원칙: R2는 R1 위에 "결정적 데이터 정확성"을 경화한 뒤, 그 위에 인박스(in-box)만으로 분석·시각화를 얹는다. 부정확을 보정하지 않고 상태/Finding으로 표면화한다(임의 보정 0).**
+
+1. **① 중복키·단위 Semantic Hardening 상태화 (R2-WP-01, RR-15).**
+   - 중복 Limit Key를 `group.Last()` **임의 선택으로 더 이상 무성 처리하지 않는다.** 중복 발생 시 명시적으로 `DUPLICATE_LIMIT` 상태/Finding으로 차단·표면화하고 `RECON_DUPLICATE_LIMIT` 대사를 활성 카운트한다(임의 1건 채택 금지).
+   - 통화·금액단위를 `ColumnMapping`(승인형, `config/column_mapping.json`)으로 관리 대상에 편입하고, `RECON_UNIT_MISMATCH`를 실제 활성화한다(노출↔한도 단위 불일치 시 합산 차단·상태화).
+   - BASE_DT는 `System.Globalization`(`DateTime.TryParseExact`/Invariant)로 **형식 검증·정규화**한다. 보정 불가 시 `BASE_DT_FORMAT_MISMATCH`로 표면화(추정 보정 금지).
+   - Join 선택 규칙·중복키 처리 근거를 **`LimitAnalysisMetadata`(Audit Metadata)에 기록**한다(생성자 확장 → `BuildResult`·`DashboardSnapshotBuilder`·`ExcelReportBuilder` 등 메타 소비부 동기 컴파일 수정, 기능 변경 0).
+
+2. **② 대용량 Streaming + Welford 온라인 통계 (R2-WP-02, RR-08), 인박스만.**
+   - 대용량·손상 파일을 `System.IO`(StreamReader 등) 기반 **streaming + 입력 상한**으로 처리(전체 메모리 로드 회피). 평균/분산은 **Welford 온라인 알고리즘**(1-pass, 수치 안정)으로 계산. SHA256 해시 Audit·결정적 프로파일 유지. 외부 NuGet 0.
+
+3. **③ 전일 대비 결정적 출력 — 4구획 계약 (R2-WP-03).**
+   - Current/Prev/Δ·TopN movers를 BASE_DT(① 정규화 전제) 기준 prior-day 결합으로 산출. 출력 계약 = **Data-Fact / Methodology / User-Validation / Hidden-Risk 4구획**(검토용 초안·결정적, 임의 보정 0). ① 미완 시 본 분석은 포맷 불일치를 `BASE_DT_FORMAT_MISMATCH` Hidden-Risk로 표면화하되 차단되지는 않는다(권장 선행, 비블로커). 순수 인박스 `decimal` 산술.
+
+4. **④ 인박스 시각화 — 외부 charting NuGet 금지 (R2-WP-04).**
+   - 차트/Heatmap/TopN/집중도·정확 Exception Count·Excel Report 강화를 **인박스 수단만으로** 구현: WPF `Shapes`/`DrawingVisual`/`Canvas`(화면) 또는 OOXML `chartXML` 직접 생성(`System.IO.Compression`, ADR-004 DM-03 정합, 엑셀 리포트). **외부 charting NuGet(OxyPlot/LiveCharts/ScottPlot 등) 도입은 STOP.** TopN/집중도 정의는 R2-WP-03의 4구획 계약과 정합시키고 중복 정의를 금지하며, 본 WP는 당일 `LimitAnalysisResult` 기준 집계만 한다. ① 미완 시 통화 혼합 합산은 `MIXED_CURRENCY` Finding으로 전제를 명시(차단 아님).
+
+---
+
+### STOP 가드 (외부 의존 0)
+
+- **외부 NuGet PackageReference = 0** 유지 — R2 전 WP는 인박스 `System.*`(IO/Globalization/Text.Json/Linq/Diagnostics/Security.Cryptography)만 사용. 위반 시 STOP.
+- **Vector DB / Embedding / Local LLM Runtime / 모델파일 = STOP**(승인 전 금지, ADR-003·007·009).
+- **외부 charting NuGet = STOP** — 시각화는 인박스만(WPF Shapes/DrawingVisual/Canvas, OOXML chartXML).
+- 외부 API/Telemetry/AutoUpdate 0 · SQL/VBA/Golden6 자동실행 0 · 해시 Audit(원문 미저장) · NoModelMode 유지 · 쓰기 경로 `logs/`·`reports/`·`config/` 한정.
+- 실데이터·실 테이블/컬럼명·내부규정/NCR 원문·모델파일 repo 미포함. seed/샘플은 일반 더미명만.
+
+---
+
+### Consequences (결과)
+
+- **(+)** 무성 부정확(중복키 임의선택·단위 불일치·BASE_DT 포맷오류)이 **상태/Finding/Audit Metadata로 표면화** → ADR-002의 단일 진실원장이 실제로 신뢰 가능해지고, 그 위 분석(전일대비)·시각화가 정합 전제를 갖는다.
+- **(+)** R2-WP-01이 ④·③의 통화 혼합 합산·prior-day Join 정합을 떠받치는 사실상의 선행(강결합 아님, 미완 시 차단 대신 명시적 Finding). R2-WP-02는 독립 시작 가능(파일 충돌 낮음: Data/ vs Risk·Mapping/).
+- **(-)** `LimitAnalysisMetadata` 생성자 변경으로 메타 소비부(BuildResult·Dashboard·Report) 동기 컴파일 수정 필요(기능 변경 0). 중복키를 더 이상 묵시 채택하지 않으므로, 기존 중복 입력은 이제 `DUPLICATE_LIMIT`로 드러나 사용자 조치(데이터 정합)가 요구된다 — 의도된 행동 변경.
+- **(-)** 인박스 시각화는 외부 라이브러리 대비 표현/공수 제약이 크다(차트 종류·렌더 품질). 이를 감수해 NuGet-0·반입 안전을 우선한다.
+- **(검증 한계)** 본 ADR·R2 WP는 이 Linux 환경에서 빌드/실행 불가 → 설계/계약만. 기존 SmokeTest Total 보존 + 신규 단언은 도메인 분류기로 분류(Unclassified=0). 생성 xlsx 손상 검증·WPF 렌더·streaming 벤치는 실 Test PC PILOT Gate(BLOCKED) 증거 전까지 PASS/VERIFIED 금지(과대표기 금지 §11.4).

@@ -23,7 +23,7 @@ Offline · 외부 NuGet 0 · 외부 API/Telemetry/AutoUpdate 0 · SQL/VBA/Golden
 | **STAB** | **v0.6.1** | **Stabilization**(빌드/버전 재현성·Release 보안·Integrity Manifest·정본 테스트 베이스라인·테스트 구조) | — | **STAB-WP-01/02/03/04 DONE**(#56/#57/#59/#61/#66) · **STAB-WP-05**(코드서명) **APPROVAL_REQUIRED** |
 | PILOT | (병행) | v0.6 오프라인 Test PC Gate B/C 증거 | Pilot Gate B/C | **BLOCKED**(실 Test PC 증거 대기) |
 | **UX** | (병행) v0.7.x | **Smart Assist / Inline Assist** (입력 중 자동완성·snippet·추천 문구·실시간 안전 힌트, **정적·NoModel**) + Resizable Layout(영속화 포함) | Gate A(보안) | **STAB-UX-01/02·UX-WP-01~03 DONE**(#68·#70·#72·#73·#76, local-gate) · **UX/STAB-UX 트랙 완료**(실 LLM 랭킹=R4 미구현; 실 Test PC Gate B/C BLOCKED) |
-| R2 | v0.7.0 | Risk Analytics & Visualization (Semantic Hardening·Streaming·전일대비·차트) | Data Spec Gate | 설계 |
+| R2 | v0.7.0 | Risk Analytics & Visualization (Semantic Hardening·Streaming·전일대비·차트) | Data Spec Gate | **설계 완료**(ADR-011 · R2-WP-01~04 WP+프롬프트 READY) · **R2-WP-01 NEXT**(UX/STAB 마감 후) |
 | KB | v0.8.0 | Public Knowledge Pack (조항 원문 Chunk, keyword only) | RAG Approval Gate | 설계(원문 적재 STOP) |
 | NCR | v0.8.x | Approved NCR Rule Pack 계약 | NCR Approval Gate | 설계(계수 미포함) |
 | R4 | v0.9.0 | Local LLM **Adapter (설계 전용)** | Model Approval Gate | 설계만 + STOP |
@@ -77,10 +77,10 @@ R1(DONE) ─► R3(DONE) ─► STAB(v0.6.1) ─► R2(v0.7) ─► KB(v0.8) ─
 | C-24 | WPF Completion Popup (Ctrl+Space·선택 삽입·자동삽입 없음) | UX-WP-03 | 자동삽입 없음·Source/Kind/RequiresReview 노출·결과패널 연계 | A | **VERIFIED**(local-gate, #73. WPF 기본 컨트롤·외부 Editor 0 한정; 실 Test PC Gate BLOCKED) |
 | C-25 | Resizable Editor Layout (GridSplitter·고정높이 제거·창 Min·TextBox Stretch) | STAB-UX-01 | GridSplitter 존재·EditorRow 비고정·MinWidth/MinHeight·SQL/VBA Stretch·XAML Contract·기존 SmokeTest 보존 | A | **VERIFIED**(#68, local-gate; XAML Contract +7, 기능변경 0) |
 | C-26 | Resizable Layout Persistence (창 크기·분할 비율·Safety 너비 세션 영속) | STAB-UX-02 | round-trip·손상→기본값 fallback·config 경로가드·clamp·**무결성 critical 비대상**·.gitignore | A | **VERIFIED**(local-gate, #76; `Total 631→646`, 무결성 미변경, NuGet 0) |
-| C-13 | Risk Semantic Hardening | R2-WP-01 | 중복키 차단·RECON_UNIT·BASE_DT 정규화 | Data | TODO |
-| C-14 | Streaming/Perf | R2-WP-02 | 상한·Welford·벤치 | Data | TODO |
-| C-15 | 전일 대비 | R2-WP-03 | Current/Prev/Δ·TopN | Data | TODO |
-| C-16 | Visualization/Report | R2-WP-04 | 인박스 차트·정확 Exception Count | Data | TODO |
+| C-13 | Risk Semantic Hardening | R2-WP-01 | 중복키 차단(DUPLICATE_LIMIT)·통화/단위 ColumnMapping·RECON_UNIT 활성·BASE_DT 검증/정규화·Join Audit | Data | NOT_IMPLEMENTED (프롬프트 READY; 설계만, 인박스 NuGet 0) |
+| C-14 | Streaming/Perf (대용량 streaming·행/바이트 상한·Welford 온라인 분산·중복 해시·결정적 프로파일) | R2-WP-02 | streaming==기존 결정성·상한 `InvalidDataException`·Welford 정확·`DuplicateRowCount` 불변·(선택)벤치 | Data | NOT_IMPLEMENTED (프롬프트 READY; 인박스 NuGet 0) |
+| C-15 | 전일 대비(Prior-Day Analytics: Current/Prev/Δ·TopN movers·BASE_DT prior-day 결합·4구획 출력계약) | R2-WP-03 | prior-day comparison/New·Resolved/TopN ordering/state-transition 비숫자 mover/BASE_DT format mismatch/4구획 결정성·R1 6상태 보존 (LimitReconciliationTests +6) | Data | **NOT_IMPLEMENTED**(설계; Branch `feature/r2-wp-03-prior-day-analytics`, 논리 선행=R2-WP-01 BASE_DT 정규화) |
+| C-16 | Visualization/Report(인박스 차트·Heatmap·TopN·집중도·정확 Exception Count) | R2-WP-04 | 정확 Exception Count(Number SoT)·신규 RISK_VISUAL 시트 배선·TopN/집중도 결정성·Heatmap 등급·NuGet 0 | Data | NOT_IMPLEMENTED (TODO) |
 | C-17 | Knowledge Pack Contract/Ingestion | KB-WP-01~02 | Manifest·Chunk·인용검증 | RAG | 설계 |
 | C-18 | Approved NCR Rule Pack | NCR-WP-01 | Pack 없으면 계산 차단·APPROVAL_REQUIRED | NCR | 설계 |
 | C-19 | Local LLM Adapter 계약 | LLM-WP-01 | NoModel 유지·ProcessBoundary | Model | 설계만 |
