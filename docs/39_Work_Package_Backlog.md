@@ -140,7 +140,7 @@
 
 > 각 WP는 **하나의 목표**만. Codex는 Resume Brief의 NEXT UP 1개만 집는다. 프롬프트 경로 = `prompts/codex/<WP-ID>_*.md`. 절대원칙·STOP 규칙(`AGENTS.md`) 전부 유지.
 
-## STAB-WP-01. Build / Version Reproducibility — **NEXT UP** (RR-11)
+## STAB-WP-01. Build / Version Reproducibility — **DONE** (RR-11)
 - **현재 문제**: `build/01~03` 기본 `[string]$Version="0.2.0"` ≠ `VERSION`(0.6.0). 무인자 실행 시 0.2.0 산출물 생성 위험. VERSION이 단일 원천이 아님.
 - **목표**: `VERSION` 파일을 **단일 버전 원천**으로. 빌드 스크립트가 VERSION을 읽고, `-Version` 전달 시 **불일치하면 실패(exit 1)**. Release Note/ZIP/SHA/DependencyList가 동일 Version 사용. Build metadata(Commit SHA·Test 총수·SDK·Runtime·Build Date)를 Release Note에 기록.
 - **선행조건**: 없음.
