@@ -49,7 +49,7 @@ Offline · 외부 NuGet 0 · 외부 API/Telemetry/AutoUpdate 0 · SQL/VBA/Golden
 | 정적 Provider(SQL/VBA/Excel2021+365차단/SafetyHint/RiskPhrase) | UX(v0.7.x) | **VERIFIED**(local-gate; UX-WP-02 #72. 정적·NoModel·RuleSet 단일원천 재사용 한정; 실 LLM 랭킹=R4 미구현) |
 | WPF Completion Popup(Ctrl+Space·선택 삽입·자동삽입 없음) | UX(v0.7.x) | **VERIFIED**(local-gate; UX-WP-03 #73. WPF 기본 컨트롤·외부 Editor 0·자동삽입 0 한정; 실 Test PC Gate B/C BLOCKED) |
 | Excel Function Helper(검색·상세·인수·리스크예시·수식예시·365여부·Excel2021 대체식·추천, 정적) | UX(Gate B 후속) | **NOT_IMPLEMENTED · UX-WP-04 등록**(Gate B 2026-06-30 B-5 PARTIAL 후속; 기존 `Excel2021FunctionChecker` 재사용·정적·NoModel·NuGet 0) |
-| Smart Assist 입력중 추천 표면화(정적 as-you-type·Popup 확장) | UX(Gate B 후속) | **PLACEHOLDER · UX-WP-05/06 스코프확정대기**(기존 Core/Provider/Popup #70/#72/#73 확장; 실시간 LLM 랭킹=R4 미구현) |
+| Smart Assist 입력중 추천 표면화(정적 as-you-type·Popup 표시 확장) | UX(Gate B 후속) | **NOT_IMPLEMENTED · UX-WP-05/06 스코프 확정·프롬프트 READY**(현 Smart Assist=Ctrl+Space-only by-design→B-5 회귀 아님; UX-WP-05 as-you-type 신규(Core 변경 0·WPF 트리거)·UX-WP-06 팝업 표시 확장; 실시간 LLM 랭킹=R4 미구현) |
 | Risk Semantic Hardening(중복키/통화·단위 매핑/RECON_UNIT) | R2 | **VERIFIED**(local-gate, #79; Core 의미 경화 한정·실 Test PC Gate B/C BLOCKED) |
 | Streaming/대용량 입력 · 행/바이트 상한 · Welford 누산 + 정확 Outlier parity · 중복행 해시 | R2 | **VERIFIED**(local-gate, #81; `Total=680 PASS=680 FAIL=0`, 실 Test PC Gate B/C BLOCKED) |
 | 전일 대비(Prior-Day: Current/Prev/Δ·movers·4구획 계약) | R2 | **VERIFIED**(local-gate, #84; `Total=698 PASS=698 FAIL=0`, 실 Test PC Gate B/C BLOCKED) |
@@ -95,7 +95,7 @@ R1(DONE) ─► R3(DONE) ─► STAB(v0.6.1) ─► R2(v0.7) ─► KB(v0.8) ─
 | C-20 | 승인 Example 검색·Prompt 반영 (RETRIEVAL, 학습 아님) | FEEDBACK-WP-01/02 | 승인 Example만·가중치 불변·ingest 게이트·결정적 검색·해시 audit·review 경유 주입 | — | PARTIAL · **설계(ADR-014) · FEEDBACK-WP-01/02 계획** (승격+영속까지; 검색/주입=인박스·Vector STOP·모델파일 0) |
 | C-21 | Gate B/C 증거 | PILOT-WP-01 | docs/45 12+항목 | Pilot | BLOCKED (2026-06-30 부분검증 `docs/48 §B′`) |
 | C-29 | Excel Function Helper (검색·상세·인수·리스크예시·수식예시·365여부·Excel2021 대체식·추천, 정적) | UX-WP-04 | 함수 메타 단일원천(기존 `Excel2021FunctionChecker` 재사용)·상세 완비·차단함수→대체식·사용자선택 삽입(자동삽입 0)·입력 원문 로그 미저장·NuGet 0 | A·Local-Gate | **NOT_IMPLEMENTED · UX-WP-04 등록**(Gate B B-5 PARTIAL 후속; 프롬프트 READY) |
-| C-30 | Smart Assist 입력중 추천 표면화 / Popup 확장 (정적·NoModel) | UX-WP-05/06 | 정적 as-you-type 추천·자동삽입 0·기존 Core/Popup(#70/#72/#73) 확장·입력 원문 미저장 | A·Local-Gate | **PLACEHOLDER · 스코프확정대기**(실시간 LLM 랭킹=R4) |
+| C-30 | Smart Assist 입력중 추천 표면화 / Popup 표시 확장 (정적·NoModel) | UX-WP-05/06 | UX-WP-05: debounced TextChanged 트리거(Core 변경 0·최소 prefix 게이트·재진입 가드·결정 헬퍼)·UX-WP-06: 팝업 Snippet/SafetyNote/Kind 표시·자동삽입 0·입력 원문 미저장 | A·Local-Gate | **NOT_IMPLEMENTED · 스코프 확정·프롬프트 READY**(Ctrl+Space-only by-design→B-5 회귀 아님; 실시간 LLM 랭킹=R4) |
 
 ## 6. Risk Register
 

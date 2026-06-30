@@ -50,7 +50,7 @@ v0.7.0 portable ZIP을 **실 오프라인 Test PC(Gate B)** 및 **운영 반입 
 | B-2 ZIP 압축 해제 | ✅ PASS | (필수 트리 enumerate는 후속) | B1 |
 | B-3 오프라인 실행 | ✅ PASS | 인터넷 차단 기동 | B3 |
 | B-4 NoModelMode 기동 | ✅ PASS | — | B3 |
-| B-5 SQL/VBA/Excel 검사 | 🟡 **PARTIAL PASS** | 정상입력=문제없음 표시·비정상입력=변수누락 등 검사결과 표시 **정상**. **잔여** ① Smart Assist/입력중 추천문구/snippet 자동완성 **없음** → **UX Enhancement**(Gate B blocker 아님; 정적 범위 입력중 추천 = UX-WP-05/06, 실시간 LLM 랭킹 = R4 미구현) ② Excel 검사가 단순 함수 차단 수준 — **함수 상세설명·사용예시·Excel 2021 대체식** 안내 필요 → 신규 **UX-WP-04 Excel Function Helper** | B13 |
+| B-5 SQL/VBA/Excel 검사 | 🟡 **PARTIAL PASS** | 정상입력=문제없음 표시·비정상입력=변수누락 등 검사결과 표시 **정상**. **잔여** ① Smart Assist/입력중 추천문구/snippet 자동완성 **없음** → **UX Enhancement**(Gate B blocker 아님). **코드 조사(2026-06-30) 결과 = Ctrl+Space-only by-design**(`RegisterCompletionTextBox`가 `TextChanged` 미연결) → **B-5는 회귀 아님**. 정적 범위 입력중 추천은 **UX-WP-05 신규 추가**(as-you-type 트리거)·**UX-WP-06 팝업 표시 확장**, 실시간 LLM 랭킹 = R4 미구현 ② Excel 검사가 단순 함수 차단 수준 — **함수 상세설명·사용예시·Excel 2021 대체식** 안내 필요 → 신규 **UX-WP-04 Excel Function Helper** | B13 |
 | B-6 CSV/XLSX 샘플 분석 | ⬜ **PENDING** | **다음 사용자 액션** | B4 입력/DataProfile |
 | B-7 한도분석 실행 | ✅ PASS | 7상태/`DUPLICATE_LIMIT` 상세 캡처는 후속 | B4 |
 | B-8 Excel Report 생성 | ⬜ **PENDING** | **다음 사용자 액션** | B9 (`RISK_VISUAL`) |
