@@ -1,6 +1,6 @@
 ---
 name: risk-doc-truth-sync
-description: Align README, CLAUDE.md, AGENTS.md, roadmap, gates, release notes, and work package docs with the current implementation.
+description: Align README, CLAUDE.md, AGENTS.md, roadmap, gates, release notes, and work package docs with the current implementation. Auto-applied in Claude's planning/post-merge Preflight (CLAUDE.md §13).
 disable-model-invocation: true
 allowed-tools: Read Grep Glob Edit Bash(git status *) Bash(git log *) Bash(git diff *)
 ---

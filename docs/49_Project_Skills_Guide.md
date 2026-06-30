@@ -27,11 +27,11 @@ prompts/codex/README_skills_usage.md       # Codex 사용법
 | 문서 정합 | `risk-doc-truth-sync` |
 | 릴리스 | `risk-release-verify` → `risk-gate-bc` |
 
-## 3. Claude 사용 (요약, 정본 = `CLAUDE.md §12`)
-작업 시작 시 필요 Skill 선택 → Codex 인계 전 `risk-wp-planner` → 결과 `risk-codex-review` → Release 전 `risk-release-verify` → Gate B/C 전 `risk-gate-bc` → Local LLM은 `risk-llm-approval` 없이 진행 금지 → RAG/NCR은 `risk-rag-ncr-governance` 적용.
+## 3. Claude 사용 (요약, 정본 = `CLAUDE.md §12`·§13)
+작업 시작 시 필요 Skill 선택 → Codex 인계 전 `risk-wp-planner` → 결과 `risk-codex-review` → Release 전 `risk-release-verify` → Gate B/C 전 `risk-gate-bc` → Local LLM은 `risk-llm-approval` 없이 진행 금지 → RAG/NCR은 `risk-rag-ncr-governance` 적용. **자동 Preflight**(`CLAUDE.md §13`): 사용자가 `/risk-*`를 매번 호출하지 않아도 작업 유형별 체인(계획/PR/UI/Data/RAG/Release/Gate/LLM)을 Claude가 표준 절차로 자동 적용한다. STOP Gate(release/gate/llm)는 자동 실행 아님(승인 선행).
 
-## 4. Codex 사용 (요약, 정본 = `AGENTS.md §8` / `README_skills_usage.md`)
-Codex는 Skill을 자동 실행하지 못한다 → **`SKILLS.md` + 관련 SKILL.md를 읽는 체크리스트로** 사용. Skill 문서 수정 금지(명시 요청 제외). 완료 보고에 "사용한 Skill 체크리스트" 명시.
+## 4. Codex 사용 (요약, 정본 = `AGENTS.md §8`·§9 / `README_skills_usage.md`)
+Codex는 Skill을 자동 실행하지 못한다 → **`SKILLS.md` + 관련 SKILL.md를 읽는 체크리스트로** 사용. **Automatic Skill Bridge**(`AGENTS.md §9`): 매 구현 전 항상 `AGENTS.md`→`SKILLS.md`→관련 SKILL.md→대상 WP 프롬프트를 스스로 읽고(사용자에게 문서 목록 재요청 0), 완료 보고에 **"Applied Skill Checklists"**(= "사용한 Skill 체크리스트") 명시. Skill 문서 수정 금지(명시 요청 제외).
 
 ## 5. 유지보수 규약
 - **신규 Skill**: `.claude/skills/<risk-name>/SKILL.md` 추가(frontmatter name=폴더명 일치) → `SKILLS.md §4` 표·호출 순서 갱신 → 필요 시 `CLAUDE.md §12`/`AGENTS.md §8` 반영.

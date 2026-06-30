@@ -1,6 +1,6 @@
 ---
 name: risk-status-sync
-description: Sync current project status, VERSION, roadmap, SmokeTest baseline, gates, and NEXT UP before planning the next work.
+description: Sync current project status, VERSION, roadmap, SmokeTest baseline, gates, and NEXT UP before planning the next work. Auto-applied first in Claude's planning Preflight (CLAUDE.md §13).
 disable-model-invocation: true
 allowed-tools: Read Grep Glob Bash(git status *) Bash(git log *) Bash(git diff *) Bash(dotnet build *) Bash(dotnet run *)
 ---

@@ -38,8 +38,16 @@ Codex는 Claude Code Skill을 **자동 실행하지 못한다**. 따라서 Codex
 4. `risk-doc-truth-sync` — 머지 후 문서 정합
 5. 도메인별 검토는 6·7·8·9·10·11·12·13·14를 작업 성격에 맞게 병용
 
-## 6. 자동 호출 가능 Skill (paths 스코프)
-`risk-smoke-governance`(tests) · `risk-security-guard`(전체) · `risk-data-limit-review`(Data/Mapping/Risk/Report) · `risk-rag-ncr-governance`(Kb/Ncr/kb/config·ncr) · `risk-ui-ux-review`(App/Assist). 해당 경로 작업 시 체크리스트로 적용.
+## 6. 자동 적용 / 자동 Preflight / STOP Gate 구분
+Skill은 적용 방식에 따라 **3분류**한다. 정본 Preflight 체인 = `CLAUDE.md §13`(Claude) · `AGENTS.md §9`(Codex Automatic Skill Bridge).
+
+| 분류 | Skill | 적용 방식 |
+|---|---|---|
+| **자동 적용(path-scoped)** | `risk-security-guard`·`risk-smoke-governance`·`risk-data-limit-review`·`risk-rag-ncr-governance`·`risk-ui-ux-review` | `paths:` 스코프 — 해당 경로 작업 시 Claude Code가 자동 표면화(Codex는 해당 경로 작업 시 체크리스트로 참조) |
+| **자동 Preflight(표준 절차)** | `risk-status-sync`·`risk-doc-truth-sync`·`risk-wp-planner`·`risk-codex-review`·`risk-analytics-design`·`risk-feedback-learning`·`risk-branch-governance` | 작업 유형 인지 시 Claude가 명시 호출 없이 표준 절차로 적용(사용자 `/skill` 타이핑 불필요) |
+| **STOP Gate(승인형)** | `risk-release-verify`·`risk-gate-bc`·`risk-llm-approval` | Preflight로 참조하되 **자동 실행·자동 PASS 아님** — 실 Test PC 증거·인증서/모델 승인 전 진행·PASS 금지(§7·`CLAUDE.md §11.4·§11.5`) |
+
+> "자동 적용/Preflight"은 **체크리스트 적용**이지 **게이트 통과**가 아니다. Gate B/C·Release·LLM은 증거/승인 선행(STOP).
 
 ## 7. 금지사항 (모든 Skill 공통)
 외부 다운로드 · 외부 NuGet 추가 · 모델파일 추가 · 실데이터/내부규정 원문/NCR 공식본 원문 추가 · 비밀번호/토큰/secret 추가 · SQL/VBA 자동실행 기능 추가 · main 직접 push · force push · 기존 테스트 삭제/약화. (Skill 문서는 코드 동작을 바꾸지 않는다.)
