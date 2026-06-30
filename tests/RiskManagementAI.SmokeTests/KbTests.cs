@@ -9,6 +9,12 @@ if (File.Exists(kbSearchLogPath))
     File.Delete(kbSearchLogPath);
 }
 
+var clausePackSampleDirectory = Path.Combine("kb", "clause_pack_sample");
+foreach (var orphanClausePack in Directory.EnumerateFiles(clausePackSampleDirectory, "smoke_*.csv"))
+{
+    File.Delete(orphanClausePack);
+}
+
 var regulationCatalog = RegulationCatalog.LoadDefault();
 context.AssertTrue(regulationCatalog.Entries.Count >= 5, "RegulationCatalog should load public catalog entries");
 var publicRegEntry = regulationCatalog.Entries.Single(entry => entry.SourceId == "FIA_REG");
@@ -157,6 +163,15 @@ try
     var duplicateClauseLoad = ClausePackLoader.Load(duplicateClausePackPath);
     context.AssertTrue(duplicateClauseLoad.Clauses.Count == 1 && duplicateClauseLoad.Findings.Any(finding => finding.Code == "KB_CLAUSE_PACK_DUPLICATE_NATURAL_KEY"), "KbSearch clause pack loader should reject conflicting duplicate natural keys with diagnostics");
 
+    var identicalDuplicateClausePackPath = Path.Combine("kb", "clause_pack_sample", $"smoke_identical_duplicate_{Guid.NewGuid():N}.csv");
+    tempClausePackPaths.Add(identicalDuplicateClausePackPath);
+    File.WriteAllText(
+        identicalDuplicateClausePackPath,
+        "clause_ref,clause_body,source_id,effective_date,repeal_date,pack_version\nArticle-X,alpha synthetic body,FIA_REG,2026-01-01,,pack-smoke\nArticle-X,alpha synthetic body,FIA_REG,2026-01-01,,pack-smoke\n",
+        Encoding.UTF8);
+    var identicalDuplicateClauseLoad = ClausePackLoader.Load(identicalDuplicateClausePackPath);
+    context.AssertTrue(identicalDuplicateClauseLoad.Clauses.Count == 1 && !identicalDuplicateClauseLoad.Findings.Any(finding => finding.Code == "KB_CLAUSE_PACK_DUPLICATE_NATURAL_KEY"), "KbSearch clause pack loader should silently dedupe identical duplicate natural keys");
+
     var missingHeaderClausePackPath = Path.Combine("kb", "clause_pack_sample", $"smoke_missing_header_{Guid.NewGuid():N}.csv");
     tempClausePackPaths.Add(missingHeaderClausePackPath);
     File.WriteAllText(
@@ -174,6 +189,15 @@ try
         Encoding.UTF8);
     var skippedRowLoad = ClausePackLoader.Load(skippedRowClausePackPath);
     context.AssertTrue(skippedRowLoad.Clauses.Count == 1 && !skippedRowLoad.UsedFallback && skippedRowLoad.Findings.Any(finding => finding.Code == "KB_CLAUSE_PACK_ROW_SKIPPED"), "KbSearch clause pack loader should skip invalid rows with diagnostics while loading valid rows");
+
+    var tooManyFieldsClausePackPath = Path.Combine("kb", "clause_pack_sample", $"smoke_too_many_fields_{Guid.NewGuid():N}.csv");
+    tempClausePackPaths.Add(tooManyFieldsClausePackPath);
+    File.WriteAllText(
+        tooManyFieldsClausePackPath,
+        "clause_ref,clause_body,source_id,effective_date,repeal_date,pack_version\nArticle-Too-Many,alpha synthetic body,FIA_REG,2026-01-01,,pack-smoke,extra-field\nArticle-Valid,beta synthetic body,FIA_REG,2026-01-01,,pack-smoke\n",
+        Encoding.UTF8);
+    var tooManyFieldsLoad = ClausePackLoader.Load(tooManyFieldsClausePackPath);
+    context.AssertTrue(tooManyFieldsLoad.Clauses.Count == 1 && !tooManyFieldsLoad.UsedFallback && tooManyFieldsLoad.Findings.Any(finding => finding.Code == "KB_CLAUSE_PACK_ROW_SKIPPED"), "KbSearch clause pack loader should skip rows with too many fields while loading valid rows");
 }
 finally
 {

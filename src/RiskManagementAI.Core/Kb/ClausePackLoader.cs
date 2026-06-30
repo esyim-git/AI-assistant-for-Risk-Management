@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using RiskManagementAI.Core.Data;
 using RiskManagementAI.Core.Logging;
 using RiskManagementAI.Core.Safety;
@@ -132,7 +134,7 @@ public static class ClausePackLoader
         var repealDate = row.GetValue("repeal_date");
         var packVersion = row.GetValue("pack_version");
         var sourceTextHash = LogHash.Sha256Hex(clauseText);
-        var chunkIdSeed = string.Join('|', sourceId, clauseRef, packVersion, sourceTextHash);
+        var chunkIdSeed = BuildLengthPrefixedKey(sourceId, clauseRef, packVersion, sourceTextHash);
         var chunkId = $"clause-{LogHash.Sha256Hex(chunkIdSeed)[..12]}";
         return new RegulationClause(
             chunkId,
@@ -147,7 +149,20 @@ public static class ClausePackLoader
 
     private static string BuildNaturalKey(string sourceId, string clauseRef, string packVersion)
     {
-        return string.Join('|', sourceId, clauseRef, packVersion);
+        return BuildLengthPrefixedKey(sourceId, clauseRef, packVersion);
+    }
+
+    private static string BuildLengthPrefixedKey(params string[] components)
+    {
+        var builder = new StringBuilder();
+        foreach (var component in components)
+        {
+            builder.Append(component.Length.ToString(CultureInfo.InvariantCulture));
+            builder.Append(':');
+            builder.Append(component);
+        }
+
+        return builder.ToString();
     }
 
     private static ClausePackLoadResult CreateFallback(SafetyFinding finding)
@@ -172,18 +187,41 @@ public static class ClausePackLoader
 
     private static string? ResolveClausePackPath(string relativeClausePackPath)
     {
-        var appBaseCandidate = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, relativeClausePackPath));
-        if (File.Exists(appBaseCandidate))
+        var appBaseCandidate = ResolveClausePackPathUnderRoot(AppContext.BaseDirectory, relativeClausePackPath);
+        if (appBaseCandidate is not null)
         {
             return appBaseCandidate;
         }
 
-        var currentDirectoryCandidate = Path.GetFullPath(Path.Combine(Environment.CurrentDirectory, relativeClausePackPath));
-        if (File.Exists(currentDirectoryCandidate))
+        var currentDirectoryCandidate = ResolveClausePackPathUnderRoot(Environment.CurrentDirectory, relativeClausePackPath);
+        if (currentDirectoryCandidate is not null)
         {
             return currentDirectoryCandidate;
         }
 
         return null;
+    }
+
+    private static string? ResolveClausePackPathUnderRoot(string root, string relativeClausePackPath)
+    {
+        var rootPath = EnsureTrailingSeparator(Path.GetFullPath(root));
+        var resolvedPath = Path.GetFullPath(Path.Combine(rootPath, relativeClausePackPath));
+        if (!resolvedPath.StartsWith(rootPath, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return File.Exists(resolvedPath) ? resolvedPath : null;
+    }
+
+    private static string EnsureTrailingSeparator(string path)
+    {
+        if (path.EndsWith(Path.DirectorySeparatorChar)
+            || path.EndsWith(Path.AltDirectorySeparatorChar))
+        {
+            return path;
+        }
+
+        return path + Path.DirectorySeparatorChar;
     }
 }
