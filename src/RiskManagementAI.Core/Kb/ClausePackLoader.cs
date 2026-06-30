@@ -78,13 +78,11 @@ public static class ClausePackLoader
             }
 
             var findings = new List<SafetyFinding>();
-            var hasRejectedRows = false;
             var clausesByNaturalKey = new SortedDictionary<string, RegulationClause>(StringComparer.Ordinal);
             foreach (var row in table.Rows)
             {
                 if (row.RawFieldCount > table.Columns.Count)
                 {
-                    hasRejectedRows = true;
                     findings.Add(new SafetyFinding(
                         "KB_CLAUSE_PACK_ROW_SKIPPED",
                         SafetySeverity.Medium,
@@ -95,7 +93,6 @@ public static class ClausePackLoader
                 var missingValueColumn = RequiredValueColumns.FirstOrDefault(column => string.IsNullOrWhiteSpace(row.GetValue(column)));
                 if (missingValueColumn is not null)
                 {
-                    hasRejectedRows = true;
                     findings.Add(new SafetyFinding(
                         "KB_CLAUSE_PACK_ROW_SKIPPED",
                         SafetySeverity.Medium,
@@ -109,7 +106,6 @@ public static class ClausePackLoader
                 {
                     if (!string.Equals(existing.SourceTextHash, clause.SourceTextHash, StringComparison.Ordinal))
                     {
-                        hasRejectedRows = true;
                         findings.Add(new SafetyFinding(
                             "KB_CLAUSE_PACK_DUPLICATE_NATURAL_KEY",
                             SafetySeverity.Medium,
@@ -122,7 +118,7 @@ public static class ClausePackLoader
                 clausesByNaturalKey[naturalKey] = clause;
             }
 
-            if (hasRejectedRows)
+            if (findings.Count > 0)
             {
                 return CreateFallback(findings);
             }
