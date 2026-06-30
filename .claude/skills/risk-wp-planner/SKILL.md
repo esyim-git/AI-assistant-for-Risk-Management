@@ -1,6 +1,6 @@
 ---
 name: risk-wp-planner
-description: Create a precise Codex Work Package and implementation prompt for one requested WP.
+description: Create a precise Codex Work Package and implementation prompt for one requested WP. Auto-applied last in Claude's planning Preflight (CLAUDE.md §13).
 argument-hint: "[WP-ID]"
 arguments: [wp_id]
 disable-model-invocation: true

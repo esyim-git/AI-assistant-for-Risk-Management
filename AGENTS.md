@@ -92,3 +92,30 @@ Codex는 Claude Code Skill을 **자동 실행하지 못한다.** 따라서 Skill
 - 구현 완료 보고에 **"사용한 Skill 체크리스트"를 명시**한다.
 
 > 상세 사용법·호출 순서 = `SKILLS.md`, `prompts/codex/README_skills_usage.md`, `docs/49_Project_Skills_Guide.md`. Skill 본문은 `CLAUDE.md §12`와 정합.
+
+---
+
+## 9. Automatic Skill Bridge (자동 참조 — 사용자 재요청 불필요)
+
+§8 Skill Bridge를 **자동 절차로 고정**한다. Codex는 사용자가 매번 `AGENTS.md`/`SKILLS.md`/관련 Skill 문서를 붙여넣지 않아도, **모든 구현 착수 전 항상** 다음을 스스로 읽는다:
+
+1. `AGENTS.md` (본 파일 — 우선순위·절대원칙·STOP·Gate)
+2. `SKILLS.md` (Skill 인덱스 · 자동 적용/자동 Preflight/STOP Gate 분류 = `SKILLS.md §6`)
+3. 해당 WP에 **관련된 `.claude/skills/<skill-name>/SKILL.md`(+support)** — 작업 유형별 매핑 = `prompts/codex/README_skills_usage.md §1`
+4. 지정 **NEXT UP WP의 Codex 프롬프트** `prompts/codex/<WP-ID>_*.md`
+
+- Codex는 위 문서 목록을 **사용자에게 다시 요구하지 않는다**(자동 참조가 기본값).
+- Codex는 완료 보고에 **"Applied Skill Checklists"** 섹션을 포함한다(적용한 Skill 명시 = §5 "사용한 Skill 체크리스트"의 영문 명칭).
+- release · security · RAG/NCR · Local LLM · data-limit · UI/UX 작업은 해당 Skill 문서를 **먼저** 읽는다(§8과 동일). **Local LLM/Runtime/모델/Embedding은 `risk-llm-approval` = STOP** — 승인 전 의존성·모델·Runtime 추가 0.
+- Codex는 **Skill 문서를 수정하지 않는다**(사용자 명시 요청 제외).
+
+### 9.1 예시 — "STAB-UX-01 구현해"
+사용자가 WP 이름만 말해도 Codex는 자동으로 다음을 적용한다:
+- `risk-ui-ux-review` (WPF/Editor/Smart Assist 검토축)
+- `risk-smoke-governance` (SmokeTest 단언 보존·약화 금지·Unclassified=0)
+- `risk-security-guard` (Gate A · 민감정보/실데이터/원문/모델파일 0)
+- `prompts/codex/STAB-UX-01_resizable_editor_layout.md` (해당 WP 프롬프트)
+
+→ 보고: `Applied Skill Checklists: risk-ui-ux-review, risk-smoke-governance, risk-security-guard`.
+
+> Claude 측 자동 Preflight = `CLAUDE.md §13`. 분류 = `SKILLS.md §6`. 상세 = `prompts/codex/README_skills_usage.md`.

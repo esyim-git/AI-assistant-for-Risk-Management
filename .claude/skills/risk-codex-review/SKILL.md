@@ -1,6 +1,6 @@
 ---
 name: risk-codex-review
-description: Review Codex PR/diff against a Work Package, checking scope, security, tests, docs, gates, and no-regression rules.
+description: Review Codex PR/diff against a Work Package, checking scope, security, tests, docs, gates, and no-regression rules. Auto-applied first in Claude's PR-review Preflight (CLAUDE.md §13).
 argument-hint: "[PR-number or WP-ID]"
 arguments: [target]
 disable-model-invocation: true
