@@ -45,12 +45,41 @@ public sealed record KbSearchResponse(
     IReadOnlyList<string> Warnings,
     IReadOnlyList<SafetyFinding> Findings);
 
+public sealed record KbClauseSearchResult(
+    string ClauseId,
+    string SourceId,
+    string ClauseRef,
+    string Snippet,
+    int Score,
+    string DocumentName,
+    string Version,
+    string EffectiveDate,
+    string RepealDate,
+    string SourceLocator,
+    string Category,
+    string SourceOrg,
+    KbDisclosure Disclosure,
+    string DisclosureReason,
+    bool SnippetAllowed,
+    string SearchDate,
+    string ReviewDraftNotice);
+
+public sealed record KbClauseSearchResponse(
+    string Query,
+    IReadOnlyList<KbClauseSearchResult> Results,
+    bool AuditLogWritten,
+    IReadOnlyList<string> Warnings,
+    IReadOnlyList<SafetyFinding> Findings);
+
 public sealed class KbSearch
 {
     private const string ReviewDraftNotice = "검토용 초안";
 
     private readonly RegulationCatalog catalog;
     private readonly KbIndex index;
+    private readonly ClausePackLoadResult clausePackLoadResult;
+    private readonly KbClauseIndex clauseIndex;
+    private readonly IReadOnlyDictionary<string, RegulationCatalogEntry> catalogEntriesBySourceId;
     private readonly TaskLogWriter? auditLogWriter;
     private readonly string? auditRuleVersion;
     private readonly IClock clock;
@@ -59,10 +88,19 @@ public sealed class KbSearch
         RegulationCatalog catalog,
         TaskLogWriter? auditLogWriter = null,
         string? auditRuleVersion = null,
-        IClock? clock = null)
+        IClock? clock = null,
+        ClausePackLoadResult? clausePackLoadResult = null)
     {
         this.catalog = catalog;
         index = KbIndex.Build(catalog.Entries);
+        this.clausePackLoadResult = clausePackLoadResult ?? CreateUnconfiguredClausePack();
+        clauseIndex = KbClauseIndex.Build(this.clausePackLoadResult.Clauses);
+        catalogEntriesBySourceId = catalog.Entries
+            .GroupBy(entry => entry.SourceId, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                group => group.Key,
+                group => group.OrderBy(entry => entry.SourceId, StringComparer.Ordinal).First(),
+                StringComparer.OrdinalIgnoreCase);
         this.auditLogWriter = auditLogWriter;
         this.auditRuleVersion = auditRuleVersion;
         this.clock = clock ?? new SystemClock();
@@ -93,8 +131,49 @@ public sealed class KbSearch
         }
 
         var draftAnswer = BuildDraftAnswer(normalizedQuery, searchDate, results, catalog.SourcePath, warnings);
-        var auditLogWritten = TryAppendAuditLog(normalizedQuery, userId, draftAnswer, warnings);
+        var auditLogWritten = TryAppendAuditLog("KbCatalogSearch", normalizedQuery, userId, draftAnswer, warnings);
         return new KbSearchResponse(normalizedQuery, draftAnswer, results, auditLogWritten, warnings, findings);
+    }
+
+    public KbClauseSearchResponse SearchClauses(string query, string userId = "anonymous", int maxResults = 5, string? asOfDate = null)
+    {
+        var normalizedQuery = query.Trim();
+        var warnings = new List<string>();
+        var findings = new List<SafetyFinding>(clausePackLoadResult.Findings);
+        foreach (var finding in clausePackLoadResult.Findings)
+        {
+            warnings.Add(finding.Message);
+        }
+
+        var searchDate = NormalizeSearchDate(asOfDate, warnings);
+        var parsedSearchDate = DateOnly.ParseExact(searchDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+        var results = new List<KbClauseSearchResult>();
+
+        if (clausePackLoadResult.UsedFallback)
+        {
+            warnings.Add("Clause Pack이 적재되지 않아 clause 검색은 0건입니다. 공개 catalog-only 검색을 사용해야 합니다.");
+        }
+        else if (!string.IsNullOrWhiteSpace(normalizedQuery))
+        {
+            results = clauseIndex.FindCandidates(normalizedQuery)
+                .Where(clause => IsClauseActiveOn(clause, parsedSearchDate, warnings))
+                .Select(clause => (Clause: clause, Score: ScoreClause(clause, normalizedQuery)))
+                .Where(item => item.Score > 0)
+                .OrderByDescending(item => item.Score)
+                .ThenBy(item => item.Clause.ChunkId, StringComparer.Ordinal)
+                .Take(Math.Max(1, maxResults))
+                .Select(item => ToClauseSearchResult(item.Clause, item.Score, normalizedQuery, searchDate, findings, warnings))
+                .ToList();
+
+            if (results.Count == 0)
+            {
+                warnings.Add("Clause Pack에서 일치하는 유효 clause를 찾지 못했습니다.");
+            }
+        }
+
+        var auditPayload = BuildClauseAuditPayload(results);
+        var auditLogWritten = TryAppendAuditLog("KbClauseSearch", normalizedQuery, userId, auditPayload, warnings);
+        return new KbClauseSearchResponse(normalizedQuery, results, auditLogWritten, warnings, findings);
     }
 
     private string NormalizeSearchDate(string? asOfDate, List<string> warnings)
@@ -115,7 +194,7 @@ public sealed class KbSearch
         return fallbackDate;
     }
 
-    private bool TryAppendAuditLog(string query, string userId, string draftAnswer, List<string> warnings)
+    private bool TryAppendAuditLog(string taskType, string query, string userId, string outputPayload, List<string> warnings)
     {
         if (auditLogWriter is null)
         {
@@ -134,10 +213,10 @@ public sealed class KbSearch
                 $"task-{Guid.NewGuid():N}",
                 DateTime.UtcNow,
                 LogHash.Sha256Hex(string.IsNullOrWhiteSpace(userId) ? "anonymous" : userId),
-                "KbCatalogSearch",
+                taskType,
                 nameof(KbSearch),
                 LogHash.Sha256Hex(query),
-                LogHash.Sha256Hex(draftAnswer),
+                LogHash.Sha256Hex(outputPayload),
                 "PASS",
                 auditRuleVersion));
             return true;
@@ -257,6 +336,66 @@ public sealed class KbSearch
             score);
     }
 
+    private KbClauseSearchResult ToClauseSearchResult(
+        RegulationClause clause,
+        int score,
+        string query,
+        string searchDate,
+        List<SafetyFinding> findings,
+        List<string> warnings)
+    {
+        if (!catalogEntriesBySourceId.TryGetValue(clause.SourceId, out var entry))
+        {
+            const string reason = "catalog metadata match가 없어 clause 발췌를 노출하지 않습니다.";
+            warnings.Add($"Clause catalog metadata missing: source_id={clause.SourceId}, clause_ref={clause.ClauseRef}.");
+            findings.Add(new SafetyFinding(
+                "KB_CLAUSE_CATALOG_MISSING",
+                SafetySeverity.Medium,
+                $"source_id={clause.SourceId}: clause와 연결되는 catalog metadata가 없어 발췌를 차단했습니다."));
+            return new KbClauseSearchResult(
+                clause.ChunkId,
+                clause.SourceId,
+                clause.ClauseRef,
+                Snippet: string.Empty,
+                score,
+                DocumentName: string.Empty,
+                Version: string.Empty,
+                EffectiveDate: string.Empty,
+                RepealDate: string.Empty,
+                SourceLocator: string.Empty,
+                Category: string.Empty,
+                SourceOrg: string.Empty,
+                KbDisclosure.MetadataOnly,
+                reason,
+                SnippetAllowed: false,
+                searchDate,
+                ReviewDraftNotice);
+        }
+
+        var accessDecision = KbAccessPolicy.Evaluate(entry);
+        findings.AddRange(accessDecision.Findings);
+        var snippetAllowed = accessDecision.ClauseSnippetAllowed;
+        var snippet = snippetAllowed ? BuildSnippet(clause.ClauseText, query) : string.Empty;
+        return new KbClauseSearchResult(
+            clause.ChunkId,
+            clause.SourceId,
+            clause.ClauseRef,
+            snippet,
+            score,
+            entry.Title,
+            entry.Version,
+            entry.EffectiveDate,
+            entry.RepealDate,
+            entry.Source,
+            entry.Category,
+            entry.SourceOrg,
+            accessDecision.Disclosure,
+            accessDecision.Reason,
+            snippetAllowed,
+            searchDate,
+            ReviewDraftNotice);
+    }
+
     private static int Score(RegulationCatalogEntry entry, string query)
     {
         var score = 0;
@@ -282,8 +421,141 @@ public sealed class KbSearch
         return score;
     }
 
+    private static int ScoreClause(RegulationClause clause, string query)
+    {
+        var score = 0;
+        score += Contains(clause.ClauseText, query) ? 10 : 0;
+        score += Contains(clause.ClauseRef, query) ? 8 : 0;
+
+        foreach (var term in KbKeying.SplitTerms(query))
+        {
+            if (term.Length < 2)
+            {
+                continue;
+            }
+
+            score += Contains(clause.ClauseText, term) ? 2 : 0;
+            score += Contains(clause.ClauseRef, term) ? 4 : 0;
+        }
+
+        return score;
+    }
+
     private static bool Contains(string source, string value)
     {
         return source.Contains(value, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsClauseActiveOn(RegulationClause clause, DateOnly asOfDate, List<string> warnings)
+    {
+        if (!TryParseClauseDate(clause.EffectiveDate, "effective_date", clause, warnings, out var effectiveDate))
+        {
+            return false;
+        }
+
+        if (effectiveDate > asOfDate)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(clause.RepealDate))
+        {
+            return true;
+        }
+
+        return TryParseClauseDate(clause.RepealDate, "repeal_date", clause, warnings, out var repealDate)
+            && asOfDate < repealDate;
+    }
+
+    private static bool TryParseClauseDate(
+        string value,
+        string fieldName,
+        RegulationClause clause,
+        List<string> warnings,
+        out DateOnly parsed)
+    {
+        if (DateOnly.TryParseExact(value.Trim(), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out parsed))
+        {
+            return true;
+        }
+
+        warnings.Add($"Clause date metadata warning: source_id={clause.SourceId}, field={fieldName}, clause_ref={clause.ClauseRef} uses invalid yyyy-MM-dd value.");
+        return false;
+    }
+
+    private static string BuildSnippet(string clauseText, string query)
+    {
+        var normalized = NormalizeSnippetText(clauseText);
+        if (normalized.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        var matchIndex = KbKeying.SplitTerms(query)
+            .Select(term => normalized.IndexOf(term, StringComparison.OrdinalIgnoreCase))
+            .Where(index => index >= 0)
+            .DefaultIfEmpty(0)
+            .Min();
+        var length = Math.Min(KbKeying.MaxSubstringKeyLength, normalized.Length - matchIndex);
+        return normalized.Substring(matchIndex, length);
+    }
+
+    private static string NormalizeSnippetText(string value)
+    {
+        var sb = new StringBuilder();
+        var previousWasSpace = false;
+        foreach (var ch in value)
+        {
+            var next = char.IsControl(ch) || char.IsWhiteSpace(ch) ? ' ' : ch;
+            if (next == ' ')
+            {
+                if (previousWasSpace)
+                {
+                    continue;
+                }
+
+                previousWasSpace = true;
+                sb.Append(' ');
+                continue;
+            }
+
+            previousWasSpace = false;
+            sb.Append(next);
+        }
+
+        return sb.ToString().Trim();
+    }
+
+    private static string BuildClauseAuditPayload(IReadOnlyList<KbClauseSearchResult> results)
+    {
+        var sb = new StringBuilder();
+        foreach (var result in results)
+        {
+            sb.Append(result.ClauseId);
+            sb.Append('|');
+            sb.Append(result.SourceId);
+            sb.Append('|');
+            sb.Append(result.ClauseRef);
+            sb.Append('|');
+            sb.Append(result.Score.ToString(CultureInfo.InvariantCulture));
+            sb.Append('|');
+            sb.Append(result.SnippetAllowed ? "snippet" : "metadata");
+            sb.Append('|');
+            sb.Append(result.Disclosure);
+            sb.Append('\n');
+        }
+
+        return sb.ToString();
+    }
+
+    private static ClausePackLoadResult CreateUnconfiguredClausePack()
+    {
+        return new ClausePackLoadResult(
+            [],
+            UsedFallback: true,
+            [new SafetyFinding(
+                "KB_CLAUSE_PACK_NOT_CONFIGURED",
+                SafetySeverity.Info,
+                "Clause Pack was not supplied to KbSearch. Catalog-only fallback is used.")]);
     }
 }

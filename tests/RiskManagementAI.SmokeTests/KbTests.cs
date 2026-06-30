@@ -154,6 +154,7 @@ foreach (var token in PrivateGuardStrings("SuspiciousNameTokens").Concat(Private
     context.AssertTrue(!clausePackSampleText.Contains(token, StringComparison.OrdinalIgnoreCase), $"KbSearch clause pack synthetic sample should avoid suspicious token '{token}'");
 }
 var tempClausePackPaths = new List<string>();
+var tempCatalogPaths = new List<string>();
 try
 {
     var duplicateClausePackPath = Path.Combine("kb", "clause_pack_sample", $"smoke_duplicate_{Guid.NewGuid():N}.csv");
@@ -200,10 +201,120 @@ try
         Encoding.UTF8);
     var tooManyFieldsLoad = ClausePackLoader.Load(tooManyFieldsClausePackPath);
     context.AssertTrue(tooManyFieldsLoad.UsedFallback && tooManyFieldsLoad.Clauses.Count == 0 && tooManyFieldsLoad.Findings.Any(finding => finding.Code == "KB_CLAUSE_PACK_ROW_SKIPPED"), "KbSearch clause pack loader should safe-fallback when rows have too many fields");
+
+    var positiveClauseCatalogPath = Path.Combine(Path.GetTempPath(), $"positive_clause_catalog_{Guid.NewGuid():N}.csv");
+    tempCatalogPaths.Add(positiveClauseCatalogPath);
+    File.WriteAllText(
+        positiveClauseCatalogPath,
+        "source_id,category,title,source_org,source_type,status,note,source,version,effective_date,repeal_date,file_hash,loaded_date,approval_status,superseded_by,license_status\nSYNTH_PUBLIC,PUBLIC_REG,Synthetic Public Rule,Public Org,Public regulation,CATALOG_ONLY,synthetic metadata,synthetic://public-rule,v1,2026-01-01,,synthetic-hash,2026-06-30,PUBLIC_APPROVED,,PUBLIC_REFERENCE\n",
+        Encoding.UTF8);
+    var positiveClausePackPath = Path.Combine("kb", "clause_pack_sample", $"smoke_positive_{Guid.NewGuid():N}.csv");
+    tempClausePackPaths.Add(positiveClausePackPath);
+    var longSnippetTail = new string('x', 240);
+    var longFallbackQuery = new string('나', 40);
+    File.WriteAllText(
+        positiveClausePackPath,
+        "clause_ref,clause_body,source_id,effective_date,repeal_date,pack_version\nArticle-Positive-A,alpha\tbeta target phrase " + longSnippetTail + ",SYNTH_PUBLIC,2026-01-01,,pack-smoke\nArticle-Positive-B,second beta target phrase,SYNTH_PUBLIC,2026-01-01,,pack-smoke\nArticle-Positive-C," + longFallbackQuery + " synthetic long query body,SYNTH_PUBLIC,2026-01-01,,pack-smoke\n",
+        Encoding.UTF8);
+    var positiveClauseCatalog = RegulationCatalog.LoadFromFile(positiveClauseCatalogPath);
+    var positiveClauseLoad = ClausePackLoader.Load(positiveClausePackPath);
+    var clauseLogPath = Path.Combine("logs", "smoke_kb_clause_search_log.jsonl");
+    if (File.Exists(clauseLogPath))
+    {
+        File.Delete(clauseLogPath);
+    }
+
+    var clauseSearch = new KbSearch(
+        positiveClauseCatalog,
+        new TaskLogWriter("logs", "smoke_kb_clause_search_log.jsonl"),
+        loadedRuleSet.RuleVersion,
+        new FixedClock(new DateOnly(2026, 6, 30)),
+        positiveClauseLoad);
+    var positiveClauseResponse = clauseSearch.SearchClauses("beta target", "clause-user", maxResults: 2, asOfDate: "2026-06-30");
+    context.AssertTrue(positiveClauseResponse.Results.Count == 2 && positiveClauseResponse.Results.All(result => result.SnippetAllowed && result.Snippet.Length > 0), "KbSearch clause search should expose snippets only for public non-placeholder citation metadata");
+    context.AssertTrue(positiveClauseResponse.Results.All(result => result.Snippet.Length <= 32 && !result.Snippet.Contains('\t') && !result.Snippet.Contains('\n')), "KbSearch clause snippet should cap length and normalize control characters");
+    context.AssertTrue(positiveClauseResponse.Results.Select(result => result.ClauseId).SequenceEqual(positiveClauseResponse.Results.OrderBy(result => result.ClauseId, StringComparer.Ordinal).Select(result => result.ClauseId)), "KbSearch clause search should order equal-score results by ClauseId");
+    var positiveClauseResult = positiveClauseResponse.Results.First();
+    context.AssertTrue(
+        positiveClauseResult.DocumentName == "Synthetic Public Rule"
+            && positiveClauseResult.Version == "v1"
+            && positiveClauseResult.EffectiveDate == "2026-01-01"
+            && positiveClauseResult.SourceLocator == "synthetic://public-rule"
+            && positiveClauseResult.SearchDate == "2026-06-30"
+            && positiveClauseResult.ReviewDraftNotice == "검토용 초안",
+        "KbSearch clause citation result should include document metadata without caller lookup");
+    var repeatedClauseResponse = clauseSearch.SearchClauses("beta target", "clause-user", maxResults: 2, asOfDate: "2026-06-30");
+    context.AssertTrue(positiveClauseResponse.Results.Select(result => result.Snippet).SequenceEqual(repeatedClauseResponse.Results.Select(result => result.Snippet)), "KbSearch clause snippets should be deterministic for the same query");
+    var longClauseQueryResponse = clauseSearch.SearchClauses(longFallbackQuery, "clause-user", asOfDate: "2026-06-30");
+    context.AssertTrue(longClauseQueryResponse.Results.Count == 1 && longClauseQueryResponse.Results.Single().SnippetAllowed, "KbSearch clause search should preserve long-query linear fallback for matching clause text");
+    var clauseLogText = File.ReadAllText(clauseLogPath);
+    context.AssertTrue(clauseLogText.Contains("KbClauseSearch", StringComparison.Ordinal), "KbSearch clause search should write distinct audit task type");
+    context.AssertTrue(!clauseLogText.Contains("beta target", StringComparison.Ordinal) && !clauseLogText.Contains("clause-user", StringComparison.Ordinal) && !clauseLogText.Contains(positiveClauseResult.Snippet, StringComparison.Ordinal), "KbSearch clause audit should not store raw query user id or snippet text");
+
+    var placeholderClauseResponse = new KbSearch(regulationCatalog, clausePackLoadResult: ClausePackLoader.LoadDefault())
+        .SearchClauses("합성 테스트", "user-smoke", asOfDate: "2026-06-30");
+    context.AssertTrue(placeholderClauseResponse.Results.Count > 0 && placeholderClauseResponse.Results.All(result => !result.SnippetAllowed && result.Snippet == string.Empty), "KbSearch clause search should suppress snippets for placeholder citation metadata");
+    context.AssertTrue(regulationCatalog.Entries.All(entry => KbAccessPolicy.ClauseSnippetAllowed(entry) == KbAccessPolicy.Evaluate(entry).ClauseSnippetAllowed), "KbSearch KbAccessPolicy ClauseSnippetAllowed should share the Evaluate single source");
+    var trimmedPublicEntry = positiveClauseCatalog.Entries.Single() with { Status = " CATALOG_ONLY " };
+    context.AssertTrue(KbAccessPolicy.ClauseSnippetAllowed(trimmedPublicEntry) && !KbAccessPolicy.Evaluate(trimmedPublicEntry).SourceTextAllowed, "KbSearch KbAccessPolicy should allow clause snippets for trimmed public status while keeping SourceTextAllowed false");
+
+    var prodOnlyClauseCatalogPath = Path.Combine(Path.GetTempPath(), $"prod_only_clause_catalog_{Guid.NewGuid():N}.csv");
+    tempCatalogPaths.Add(prodOnlyClauseCatalogPath);
+    File.WriteAllText(
+        prodOnlyClauseCatalogPath,
+        "source_id,category,title,source_org,source_type,status,note,source,version,effective_date,repeal_date,file_hash,loaded_date,approval_status,superseded_by,license_status\nSYNTH_PROD,INTERNAL_RULE,Synthetic Prod Rule,Internal Org,Internal,PROD_ONLY,synthetic metadata,prod-only:SYNTH_PROD,v1,2026-01-01,,synthetic-hash,2026-06-30,PROD_ONLY,,PROD_ONLY\n",
+        Encoding.UTF8);
+    var prodOnlyClausePackPath = Path.Combine("kb", "clause_pack_sample", $"smoke_prod_only_{Guid.NewGuid():N}.csv");
+    tempClausePackPaths.Add(prodOnlyClausePackPath);
+    File.WriteAllText(
+        prodOnlyClausePackPath,
+        "clause_ref,clause_body,source_id,effective_date,repeal_date,pack_version\nArticle-Prod,prod synthetic hidden text,SYNTH_PROD,2026-01-01,,pack-smoke\nArticle-Orphan,orphan synthetic hidden text,NO_CATALOG,2026-01-01,,pack-smoke\n",
+        Encoding.UTF8);
+    var prodOnlySearch = new KbSearch(RegulationCatalog.LoadFromFile(prodOnlyClauseCatalogPath), clausePackLoadResult: ClausePackLoader.Load(prodOnlyClausePackPath));
+    var prodOnlyResponse = prodOnlySearch.SearchClauses("hidden text", "user-smoke", maxResults: 5, asOfDate: "2026-06-30");
+    context.AssertTrue(prodOnlyResponse.Results.Any(result => result.SourceId == "SYNTH_PROD" && !result.SnippetAllowed && result.Snippet == string.Empty), "KbSearch clause search should suppress snippets for PROD_ONLY metadata");
+    context.AssertTrue(prodOnlyResponse.Results.Any(result => result.SourceId == "NO_CATALOG" && result.Disclosure == KbDisclosure.MetadataOnly && !result.SnippetAllowed && result.Snippet == string.Empty), "KbSearch clause search should fail closed when clause catalog metadata is missing");
+    context.AssertTrue(prodOnlyResponse.Findings.Any(finding => finding.Code == "KB_CLAUSE_CATALOG_MISSING"), "KbSearch clause search should emit finding for missing clause catalog metadata");
+
+    var boundaryClausePackPath = Path.Combine("kb", "clause_pack_sample", $"smoke_boundary_{Guid.NewGuid():N}.csv");
+    tempClausePackPaths.Add(boundaryClausePackPath);
+    File.WriteAllText(
+        boundaryClausePackPath,
+        "clause_ref,clause_body,source_id,effective_date,repeal_date,pack_version\nArticle-Window,edgecase active body,SYNTH_PUBLIC,2026-01-01,2026-02-01,pack-smoke\nArticle-Open,openended edgecase body,SYNTH_PUBLIC,2026-01-01,,pack-smoke\n",
+        Encoding.UTF8);
+    var boundarySearch = new KbSearch(positiveClauseCatalog, clausePackLoadResult: ClausePackLoader.Load(boundaryClausePackPath));
+    context.AssertTrue(boundarySearch.SearchClauses("edgecase", "user-smoke", asOfDate: "2026-01-01").Results.Count == 2, "KbSearch clause effective date should be inclusive");
+    context.AssertTrue(boundarySearch.SearchClauses("edgecase", "user-smoke", asOfDate: "2026-02-01").Results.Count == 1, "KbSearch clause repeal date should be exclusive");
+    context.AssertTrue(boundarySearch.SearchClauses("edgecase", "user-smoke", asOfDate: "2026-02-02").Results.Count == 1, "KbSearch clause should exclude repealed rows after repeal date");
+    context.AssertTrue(boundarySearch.SearchClauses("edgecase", "user-smoke", asOfDate: "2025-12-31").Results.Count == 0, "KbSearch clause should exclude rows before effective date");
+
+    var invalidDateClausePackPath = Path.Combine("kb", "clause_pack_sample", $"smoke_invalid_date_{Guid.NewGuid():N}.csv");
+    tempClausePackPaths.Add(invalidDateClausePackPath);
+    File.WriteAllText(
+        invalidDateClausePackPath,
+        "clause_ref,clause_body,source_id,effective_date,repeal_date,pack_version\nArticle-Bad-Date,bad date synthetic body,SYNTH_PUBLIC,not-a-date,,pack-smoke\nArticle-Bad-Repeal,bad repeal synthetic body,SYNTH_PUBLIC,2026-01-01,not-a-date,pack-smoke\n",
+        Encoding.UTF8);
+    var invalidDateResponse = new KbSearch(positiveClauseCatalog, clausePackLoadResult: ClausePackLoader.Load(invalidDateClausePackPath))
+        .SearchClauses("synthetic body", "user-smoke", asOfDate: "2026-06-30");
+    context.AssertTrue(invalidDateResponse.Results.Count == 0 && invalidDateResponse.Warnings.Any(warning => warning.Contains("effective_date", StringComparison.Ordinal)) && invalidDateResponse.Warnings.Any(warning => warning.Contains("repeal_date", StringComparison.Ordinal)), "KbSearch clause search should exclude invalid clause dates with warnings");
+
+    var fallbackClauseResponse = new KbSearch(regulationCatalog, clausePackLoadResult: ClausePackLoader.Load("kb/clause_pack_sample/missing_clause_pack.csv"))
+        .SearchClauses("합성", "user-smoke", asOfDate: "2026-06-30");
+    context.AssertTrue(fallbackClauseResponse.Results.Count == 0 && fallbackClauseResponse.Warnings.Any(warning => warning.Contains("catalog-only", StringComparison.OrdinalIgnoreCase)), "KbSearch clause search should safe-fallback to zero results when clause pack is missing");
+    var blankClauseQueryResponse = clauseSearch.SearchClauses("   ", "user-smoke", asOfDate: "2026-06-30");
+    context.AssertTrue(blankClauseQueryResponse.Results.Count == 0, "KbSearch clause search should return zero results for blank query without fallback expansion");
 }
 finally
 {
     foreach (var path in tempClausePackPaths)
+    {
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+        }
+    }
+
+    foreach (var path in tempCatalogPaths)
     {
         if (File.Exists(path))
         {

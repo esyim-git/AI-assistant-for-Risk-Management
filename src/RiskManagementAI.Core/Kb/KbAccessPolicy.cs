@@ -13,7 +13,8 @@ public sealed record KbAccessDecision(
     KbDisclosure Disclosure,
     bool SourceTextAllowed,
     string Reason,
-    IReadOnlyList<SafetyFinding> Findings);
+    IReadOnlyList<SafetyFinding> Findings,
+    bool ClauseSnippetAllowed = false);
 
 public static class KbAccessPolicy
 {
@@ -77,7 +78,30 @@ public static class KbAccessPolicy
                 $"source_id={entry.SourceId}: approval_status metadata 확인이 필요합니다."));
         }
 
-        return new KbAccessDecision(disclosure, SourceTextAllowed: false, reason, findings);
+        var clauseSnippetAllowed = IsClauseSnippetAllowed(entry, disclosure);
+        return new KbAccessDecision(
+            disclosure,
+            SourceTextAllowed: false,
+            reason,
+            findings,
+            clauseSnippetAllowed);
+    }
+
+    public static bool ClauseSnippetAllowed(RegulationCatalogEntry entry)
+    {
+        var disclosure = PublicStatuses.Contains(entry.Status.Trim())
+            ? KbDisclosure.PublicCited
+            : KbDisclosure.MetadataOnly;
+        return IsClauseSnippetAllowed(entry, disclosure);
+    }
+
+    private static bool IsClauseSnippetAllowed(RegulationCatalogEntry entry, KbDisclosure disclosure)
+    {
+        return disclosure == KbDisclosure.PublicCited
+            && !IsMissingGateMetadata(entry.Version)
+            && !IsMissingGateMetadata(entry.EffectiveDate)
+            && !IsMissingGateMetadata(entry.ApprovalStatus)
+            && !IsMissingGateMetadata(entry.LicenseStatus);
     }
 
     private static bool IsMissingGateMetadata(string value)
