@@ -72,7 +72,7 @@ using (var reportArchive = ZipFile.OpenRead(reportResult.ReportPath))
     context.AssertTrue(exceptionSheet.Contains("RECON_EXPOSURE_NO_LIMIT", StringComparison.Ordinal) && exceptionSheet.Contains("RECON_NONPOSITIVE_LIMIT", StringComparison.Ordinal), "WP-07 report exception list should include analysis RECON exceptions");
     context.AssertTrue(exceptionSheet.Contains("REPORT_VALIDATION_HIGH_SMOKE", StringComparison.Ordinal), "WP-07 report exception list should merge high validation findings");
     context.AssertTrue(riskVisualSheet.Contains("STATUS_DISTRIBUTION", StringComparison.Ordinal) && riskVisualSheet.Contains("DUPLICATE_LIMIT", StringComparison.Ordinal), "R2-WP-04 report RISK_VISUAL should include all seven status distribution rows");
-    context.AssertTrue(riskVisualSheet.Contains("TOP_EXPOSURE", StringComparison.Ordinal) && riskVisualSheet.Contains("CONCENTRATION", StringComparison.Ordinal) && riskVisualSheet.Contains("HHI", StringComparison.Ordinal), "R2-WP-04 report RISK_VISUAL should include TopN and concentration data");
+    context.AssertTrue(riskVisualSheet.Contains("TOP_EXPOSURE", StringComparison.Ordinal) && riskVisualSheet.Contains("CONCENTRATION", StringComparison.Ordinal) && riskVisualSheet.Contains("HHI", StringComparison.Ordinal) && riskVisualSheet.Contains("CurrencyCode", StringComparison.Ordinal), "R2-WP-04 report RISK_VISUAL should include TopN, concentration data, and currency labels");
     context.AssertTrue(riskVisualSheet.Contains("HEATMAP", StringComparison.Ordinal) && riskVisualSheet.Contains("LOW &lt;0.8 / MID 0.8~1.0 / HIGH &gt;1.0", StringComparison.Ordinal), "R2-WP-04 report RISK_VISUAL should include heatmap grade boundaries");
 }
 
@@ -135,6 +135,15 @@ context.AssertTrue(visual.Heatmap.Single(row => row.PortfolioId == "PF_LOW").Gra
 context.AssertTrue(visual.Heatmap.Single(row => row.PortfolioId == "PF_A").Grade == "MID" && visual.Heatmap.Single(row => row.PortfolioId == "PF_B").Grade == "MID", "R2-WP-04 report heatmap usage 0.8 and 1.0 should be MID");
 context.AssertTrue(visual.Heatmap.Single(row => row.PortfolioId == "PF_HIGH").Grade == "HIGH", "R2-WP-04 report heatmap usage above 1.0 should be HIGH");
 context.AssertTrue(visual.Findings.Any(finding => finding.Code == "MIXED_CURRENCY"), "R2-WP-04 report visual aggregation should note mixed currency inputs");
+var mixedCurrencyReport = reportBuilder.BuildReport(new ExcelReportRequest(
+    "smoke_r2_wp04_mixed_currency_report",
+    exposureProfile,
+    visualAnalysis,
+    [],
+    reportSql,
+    "NoModelMode report commentary",
+    "user-smoke"));
+context.AssertTrue(mixedCurrencyReport.Findings.Any(finding => finding.Code == "MIXED_CURRENCY"), "R2-WP-04 report result findings should surface visual mixed-currency caveats");
 var zeroDenominatorVisual = RiskVisualAggregator.Aggregate(BuildRiskVisualAnalysis([
     RiskVisualRow("PF_ZERO_A", "RF_ZERO_A", "KRW", 0m, 100m, 0m, LimitMonitorStatus.Normal),
     RiskVisualRow("PF_ZERO_B", "RF_ZERO_B", "KRW", 0m, 100m, 0m, LimitMonitorStatus.Normal)

@@ -753,8 +753,8 @@ public partial class MainWindow : Window
     {
         var visual = RiskVisualAggregator.Aggregate(result, topN: 5);
         RiskVisualCanvas.Children.Clear();
-        var width = Math.Max(300d, RiskVisualCanvas.ActualWidth > 0 ? RiskVisualCanvas.ActualWidth : 320d);
-        var height = Math.Max(250d, RiskVisualCanvas.ActualHeight > 0 ? RiskVisualCanvas.ActualHeight : 280d);
+        var width = Math.Max(220d, RiskVisualCanvas.ActualWidth > 0 ? RiskVisualCanvas.ActualWidth : 260d);
+        var height = Math.Max(360d, RiskVisualCanvas.ActualHeight > 0 ? RiskVisualCanvas.ActualHeight : 380d);
         RiskVisualCanvas.Width = width;
         RiskVisualCanvas.Height = height;
 

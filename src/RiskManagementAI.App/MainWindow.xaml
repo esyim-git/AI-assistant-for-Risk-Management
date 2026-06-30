@@ -205,9 +205,9 @@
                         <TextBlock x:Name="RiskDashboardSummaryText" Grid.Row="3" Text="한도 모니터링 실행 전입니다." Foreground="#475569" Margin="0,8,0,0" />
                         <Grid Grid.Row="4" Margin="0,8,0,0">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="2*" MinWidth="430" />
-                                <ColumnDefinition Width="12" />
-                                <ColumnDefinition Width="*" MinWidth="280" />
+                                <ColumnDefinition Width="3*" MinWidth="300" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="2*" MinWidth="220" />
                             </Grid.ColumnDefinitions>
                             <DataGrid x:Name="RiskLimitGrid"
                                       AutoGenerateColumns="False"
@@ -244,11 +244,11 @@
                                 <Grid>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="24" />
-                                        <RowDefinition Height="*" MinHeight="250" />
+                                        <RowDefinition Height="*" MinHeight="360" />
                                         <RowDefinition Height="48" />
                                     </Grid.RowDefinitions>
                                     <TextBlock Text="Risk Visual" FontWeight="SemiBold" Foreground="#334155" />
-                                    <Canvas x:Name="RiskVisualCanvas" Grid.Row="1" MinHeight="250" Background="#F8FAFC" ClipToBounds="True" />
+                                    <Canvas x:Name="RiskVisualCanvas" Grid.Row="1" MinHeight="360" Background="#F8FAFC" ClipToBounds="True" />
                                     <TextBlock x:Name="RiskVisualNoteText" Grid.Row="2" Text="시각화 실행 전입니다." TextWrapping="Wrap" Foreground="#475569" Margin="0,8,0,0" />
                                 </Grid>
                             </Border>

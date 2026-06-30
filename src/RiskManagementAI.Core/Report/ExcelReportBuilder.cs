@@ -104,6 +104,7 @@ public sealed class ExcelReportBuilder
                 SafetySeverity.Info,
                 $"생성 수식 {workbook.Formulas.Count:N0}개가 Excel2021FunctionChecker를 통과했습니다.")
         };
+        findings.AddRange(workbook.Findings);
 
         var auditLogWritten = TryAppendAuditLog(request, reportPath, workbook, findings);
         return new ExcelReportResult(reportPath, ExpectedSheetNames, workbook.Formulas, findings, auditLogWritten);
@@ -175,7 +176,7 @@ public sealed class ExcelReportBuilder
             ])
         };
 
-        return new WorkbookBuildResult(sheets, formulas);
+        return new WorkbookBuildResult(sheets, formulas, riskVisual.Findings);
     }
 
     private void WriteWorkbookPackage(ZipArchive archive, WorkbookBuildResult workbook, DateTime createdAt)
@@ -396,7 +397,7 @@ public sealed class ExcelReportBuilder
             yield return Row("STATUS_DISTRIBUTION", status.StatusCode, Number(status.Count), Number(status.Ratio), string.Empty, string.Empty, string.Empty, string.Empty, string.Empty);
         }
 
-        yield return Row("TOP_EXPOSURE", "Rank", "ExposureAmount", "AbsoluteExposureAmount", "UsageRatio", "PortfolioId", "RiskFactor", "Status", "TopN by Abs(ExposureAmount)");
+        yield return Row("TOP_EXPOSURE", "Rank", "ExposureAmount", "AbsoluteExposureAmount", "UsageRatio", "PortfolioId", "RiskFactor", "Status", "CurrencyCode");
         foreach (var row in visual.TopExposures)
         {
             yield return Row(
@@ -647,7 +648,8 @@ public sealed class ExcelReportBuilder
 
     private sealed record WorkbookBuildResult(
         IReadOnlyDictionary<string, string> Sheets,
-        IReadOnlyList<string> Formulas);
+        IReadOnlyList<string> Formulas,
+        IReadOnlyList<SafetyFinding> Findings);
 
     private sealed record ReportCell(string Value, ReportCellKind Kind);
 
