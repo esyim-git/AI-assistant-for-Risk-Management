@@ -106,14 +106,14 @@ context.AssertTrue(File.Exists("global.json") && File.ReadAllText("global.json")
 
     // Happy path: clean manifest verifies Ok and the gate allows startup.
     var pkgOk = FreshIntegrityPackage();
-    WriteIntegrityManifest(pkgOk, "0.6.0", IntegrityEntries(pkgOk));
+    WriteIntegrityManifest(pkgOk, "0.7.0", IntegrityEntries(pkgOk));
     var okResult = IntegrityVerifier.VerifyPackage(pkgOk, strict: true);
     context.AssertTrue(okResult.Status == IntegrityStatus.Ok && okResult.BlockedClasses.Count == 0, "IntegrityVerifier clean manifest verifies Ok in strict mode");
     context.AssertTrue(IntegrityGate.Decide(okResult, devAllow: false) == GateDecision.Allow, "IntegrityGate allows a clean manifest package in release mode");
 
     // Per-class data tamper: Policy.
     var pkgPolicy = FreshIntegrityPackage();
-    WriteIntegrityManifest(pkgPolicy, "0.6.0", IntegrityEntries(pkgPolicy));
+    WriteIntegrityManifest(pkgPolicy, "0.7.0", IntegrityEntries(pkgPolicy));
     File.WriteAllText(Path.Combine(pkgPolicy, "config", "security_policy.json"), "tampered-policy-content");
     var policyResult = IntegrityVerifier.VerifyPackage(pkgPolicy, strict: true);
     context.AssertTrue(policyResult.Status == IntegrityStatus.FailClosed && policyResult.BlockedClasses.Contains("Policy"), "IntegrityVerifier manifest policy tamper fails closed and blocks the Policy class");
@@ -122,7 +122,7 @@ context.AssertTrue(File.Exists("global.json") && File.ReadAllText("global.json")
 
     // Per-class data tamper: Rules.
     var pkgRules = FreshIntegrityPackage();
-    WriteIntegrityManifest(pkgRules, "0.6.0", IntegrityEntries(pkgRules));
+    WriteIntegrityManifest(pkgRules, "0.7.0", IntegrityEntries(pkgRules));
     File.WriteAllText(Path.Combine(pkgRules, "rules", "sql_deny_patterns.txt"), "tampered-rules-content");
     var rulesResult = IntegrityVerifier.VerifyPackage(pkgRules, strict: true);
     context.AssertTrue(rulesResult.Status == IntegrityStatus.FailClosed && rulesResult.BlockedClasses.Contains("Rules"), "IntegrityVerifier manifest rules tamper fails closed and blocks the Rules class");
@@ -131,13 +131,13 @@ context.AssertTrue(File.Exists("global.json") && File.ReadAllText("global.json")
     var pkgEntry = FreshIntegrityPackage();
     var entriesEntry = IntegrityEntries(pkgEntry);
     entriesEntry.First(x => (string)x["path"]! == "kb/ncr_placeholder.md")["sha256"] = "00";
-    WriteIntegrityManifest(pkgEntry, "0.6.0", entriesEntry);
+    WriteIntegrityManifest(pkgEntry, "0.7.0", entriesEntry);
     var entryResult = IntegrityVerifier.VerifyPackage(pkgEntry, strict: true);
     context.AssertTrue(entryResult.Status == IntegrityStatus.FailClosed && entryResult.BlockedClasses.Contains("Kb"), "IntegrityVerifier manifest entry hash tamper fails closed");
 
     // Required file missing on disk (manifest entry retained).
     var pkgMissingFile = FreshIntegrityPackage();
-    WriteIntegrityManifest(pkgMissingFile, "0.6.0", IntegrityEntries(pkgMissingFile));
+    WriteIntegrityManifest(pkgMissingFile, "0.7.0", IntegrityEntries(pkgMissingFile));
     File.Delete(Path.Combine(pkgMissingFile, "kb", "ncr_placeholder.md"));
     var missingFileResult = IntegrityVerifier.VerifyPackage(pkgMissingFile, strict: true);
     context.AssertTrue(missingFileResult.Status == IntegrityStatus.FailClosed && missingFileResult.BlockedClasses.Contains("Kb"), "IntegrityVerifier manifest required file missing fails closed");
@@ -152,7 +152,7 @@ context.AssertTrue(File.Exists("global.json") && File.ReadAllText("global.json")
     {
         var pkgShrink = FreshIntegrityPackage();
         var shrunk = IntegrityEntries(pkgShrink).Where(x => (string)x["path"]! != mandatory).ToList();
-        WriteIntegrityManifest(pkgShrink, "0.6.0", shrunk);
+        WriteIntegrityManifest(pkgShrink, "0.7.0", shrunk);
         var shrinkResult = IntegrityVerifier.VerifyPackage(pkgShrink, strict: true);
         context.AssertTrue(shrinkResult.Status == IntegrityStatus.FailClosed, $"IntegrityVerifier manifest missing mandatory entry '{mandatory}' fails closed");
     }
@@ -161,7 +161,7 @@ context.AssertTrue(File.Exists("global.json") && File.ReadAllText("global.json")
     var pkgTraversal = FreshIntegrityPackage();
     var traversalEntries = IntegrityEntries(pkgTraversal);
     traversalEntries.Add(new Dictionary<string, object?> { ["path"] = "../evil.txt", ["size"] = 1L, ["sha256"] = "00", ["class"] = "App", ["required"] = false });
-    WriteIntegrityManifest(pkgTraversal, "0.6.0", traversalEntries);
+    WriteIntegrityManifest(pkgTraversal, "0.7.0", traversalEntries);
     var traversalResult = IntegrityVerifier.VerifyPackage(pkgTraversal, strict: true);
     context.AssertTrue(traversalResult.Status == IntegrityStatus.FailClosed, "IntegrityVerifier manifest path traversal entry fails closed");
 
@@ -170,7 +170,7 @@ context.AssertTrue(File.Exists("global.json") && File.ReadAllText("global.json")
     var rootedEntries = IntegrityEntries(pkgRooted);
     var rootedPath = OperatingSystem.IsWindows() ? "C:/Windows/System32/evil.dll" : "/etc/evil";
     rootedEntries.Add(new Dictionary<string, object?> { ["path"] = rootedPath, ["size"] = 1L, ["sha256"] = "00", ["class"] = "App", ["required"] = false });
-    WriteIntegrityManifest(pkgRooted, "0.6.0", rootedEntries);
+    WriteIntegrityManifest(pkgRooted, "0.7.0", rootedEntries);
     var rootedResult = IntegrityVerifier.VerifyPackage(pkgRooted, strict: true);
     context.AssertTrue(rootedResult.Status == IntegrityStatus.FailClosed, "IntegrityVerifier manifest rooted path entry fails closed");
 
@@ -178,7 +178,7 @@ context.AssertTrue(File.Exists("global.json") && File.ReadAllText("global.json")
     var pkgSize = FreshIntegrityPackage();
     var sizeEntries = IntegrityEntries(pkgSize);
     sizeEntries.First(x => (string)x["path"]! == "config/column_mapping.json")["size"] = 999999L;
-    WriteIntegrityManifest(pkgSize, "0.6.0", sizeEntries);
+    WriteIntegrityManifest(pkgSize, "0.7.0", sizeEntries);
     var sizeResult = IntegrityVerifier.VerifyPackage(pkgSize, strict: true);
     context.AssertTrue(sizeResult.Status == IntegrityStatus.FailClosed && sizeResult.BlockedClasses.Contains("Mapping"), "IntegrityVerifier manifest size mismatch fails closed");
 
@@ -199,13 +199,13 @@ context.AssertTrue(File.Exists("global.json") && File.ReadAllText("global.json")
 
     // Empty files list.
     var pkgEmpty = FreshIntegrityPackage();
-    File.WriteAllText(Path.Combine(pkgEmpty, "approved_manifest.json"), "{\"version\":\"0.6.0\",\"files\":[]}");
+    File.WriteAllText(Path.Combine(pkgEmpty, "approved_manifest.json"), "{\"version\":\"0.7.0\",\"files\":[]}");
     var emptyResult = IntegrityVerifier.VerifyPackage(pkgEmpty, strict: true);
     context.AssertTrue(emptyResult.Status == IntegrityStatus.FailClosed, "IntegrityVerifier empty manifest files list fails closed");
 
     // Corrupt-but-parseable manifest with a null entry must fail closed, not throw (PR #61 P2).
     var pkgNullEntry = FreshIntegrityPackage();
-    File.WriteAllText(Path.Combine(pkgNullEntry, "approved_manifest.json"), "{\"version\":\"0.6.0\",\"files\":[null]}");
+    File.WriteAllText(Path.Combine(pkgNullEntry, "approved_manifest.json"), "{\"version\":\"0.7.0\",\"files\":[null]}");
     var nullEntryResult = IntegrityVerifier.VerifyPackage(pkgNullEntry, strict: true);
     context.AssertTrue(nullEntryResult.Status == IntegrityStatus.FailClosed, "IntegrityVerifier manifest with a null file entry fails closed without throwing");
 
@@ -213,7 +213,7 @@ context.AssertTrue(File.Exists("global.json") && File.ReadAllText("global.json")
     var pkgMixedNull = FreshIntegrityPackage();
     var mixedNullEntries = IntegrityEntries(pkgMixedNull);
     mixedNullEntries.Add(null!);
-    WriteIntegrityManifest(pkgMixedNull, "0.6.0", mixedNullEntries);
+    WriteIntegrityManifest(pkgMixedNull, "0.7.0", mixedNullEntries);
     var mixedNullResult = IntegrityVerifier.VerifyPackage(pkgMixedNull, strict: true);
     context.AssertTrue(mixedNullResult.Status == IntegrityStatus.FailClosed, "IntegrityVerifier manifest with a valid-plus-null entry list fails closed");
 
@@ -222,7 +222,7 @@ context.AssertTrue(File.Exists("global.json") && File.ReadAllText("global.json")
     var pkgReqFalse = FreshIntegrityPackage();
     var reqFalseEntries = IntegrityEntries(pkgReqFalse);
     reqFalseEntries.First(x => (string)x["path"]! == "config/security_policy.json")["required"] = false;
-    WriteIntegrityManifest(pkgReqFalse, "0.6.0", reqFalseEntries);
+    WriteIntegrityManifest(pkgReqFalse, "0.7.0", reqFalseEntries);
     File.Delete(Path.Combine(pkgReqFalse, "config", "security_policy.json"));
     var reqFalseResult = IntegrityVerifier.VerifyPackage(pkgReqFalse, strict: true);
     context.AssertTrue(reqFalseResult.Status == IntegrityStatus.FailClosed && reqFalseResult.BlockedClasses.Contains("Policy"), "IntegrityVerifier manifest mandatory file deleted with required:false still fails closed");
@@ -231,7 +231,7 @@ context.AssertTrue(File.Exists("global.json") && File.ReadAllText("global.json")
     var pkgWinRooted = FreshIntegrityPackage();
     var winRootedEntries = IntegrityEntries(pkgWinRooted);
     winRootedEntries.Add(new Dictionary<string, object?> { ["path"] = "C:/Windows/System32/evil.dll", ["size"] = 1L, ["sha256"] = "00", ["class"] = "App", ["required"] = false });
-    WriteIntegrityManifest(pkgWinRooted, "0.6.0", winRootedEntries);
+    WriteIntegrityManifest(pkgWinRooted, "0.7.0", winRootedEntries);
     var winRootedResult = IntegrityVerifier.VerifyPackage(pkgWinRooted, strict: true);
     context.AssertTrue(winRootedResult.Status == IntegrityStatus.FailClosed, "IntegrityVerifier manifest Windows-rooted path entry fails closed on any host");
 
@@ -239,7 +239,7 @@ context.AssertTrue(File.Exists("global.json") && File.ReadAllText("global.json")
     var pkgMalformed = FreshIntegrityPackage();
     var malformedEntries = IntegrityEntries(pkgMalformed);
     malformedEntries.Add(new Dictionary<string, object?> { ["path"] = "bad\0name", ["size"] = 1L, ["sha256"] = "00", ["class"] = "App", ["required"] = false });
-    WriteIntegrityManifest(pkgMalformed, "0.6.0", malformedEntries);
+    WriteIntegrityManifest(pkgMalformed, "0.7.0", malformedEntries);
     var malformedResult = IntegrityVerifier.VerifyPackage(pkgMalformed, strict: true);
     context.AssertTrue(malformedResult.Status == IntegrityStatus.FailClosed, "IntegrityVerifier manifest malformed path entry fails closed without throwing");
 
@@ -251,7 +251,7 @@ context.AssertTrue(File.Exists("global.json") && File.ReadAllText("global.json")
 
     // Dev vs release: identical tamper allows under dev switch, blocks in release.
     var pkgDevTamper = FreshIntegrityPackage();
-    WriteIntegrityManifest(pkgDevTamper, "0.6.0", IntegrityEntries(pkgDevTamper));
+    WriteIntegrityManifest(pkgDevTamper, "0.7.0", IntegrityEntries(pkgDevTamper));
     File.WriteAllText(Path.Combine(pkgDevTamper, "config", "security_policy.json"), "tampered-under-dev");
     var devTamperResult = IntegrityVerifier.VerifyPackage(pkgDevTamper, strict: false);
     context.AssertTrue(devTamperResult.Status == IntegrityStatus.DevFallback && devTamperResult.UsedDevFallback, "IntegrityVerifier manifest tamper under dev switch downgrades to dev fallback");
@@ -270,7 +270,7 @@ context.AssertTrue(File.Exists("global.json") && File.ReadAllText("global.json")
     // scan, not the mandatory check (PR #61 P2).
     var pkgShrinkRules = FreshIntegrityPackage();
     var shrinkRulesEntries = IntegrityEntries(pkgShrinkRules).Where(x => (string)x["path"]! != "rules/sql_deny_patterns.txt").ToList();
-    WriteIntegrityManifest(pkgShrinkRules, "0.6.0", shrinkRulesEntries);
+    WriteIntegrityManifest(pkgShrinkRules, "0.7.0", shrinkRulesEntries);
     File.WriteAllText(Path.Combine(pkgShrinkRules, "rules", "sql_deny_patterns.txt"), "attacker-controlled-rule");
     var shrinkRulesResult = IntegrityVerifier.VerifyPackage(pkgShrinkRules, strict: true);
     context.AssertTrue(shrinkRulesResult.Status == IntegrityStatus.FailClosed && shrinkRulesResult.BlockedClasses.Contains("Rules"), "IntegrityVerifier manifest shrink of a non-mandatory critical rules asset fails closed (undeclared on-disk file)");
@@ -279,7 +279,7 @@ context.AssertTrue(File.Exists("global.json") && File.ReadAllText("global.json")
     // critical-glob scan (isolates the scan from the mandatory check).
     var pkgShrinkKb = FreshIntegrityPackage();
     var shrinkKbEntries = IntegrityEntries(pkgShrinkKb).Where(x => (string)x["path"]! != "kb/public_regulation_catalog.csv").ToList();
-    WriteIntegrityManifest(pkgShrinkKb, "0.6.0", shrinkKbEntries);
+    WriteIntegrityManifest(pkgShrinkKb, "0.7.0", shrinkKbEntries);
     var shrinkKbResult = IntegrityVerifier.VerifyPackage(pkgShrinkKb, strict: true);
     context.AssertTrue(shrinkKbResult.Status == IntegrityStatus.FailClosed && shrinkKbResult.BlockedClasses.Contains("Kb"), "IntegrityVerifier manifest shrink of a non-mandatory kb critical asset fails closed");
 
@@ -288,7 +288,7 @@ context.AssertTrue(File.Exists("global.json") && File.ReadAllText("global.json")
     var pkgReqFalseGlob = FreshIntegrityPackage();
     var reqFalseGlobEntries = IntegrityEntries(pkgReqFalseGlob);
     reqFalseGlobEntries.First(x => (string)x["path"]! == "kb/public_regulation_catalog.csv")["required"] = false;
-    WriteIntegrityManifest(pkgReqFalseGlob, "0.6.0", reqFalseGlobEntries);
+    WriteIntegrityManifest(pkgReqFalseGlob, "0.7.0", reqFalseGlobEntries);
     File.Delete(Path.Combine(pkgReqFalseGlob, "kb", "public_regulation_catalog.csv"));
     var reqFalseGlobResult = IntegrityVerifier.VerifyPackage(pkgReqFalseGlob, strict: true);
     context.AssertTrue(reqFalseGlobResult.Status == IntegrityStatus.FailClosed && reqFalseGlobResult.BlockedClasses.Contains("Kb"), "IntegrityVerifier manifest critical-glob asset deleted with required:false still fails closed (required by path)");
@@ -297,7 +297,7 @@ context.AssertTrue(File.Exists("global.json") && File.ReadAllText("global.json")
     // mandatory paths are anchored by the hard-coded declared-check even on co-deletion (PR #61 P2).
     var pkgMandatoryCoDel = FreshIntegrityPackage();
     var mandatoryCoDelEntries = IntegrityEntries(pkgMandatoryCoDel).Where(x => (string)x["path"]! != "config/security_policy.json").ToList();
-    WriteIntegrityManifest(pkgMandatoryCoDel, "0.6.0", mandatoryCoDelEntries);
+    WriteIntegrityManifest(pkgMandatoryCoDel, "0.7.0", mandatoryCoDelEntries);
     File.Delete(Path.Combine(pkgMandatoryCoDel, "config", "security_policy.json"));
     var mandatoryCoDelResult = IntegrityVerifier.VerifyPackage(pkgMandatoryCoDel, strict: true);
     context.AssertTrue(mandatoryCoDelResult.Status == IntegrityStatus.FailClosed && mandatoryCoDelResult.BlockedClasses.Contains("Policy"), "IntegrityVerifier manifest mandatory asset co-deletion (entry removed + file deleted) fails closed");
@@ -306,7 +306,7 @@ context.AssertTrue(File.Exists("global.json") && File.ReadAllText("global.json")
     // via RequiredCriticalEntries. This closes the manifest-shrink deletion gap before code signing.
     var pkgGlobCoDel = FreshIntegrityPackage();
     var globCoDelEntries = IntegrityEntries(pkgGlobCoDel).Where(x => (string)x["path"]! != "kb/public_regulation_catalog.csv").ToList();
-    WriteIntegrityManifest(pkgGlobCoDel, "0.6.0", globCoDelEntries);
+    WriteIntegrityManifest(pkgGlobCoDel, "0.7.0", globCoDelEntries);
     File.Delete(Path.Combine(pkgGlobCoDel, "kb", "public_regulation_catalog.csv"));
     var globCoDelResult = IntegrityVerifier.VerifyPackage(pkgGlobCoDel, strict: true);
     context.AssertTrue(globCoDelResult.Status == IntegrityStatus.FailClosed && globCoDelResult.BlockedClasses.Contains("Kb"), "IntegrityVerifier manifest non-mandatory critical co-deletion (entry+file removed) fails closed via pinned critical entries");
@@ -315,7 +315,7 @@ context.AssertTrue(File.Exists("global.json") && File.ReadAllText("global.json")
     // lock-step is NOT detected by the interim (no independent trust anchor). Deferred to code signing.
     var pkgCoTamper = FreshIntegrityPackage();
     File.WriteAllText(Path.Combine(pkgCoTamper, "config", "security_policy.json"), "attacker-controlled-policy");
-    WriteIntegrityManifest(pkgCoTamper, "0.6.0", IntegrityEntries(pkgCoTamper));
+    WriteIntegrityManifest(pkgCoTamper, "0.7.0", IntegrityEntries(pkgCoTamper));
     var coTamperResult = IntegrityVerifier.VerifyPackage(pkgCoTamper, strict: true);
     context.AssertTrue(coTamperResult.Status == IntegrityStatus.Ok, "IntegrityVerifier manifest co-tamper (file+manifest rewritten together) is NOT detected — documented residual deferred to code signing");
 
