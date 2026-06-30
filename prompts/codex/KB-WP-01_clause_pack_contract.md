@@ -13,7 +13,7 @@
 ## 1. 작업 범위
 1. **신규 record `RegulationClause`**(`Core/Kb/`): `ChunkId·SourceId·ClauseRef·ClauseText·EffectiveDate·RepealDate·PackVersion·SourceTextHash`. nullable enable.
 2. **`ChunkId` 결정성 + 충돌 방지**: `ChunkId = LogHash.Sha256Hex(SourceId|ClauseRef|PackVersion|SourceTextHash)[..12]` 접두("clause-..."). `SourceTextHash = LogHash.Sha256Hex(ClauseText)`. **동일 `(SourceId,ClauseRef,PackVersion)` + 상이 `ClauseText` 로드 시 거부 + Warning**(silent overwrite 금지, 결정적).
-3. **신규 `ClausePackLoader`**(`Core/Kb/`): clause-pack CSV 로드. `NcrRuleSetLoader`/`RegulationCatalog`의 **path allowlist + safe-fallback** 패턴 재사용 — **Pack 미적재 시 빈 결과 + catalog-only fallback**(예외 0, 기존 검색 동작 불변). CSV 파싱은 **기존 `CsvReader` 재사용**(인박스, CP949/UTF-8, cap). 헤더 검증(누락=warning, throw 아님).
+3. **신규 `ClausePackLoadResult` + `ClausePackLoader`**(`Core/Kb/`): clause-pack CSV 로드. `ClausePackLoadResult`는 `IReadOnlyList<RegulationClause> Clauses`, `IReadOnlyList<SafetyFinding>` 또는 동등 `Warnings/Findings`, `bool UsedFallback`을 포함한다. `NcrRuleSetLoader`/`RegulationCatalog`의 **path allowlist + safe-fallback** 패턴 재사용 — **Pack 미적재/거부/헤더누락/행 skip 시 빈 결과 + catalog-only fallback + 진단 반환**(예외 0, 기존 검색 동작 불변). CSV 파싱은 **기존 `CsvReader` 재사용**(인박스, CP949/UTF-8, cap). 헤더 검증(누락=warning/finding, throw 아님).
 4. **합성 더미 clause 샘플**: `kb/clause_pack_sample/` 하위에 CSV 1개. **헤더 = 영문 토큰 비충돌**(`clause_ref,clause_body,source_id,effective_date,repeal_date,pack_version`). **본문 = 토큰 비충돌**(예: `제0조 (합성 테스트) 본 더미 조문은 검증용 가짜 문구`) — `원문`/`조항 원문`/`internal_*`/`official text` 등 Suspicious 토큰을 **부분문자열로도 포함 금지**. 실 규정 원문 0.
 5. **`KbRepositoryGuard` 원문 가드 강화**(4자 정합 — ADR-013 §결정6 표):
    - `SuspiciousNameTokens`에 `clause_original` add-only, `SuspiciousContentTokens`에 한글 `조항 원문` add-only.
@@ -29,8 +29,8 @@ clause **검색**(SearchClauses)·`KbAccessDecision` 확장·`ClauseSnippetAllow
 외부 NuGet 0 · 실 규정 원문 repo 0(합성만) · 해시 audit(원문 미저장) · 쓰기 경로 없음(로더는 읽기) · `KbRepositoryGuard.Scan(현 repo) Blocker=0`이 **합성 샘플·신규 토큰 추가 후에도 보존**(신규 토큰이 자기 합성 샘플을 잡으면 안 됨).
 
 ## 4. 테스트 (SmokeTest, 외부 프레임워크 0 — 도메인 `Kb`)
-- 양성: 합성 clause CSV 로드 → `RegulationClause` 결정적(ChunkId 안정·`DeterministicSignature` 동등), Pack 미존재 → 빈 결과+fallback(예외 0).
-- 음성: 동일 `(SourceId,ClauseRef,PackVersion)`+상이 텍스트 → 거부+Warning · path traversal/rooted 거부 · 비-CSV 거부.
+- 양성: 합성 clause CSV 로드 → `RegulationClause` 결정적(ChunkId 안정·`DeterministicSignature` 동등), Pack 미존재 → `Clauses=[]` + `UsedFallback=true` + warning/finding(예외 0).
+- 음성: 동일 `(SourceId,ClauseRef,PackVersion)`+상이 텍스트 → 거부+Warning 관측 · path traversal/rooted 거부+fallback 진단 · 비-CSV 거부+fallback 진단.
 - 가드: `KbRepositoryGuard.Scan(repoRoot) Blocker=0` 보존(현 L126-127 회귀) · 신규 토큰 code-unit 미러 단언 통과 · 합성 샘플이 신규/기존 토큰에 **부분일치 0** · MetadataAllowlist 등재 확인.
 - 기존 `KbTests` 단언(linear==index·`DeterministicSignature`·한글 부분일치·catalog 경로) **전부 보존**.
 - 종료부 **`Total=714 → 714+N PASS / 0 FAIL`**, `Unclassified=0`.
@@ -40,4 +40,4 @@ clause **검색**(SearchClauses)·`KbAccessDecision` 확장·`ClauseSnippetAllow
 - Branch `feature/kb-wp-01-clause-pack` · Commit: `feat: clause/chunk pack contract + loader + repo guard (KB-WP-01)`
 
 ## 6. Claude Review Checklist
-ChunkId 충돌방지(SourceTextHash 키 포함) / Pack 미적재 graceful fallback / CsvReader·로더 패턴 재사용(중복 0) / 합성 더미 토큰 비충돌 / 가드 4자 정합(kb/ 디폴트·ScanDir 변경 0) / 한글 토큰 build03 code-unit + KbTests 미러 / `SourceTextAllowed` false 불변 / `KbRepositoryGuard.Scan Blocker=0` 보존 / NuGet 0 / 기존 KbTests 보존 / `Total` 보존+신규 / Gate A.
+ChunkId 충돌방지(SourceTextHash 키 포함) / Pack 미적재 graceful fallback + `ClausePackLoadResult` 진단 관측 가능 / CsvReader·로더 패턴 재사용(중복 0) / 합성 더미 토큰 비충돌 / 가드 4자 정합(kb/ 디폴트·ScanDir 변경 0) / 한글 토큰 build03 code-unit + KbTests 미러 / `SourceTextAllowed` false 불변 / `KbRepositoryGuard.Scan Blocker=0` 보존 / NuGet 0 / 기존 KbTests 보존 / `Total` 보존+신규 / Gate A.

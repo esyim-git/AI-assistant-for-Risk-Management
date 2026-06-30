@@ -51,30 +51,30 @@
 > 권위 설계 = **ADR-013**(`docs/40`)·ADR-007·`docs/17`. 인박스 keyword-only, Vector/Embedding=STOP. 실 규정 원문 repo 미포함(합성 더미만, 운영 실 Pack=ADR-007 ② Offline Ingestion).
 - **목표**: clause/chunk **데이터 계약 + Pack 로더 + 원문 유입 가드 + 합성 더미 샘플**. (검색은 KB-WP-02.) 현재 KB는 catalog metadata까지(`KbSearchResult.Clause` 고정 문자열·`SourceTextAllowed` false)라 clause 검색 토대를 먼저 깐다.
 - **선행조건**: 없음(안정 기준선 `30c1cfb`, `Total=714`). 외부 의존성 0.
-- **작업범위**: ① 신규 record `RegulationClause`(`Core/Kb/`: ChunkId·SourceId·ClauseRef·ClauseText·EffectiveDate·RepealDate·PackVersion·SourceTextHash) ② `ChunkId=Sha256Hex(SourceId|ClauseRef|PackVersion|SourceTextHash)[..12]`, 동일키+상이텍스트=거부+Warning(silent overwrite 금지) ③ 신규 `ClausePackLoader`(path allowlist+safe-fallback=`NcrRuleSetLoader` 패턴, CSV는 `CsvReader` 재사용, Pack 미존재→catalog-only fallback) ④ 합성 더미 `kb/clause_pack_sample/*.csv`(영문 헤더·토큰 비충돌 본문) ⑤ `KbRepositoryGuard` 강화(`SuspiciousNameTokens`+`clause_original`·`SuspiciousContentTokens`+한글 `조항 원문`, build/03 code-unit 리터럴+KbTests 미러, 합성 샘플 `MetadataAllowlist` add-only). **`SourceTextAllowed` false 불변**.
+- **작업범위**: ① 신규 record `RegulationClause`(`Core/Kb/`: ChunkId·SourceId·ClauseRef·ClauseText·EffectiveDate·RepealDate·PackVersion·SourceTextHash) ② `ChunkId=Sha256Hex(SourceId|ClauseRef|PackVersion|SourceTextHash)[..12]`, 동일키+상이텍스트=거부+Warning(silent overwrite 금지) ③ 신규 `ClausePackLoadResult`(`Clauses`·`Warnings/Findings`·`UsedFallback`) + `ClausePackLoader`(path allowlist+safe-fallback=`NcrRuleSetLoader` 패턴, CSV는 `CsvReader` 재사용, Pack 미존재/거부/헤더누락/행 skip→진단 포함 catalog-only fallback, throw 아님) ④ 합성 더미 `kb/clause_pack_sample/*.csv`(영문 헤더·토큰 비충돌 본문) ⑤ `KbRepositoryGuard` 강화(`SuspiciousNameTokens`+`clause_original`·`SuspiciousContentTokens`+한글 `조항 원문`, build/03 code-unit 리터럴+KbTests 미러, 합성 샘플 `MetadataAllowlist` add-only). **`SourceTextAllowed` false 불변**.
 - **제외범위**: clause 검색·`ClauseSnippetAllowed`·`KbAccessDecision` 확장(KB-WP-02). 실 원문 적재. KbIndex 일반화(KB-WP-02). UI. NuGet/Vector/모델.
 - **읽을문서**: `docs/40` ADR-013·ADR-007, `docs/17`, `docs/41 §2`, `Core/Kb/*`, `Core/Data/CsvReader.cs`, `Core/Ncr/NcrRuleSetLoader.cs`, `KbTests.cs`.
-- **수정예상파일**: `Core/Kb/RegulationClause.cs`·`ClausePackLoader.cs`(신규), `Core/Kb/KbRepositoryGuard.cs`, `build/03_verify-package.ps1`, `kb/clause_pack_sample/*`(합성), `KbTests.cs`.
-- **Public Interface**: `RegulationClause`(record), `ClausePackLoader.Load(path)→IReadOnlyList<RegulationClause>`(미존재 시 빈+fallback). 기존 `KbIndex`/`KbSearch`/`KbAccessPolicy` 시그니처 불변.
+- **수정예상파일**: `Core/Kb/RegulationClause.cs`·`ClausePackLoadResult.cs`·`ClausePackLoader.cs`(신규), `Core/Kb/KbRepositoryGuard.cs`, `build/03_verify-package.ps1`, `kb/clause_pack_sample/*`(합성), `KbTests.cs`.
+- **Public Interface**: `RegulationClause`(record), `ClausePackLoadResult`(clauses+diagnostics+fallback), `ClausePackLoader.Load(path)→ClausePackLoadResult`(미존재 시 `Clauses=[]`, `UsedFallback=true`, warning 포함). 기존 `KbIndex`/`KbSearch`/`KbAccessPolicy` 시그니처 불변.
 - **구현세부**: 결정적·safe-fallback. `LogHash` 단일 해시 원천. 4자 가드 정합(ADR-013 §결정6 표) — 합성 샘플=`kb/` 하위라 `ScanDirectories` 변경 0(디폴트).
 - **보안조건**: NuGet 0 · 실 원문 repo 0(합성만) · 합성 더미가 신규/기존 토큰에 부분일치 0 · `KbRepositoryGuard.Scan Blocker=0` 보존.
-- **테스트**(도메인 `Kb`): clause 로드 결정성·ChunkId 충돌 거부+Warning·Pack 미존재 fallback·path 가드·가드 Blocker=0 보존·한글 토큰 code-unit 미러·합성 샘플 토큰 비충돌. 기존 KbTests 보존. `Total 714→+N`, Unclassified 0.
+- **테스트**(도메인 `Kb`): clause 로드 결정성·ChunkId 충돌 거부+Warning 관측·Pack 미존재 fallback(`UsedFallback=true`)·path 가드/헤더누락/행 skip 진단·가드 Blocker=0 보존·한글 토큰 code-unit 미러·합성 샘플 토큰 비충돌. 기존 KbTests 보존. `Total 714→+N`, Unclassified 0.
 - **완료조건**: 계약+로더+가드+합성샘플 + build 0/0 + `Total` 보존+신규 + Gate A. build/03 PASS(합성 샘플 추가 후 원문 스캔 Blocker 0).
 - **Branch**: `feature/kb-wp-01-clause-pack` · **Commit**: `feat: clause/chunk pack contract + loader + repo guard (KB-WP-01)`
-- **Claude Review Checklist**: ChunkId 충돌방지 / fallback / 로더·CsvReader 재사용(중복 0) / 합성 더미 토큰 비충돌 / 가드 4자 정합 / 한글 code-unit 미러 / `SourceTextAllowed` false 불변 / Scan Blocker 0 보존 / NuGet 0 / KbTests 보존 / `Total` 보존+신규 / Gate A. **프롬프트**: `prompts/codex/KB-WP-01_clause_pack_contract.md`.
+- **Claude Review Checklist**: ChunkId 충돌방지 / fallback 진단이 `ClausePackLoadResult`로 관측 가능 / 로더·CsvReader 재사용(중복 0) / 합성 더미 토큰 비충돌 / 가드 4자 정합 / 한글 code-unit 미러 / `SourceTextAllowed` false 불변 / Scan Blocker 0 보존 / NuGet 0 / KbTests 보존 / `Total` 보존+신규 / Gate A. **프롬프트**: `prompts/codex/KB-WP-01_clause_pack_contract.md`.
 
 ## KB-WP-02. clause keyword 검색 + clause 인용 + ClauseSnippetAllowed 게이트 (Cap C-28)
 > ADR-013. KB-WP-01 토대 위. 인박스 keyword-only.
 - **목표**: clause 본문 keyword 검색 + clause-level 인용(문서명·버전·시행일·**조항**·출처·검색기준일·검토필요) + 발췌 노출 게이트.
 - **선행조건**: KB-WP-01(계약/로더/가드).
-- **작업범위**: ① `KbIndex` 코어 알고리즘을 **internal static 유틸로 추출**(catalog·clause 공유, 별도 엔진 금지) — 후보발견 단일원천, 점수는 타입별 분리 ② `KbSearch.SearchClauses(query, asOf)` + 신규 `KbClauseSearchResult`(ClauseId·SourceId·ClauseRef·Snippet·Score·Disclosure) ③ **신규 `ClauseSnippetAllowed(entry)` 게이트**(PublicCited **AND** 비-placeholder metadata만 발췌 true), `KbAccessDecision`에 필드 additive ④ clause 유효구간(EffectiveDate/RepealDate 결정적 파싱, asOf 경계) ⑤ 검색 행위 해시 audit 재사용.
+- **작업범위**: ① `KbIndex` 코어 알고리즘을 **internal static 유틸로 추출**(catalog·clause 공유, 별도 엔진 금지) — 후보발견 단일원천, 점수는 타입별 분리 ② `KbSearch.SearchClauses(query, asOf)` + 신규 `KbClauseSearchResult`(ClauseId·SourceId·ClauseRef·Snippet·Score·Disclosure + **DocumentName·Version·EffectiveDate·SourceLocator·SearchDate·ReviewDraftNotice** 등 catalog citation metadata 포함) ③ **신규 `ClauseSnippetAllowed(entry)` 게이트**(PublicCited **AND** 비-placeholder metadata만 발췌 true), `KbAccessDecision`에 필드 additive ④ clause 유효구간(EffectiveDate/RepealDate 결정적 파싱, asOf 경계) ⑤ 검색 행위 해시 audit 재사용.
 - **제외범위**: `SourceTextAllowed` 변경(false 불변). 실 원문. UI 위젯. Vector/모델.
 - **읽을문서**: ADR-013, KB-WP-01 산출, `Core/Kb/{KbIndex,KbSearch,KbAccessPolicy}.cs`.
 - **수정예상파일**: `Core/Kb/KbIndex.cs`(코어 유틸 추출·후방호환), `KbSearch.cs`, `KbAccessPolicy.cs`(`ClauseSnippetAllowed`·`KbAccessDecision` additive), `KbClauseSearchResult.cs`(신규), `KbTests.cs`.
-- **Public Interface**: `KbSearch.SearchClauses(...)`·`KbClauseSearchResult`·`KbAccessPolicy.ClauseSnippetAllowed(entry)`. 기존 catalog 검색 경로·`KbSearchResult` 불변.
+- **Public Interface**: `KbSearch.SearchClauses(...)`·`KbClauseSearchResult`(caller가 추가 catalog lookup 없이 문서명·버전·시행일·출처·검색일·검토필요 문구를 표시/검증 가능)·`KbAccessPolicy.ClauseSnippetAllowed(entry)`. 기존 catalog 검색 경로·`KbSearchResult` 불변.
 - **구현세부**: 코어 유틸 추출 시 기존 `KbTests` linear==index/`DeterministicSignature`/한글 부분일치(catalog 경로) 전부 PASS 보존. 점수=`OrderByDescending(Score).ThenBy(...,Ordinal)`.
 - **보안조건**: 발췌는 `ClauseSnippetAllowed`만 게이트(공개 비-placeholder만). PROD_ONLY/MANUAL/placeholder→발췌 0. NuGet 0·해시 audit.
-- **테스트**(도메인 `Kb`): clause hit·인용 완비·`ClauseSnippetAllowed` 양성(공개)/음성(PROD_ONLY·placeholder-metadata→발췌 0)·유효구간 경계·코어 유틸 추출 후 catalog 회귀 보존·`SourceTextAllowed` false 불변 회귀. `Total`+N, Unclassified 0.
+- **테스트**(도메인 `Kb`): clause hit·인용 metadata 완비(추가 lookup/본문 파싱 없이 검증)·`ClauseSnippetAllowed` 양성(공개)/음성(PROD_ONLY·placeholder-metadata→발췌 0)·유효구간 경계·코어 유틸 추출 후 catalog 회귀 보존·`SourceTextAllowed` false 불변 회귀. `Total`+N, Unclassified 0.
 - **완료조건**: clause 검색+인용+게이트 + build 0/0 + 기존 보존 + Gate A.
 - **Branch**: `feature/kb-wp-02-clause-search` · **Commit**: `feat: clause keyword search + citation + snippet gate (KB-WP-02)`
 - **Claude Review Checklist**: 코어 유틸 단일원천(중복 0)·후방호환 / `ClauseSnippetAllowed` 단일 게이트·`SourceTextAllowed` false 불변 / placeholder-metadata 발췌 차단 / 유효구간 결정성 / catalog 회귀 보존 / NuGet 0 / `Total` 보존+신규 / Gate A. **프롬프트**: KB-WP-01 머지 후 작성.
@@ -83,17 +83,17 @@
 > 권위 설계 = **ADR-014**(`docs/40`). RETRIEVAL이지 학습 아님 — 모델 가중치 학습/모델파일 쓰기 0. 인박스, Vector/Embedding STOP.
 - **목표**: 승인 Example 본문을 안전 적재(ingest 게이트)·영속하고 결정적으로 검색, 검색 행위 해시 audit. (Prompt 반영은 FEEDBACK-WP-02.) 현재 R5는 승격+영속+UI까지(PARTIAL), 본문·검색 retrieval 경로가 0.
 - **선행조건**: 없음(안정 기준선 `30c1cfb`). 외부 의존성 0.
-- **작업범위**: ① `FeedbackLogEntry`에 `string? DraftBody=null`(맨 끝 nullable, 위치 불변) ② ingest 게이트(`PromoteApproved` 승격 시 `SqlSafetyChecker`/`VbaSafetyChecker` Blocker 0 AND 신규 `ForbiddenTermScanner` 0 통과 시만 본문 채움, 실패→본문 null+warning, kind 불확실→null+warning) ③ 신규 `ForbiddenTermScanner`(Core 인박스, 단일 토큰 원천: 원문/실데이터/실컬럼/PII; 가드 string 재사용 금지) ④ `PromotedExample`+`ExampleBody`(nullable)·store JSONL 규약 재사용 ⑤ 결정적 검색(`ReadAll` 위 keyword/score, `OrderByDescending(Score).ThenBy(ExampleId,Ordinal)`) ⑥ 검색 audit(`TaskLogWriter` 해시) ⑦ `.gitignore`+`config/promoted_examples*.jsonl`.
+- **작업범위**: ① Example 본문 입력은 **로그 DTO가 아닌 별도 non-log DTO**(`FeedbackDraftBodyInput` 또는 동등)로 전달한다. `FeedbackLogEntry`/`FeedbackLogWriter`에는 `DraftBody` 추가 금지(평문 직렬화 방지, 기존 6-positional 호출 보존). ② ingest 게이트(`PromoteApproved` 승격 시 `SqlSafetyChecker`/`VbaSafetyChecker` Blocker 0 AND 신규 `ForbiddenTermScanner` 0 통과 시만 본문 채움, 실패→본문 null+warning, kind 불확실→null+warning) ③ 신규 `ForbiddenTermScanner`(Core 인박스, 단일 토큰 원천: 원문/실데이터/실컬럼/PII; 가드 string 재사용 금지) ④ `PromotedExample`+`ExampleBody`(nullable)·store JSONL 규약 재사용 ⑤ 결정적 검색(`ReadAll` 위 keyword/score, `OrderByDescending(Score).ThenBy(ExampleId,Ordinal)`) ⑥ 검색 audit(`TaskLogWriter` 해시) ⑦ `.gitignore`+`config/promoted_examples*.jsonl`.
 - **제외범위**: Prompt 반영/주입(FEEDBACK-WP-02). 모델/LLM. revoke/만료. Vector/모델. NuGet.
 - **읽을문서**: ADR-014, `Core/Feedback/*`, `Core/Logging/{LogHash,FeedbackLog*,TaskLog*}.cs`, `Core/Safety/{Sql,Vba}SafetyChecker.cs`, `AuditTests.cs`, `SmokeTestContext.cs`.
-- **수정예상파일**: `Core/Logging/FeedbackLogEntry.cs`(+DraftBody)·`FeedbackLogWriter.cs`, `Core/Feedback/ExamplePromotion.cs`·`PromotedExampleStore.cs`, `Core/Safety/ForbiddenTermScanner.cs`(신규), `App/MainWindow.xaml.cs`(입력 배선), `.gitignore`, `AuditTests.cs`.
-- **Public Interface**: `FeedbackLogEntry(..., string? DraftBody=null)`, `ForbiddenTermScanner.ScanText(string)`, `PromotedExampleStore` 검색 메서드. 기존 6-positional 호출 보존.
+- **수정예상파일**: `Core/Feedback/FeedbackDraftBodyInput.cs`(또는 동등 non-log DTO)·`ExamplePromotion.cs`·`PromotedExampleStore.cs`, `Core/Safety/ForbiddenTermScanner.cs`(신규), `App/MainWindow.xaml.cs`(입력 배선), `.gitignore`, `AuditTests.cs`. `FeedbackLogEntry`는 원칙적으로 변경하지 않으며 변경 필요 시 raw body가 `[JsonIgnore]`/별도 non-log DTO로만 머문다는 테스트 필수.
+- **Public Interface**: `FeedbackDraftBodyInput`(non-log DTO), `ForbiddenTermScanner.ScanText(string)`, `PromotedExampleStore` 검색 메서드. 기존 `FeedbackLogEntry` 6-positional 호출 및 해시 전용 로그 스키마 보존.
 - **구현세부**: RETRIEVAL-only. 본문 없으면 메타만. 해시 전용 audit(원문/raw/userid 평문 미저장). 쓰기 `config/`·`logs/`.
 - **보안조건**: 모델 가중치 학습 0·모델파일 쓰기 0 · ingest 게이트로 원문/실데이터/PII 본문 차단 · NuGet 0 · `.gitignore`로 본문 영속 tracked 금지.
-- **테스트**(도메인 **`Audit`** — Kb 키워드 `검색/원문/공개/인용` 회피, 영어 search/retrieval+PromotedExample/Feedback 토큰): 양성(안전 본문→검색 hit·tie-break·audit 1건) · 음성 3종(DROP TABLE·내부규정 원문 토큰·실데이터/PII→본문 null) · audit 평문 미저장 · `.gitignore` promoted_examples 포함. 기존 AuditTests 보존(6-positional). `Total`+N, Unclassified 0.
+- **테스트**(도메인 **`Audit`** — Kb 키워드 `검색/원문/공개/인용` 회피, 영어 search/retrieval+PromotedExample/Feedback 토큰): 양성(안전 본문→search hit·tie-break·audit 1건) · 음성 3종(DROP TABLE·내부규정 원문 토큰·실데이터/PII→본문 null) · `FeedbackLogWriter` 출력에 DraftBody/raw body 미직렬화 단언 · `.gitignore` promoted_examples 포함. 기존 AuditTests 보존(6-positional). `Total`+N, Unclassified 0.
 - **완료조건**: ingest+영속+검색+audit+gitignore + build 0/0 + 기존 보존 + Gate A.
 - **Branch**: `feature/feedback-wp-01-example-retrieval` · **Commit**: `feat: approved-example ingest gate + deterministic retrieval + audit (FEEDBACK-WP-01)`
-- **Claude Review Checklist**: RETRIEVAL-only(학습/모델파일 0) / DraftBody 맨 끝 nullable(호출 보존) / ingest 게이트(SafetyChecker AND ForbiddenTermScanner) / ForbiddenTermScanner 단일원천(가드 재사용 안 함) / 결정적 검색+Ordinal / 해시 audit / `.gitignore` / 도메인 Audit·Unclassified 0 / NuGet 0 / AuditTests 보존 / `Total` 보존+신규 / Gate A. **프롬프트**: `prompts/codex/FEEDBACK-WP-01_example_retrieval.md`.
+- **Claude Review Checklist**: RETRIEVAL-only(학습/모델파일 0) / DraftBody는 `FeedbackLogEntry`·`FeedbackLogWriter` 직렬화 경로 밖(non-log DTO) / ingest 게이트(SafetyChecker AND ForbiddenTermScanner) / ForbiddenTermScanner 단일원천(가드 재사용 안 함) / 결정적 검색+Ordinal / 해시 audit / `.gitignore` / 도메인 Audit·Unclassified 0 / NuGet 0 / AuditTests 보존 / `Total` 보존+신규 / Gate A. **프롬프트**: `prompts/codex/FEEDBACK-WP-01_example_retrieval.md`.
 
 ## FEEDBACK-WP-02. 검색 결과 Prompt 반영 (review 경유 read-only 주입) (Cap C-20 확장)
 > ADR-014. FEEDBACK-WP-01 토대 위. RETRIEVAL 주입이지 학습 아님.
