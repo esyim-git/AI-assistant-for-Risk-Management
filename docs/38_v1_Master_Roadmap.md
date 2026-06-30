@@ -1,6 +1,6 @@
 # 38. v1.0 Master Roadmap & Release Train (v0.6.0 → v1.0.0)
 
-> **현재 기준선 = v0.6.0 + STAB-WP-01~04 + STAB-UX-01/02 + UX-WP-01~03 + R2-WP-01~04** (main `35e6f01`, PR #87 머지 후; **R2 분석 트랙(v0.7.0) 완결**, 정식 v0.7.0 태깅 미수행). 본 문서는 v0.6.0 다음 단계부터 v1.0 Team Pilot까지의 통합 실행 로드맵이다.
+> **현재 기준선 = v0.6.0 + STAB-WP-01~04 + STAB-UX-01/02 + UX-WP-01~03 + R2-WP-01~04** (main `35e6f01`, PR #87 머지 후; **R2 분석 트랙(v0.7.0) 완결**, 정식 v0.7.0 태깅 미수행). **NEXT UP = REL-v0.7.0**(버전 범프 락스텝 릴리스 컷, `docs/39`·`docs/47`) · 코드서명 = **STAB-WP-05 APPROVAL_REQUIRED**(승인 문서 ADR-012/`docs/41 §6` READY, 인증서 결정 대기). 본 문서는 v0.6.0 다음 단계부터 v1.0 Team Pilot까지의 통합 실행 로드맵이다.
 > 개념 로드맵은 `docs/10`, WP 상세는 `docs/39`, 아키텍처 결정은 `docs/40`, 게이트는 `docs/41`, Gate 증거는 `docs/44`(v0.5)·`docs/45`(v0.6).
 
 ## 0. 기준선 (재설계 금지)
@@ -20,10 +20,11 @@ Offline · 외부 NuGet 0 · 외부 API/Telemetry/AutoUpdate 0 · SQL/VBA/Golden
 |---|---|---|---|---|
 | R1 | v0.5.0 | Data & Limit Foundation | Data Spec Gate | **DONE** |
 | R3 | v0.6.0 | Regulation/NCR 구조 (공개·인용형 RAG + NCR Rule Set 구조) | RAG/NCR Approval Gate(코드레벨) | **DONE** |
-| **STAB** | **v0.6.1** | **Stabilization**(빌드/버전 재현성·Release 보안·Integrity Manifest·정본 테스트 베이스라인·테스트 구조) | — | **STAB-WP-01/02/03/04 DONE**(#56/#57/#59/#61/#66) · **STAB-WP-05**(코드서명) **APPROVAL_REQUIRED** |
+| **STAB** | **v0.6.1** | **Stabilization**(빌드/버전 재현성·Release 보안·Integrity Manifest·정본 테스트 베이스라인·테스트 구조) | — | **STAB-WP-01/02/03/04 DONE**(#56/#57/#59/#61/#66) · **STAB-WP-05**(코드서명) **APPROVAL_REQUIRED — 승인 문서 READY**(ADR-012/`docs/41 §6`), 인증서 경로 결정 대기 |
 | PILOT | (병행) | v0.6 오프라인 Test PC Gate B/C 증거 | Pilot Gate B/C | **BLOCKED**(실 Test PC 증거 대기) |
 | **UX** | (병행) v0.7.x | **Smart Assist / Inline Assist** (입력 중 자동완성·snippet·추천 문구·실시간 안전 힌트, **정적·NoModel**) + Resizable Layout(영속화 포함) | Gate A(보안) | **STAB-UX-01/02·UX-WP-01~03 DONE**(#68·#70·#72·#73·#76, local-gate) · **UX/STAB-UX 트랙 완료**(실 LLM 랭킹=R4 미구현; 실 Test PC Gate B/C BLOCKED) |
 | R2 | v0.7.0 | Risk Analytics & Visualization (Semantic Hardening·Streaming·전일대비·차트) | Data Spec Gate | **R2-WP-01~04 DONE — R2 트랙 완결**(#79·#81·#84·#87, local-gate; Semantic Hardening + Streaming/Welford + Prior-Day + Visualization/Report, `Total=714`; 실 Test PC Gate B/C BLOCKED) |
+| **REL** | **v0.7.0** | **정식 릴리스 컷**(버전 범프 `0.6.0→0.7.0` 락스텝 + 미서명 portable ZIP/SHA256/ReleaseNote) | Gate A·B | **REL-v0.7.0 NEXT UP**(`docs/39`·`docs/47`·`prompts/codex/REL-v0.7.0_*`; 기능 0·`Total=714` 불변) · 코드서명=STAB-WP-05 후속 |
 | KB | v0.8.0 | Public Knowledge Pack (조항 원문 Chunk, keyword only) | RAG Approval Gate | 설계(원문 적재 STOP) |
 | NCR | v0.8.x | Approved NCR Rule Pack 계약 | NCR Approval Gate | 설계(계수 미포함) |
 | R4 | v0.9.0 | Local LLM **Adapter (설계 전용)** | Model Approval Gate | 설계만 + STOP |
@@ -41,7 +42,8 @@ Offline · 외부 NuGet 0 · 외부 API/Telemetry/AutoUpdate 0 · SQL/VBA/Golden
 | 합성 한도 제거·DEMO_ONLY · CP949/UTF-8/XLSX 입력 · Column Mapping · Exposure-Limit Join+6상태 · 대사 9종 · Dashboard=Report | R1(v0.5.0) | **VERIFIED** |
 | 공개 규정 KB Metadata · Keyword/Inverted Index · 인용형 답변 · KbAccessPolicy · KbRepositoryGuard(+build/03) | R3(v0.6.0) | **VERIFIED** |
 | NCR Rule Set 8요소 구조 | R3(v0.6.0) | **SCAFFOLD_ONLY** (승인 Rule Pack·계수 미적재) |
-| 빌드/버전 재현성 · 정본 테스트 베이스라인 · SmokeTest suite 구조(04) | STAB(v0.6.1) | **PARTIAL**(STAB-WP-01/02/03a/03b/04 VERIFIED; **STAB-WP-05 코드서명 APPROVAL_REQUIRED**) |
+| 빌드/버전 재현성 · 정본 테스트 베이스라인 · SmokeTest suite 구조(04) | STAB(v0.6.1) | **PARTIAL**(STAB-WP-01/02/03a/03b/04 VERIFIED; **STAB-WP-05 코드서명 APPROVAL_REQUIRED — 승인 문서 READY** ADR-012/`docs/41 §6`, 인증서 결정 대기) |
+| v0.7.0 정식 릴리스 컷(버전 범프 락스텝 · 미서명 portable ZIP/SHA256/ReleaseNote) | REL(v0.7.0) | **NEXT UP**(REL-v0.7.0 — 기능 0·`Total=714` 불변·외부 NuGet/서명 0; `docs/47`·`docs/39`) |
 | Release 보안 · Integrity Manifest(build측 03a) · 런타임 Fail-Closed(03b) | STAB(v0.6.1) | **VERIFIED**(local-gate; 03a #59, 03b #61. 실 Test PC Gate B/C 별도 BLOCKED) |
 | Smart Assist **Core**(Engine·Context·Item·Provider 계약·Registry·NoModel) + Accept 해시 Audit | UX(v0.7.x) | **VERIFIED**(local-gate; UX-WP-01 #70. 계약+코어 한정) |
 | 정적 Provider(SQL/VBA/Excel2021+365차단/SafetyHint/RiskPhrase) | UX(v0.7.x) | **VERIFIED**(local-gate; UX-WP-02 #72. 정적·NoModel·RuleSet 단일원천 재사용 한정; 실 LLM 랭킹=R4 미구현) |
@@ -73,7 +75,8 @@ R1(DONE) ─► R3(DONE) ─► STAB(v0.6.1) ─► R2(v0.7) ─► KB(v0.8) ─
 | C-01~08 | R1 데이터·한도·대사·일원화 | WP-01~08 | 6상태·대사 9종·동일수치 | Data | VERIFIED |
 | C-10 | KB Metadata·역색인·인용·접근정책·원문가드 | R3-WP-01~04 | 검색 결정성·인용·Blocker 스캔 | RAG | VERIFIED |
 | C-11 | NCR Rule Set 8요소 구조 | R3-WP-05 | 구조·조회전용 SQL·검토용초안 | NCR | SCAFFOLD_ONLY |
-| C-12 | 빌드/버전 재현성·무결성·정본 테스트·테스트 suite 구조 | STAB-WP-01~04 | VERSION 단일원천·manifest 검증·런타임 Fail-Closed·정본 합계·suite 분리 | — | PARTIAL (STAB-WP-01~04 DONE #56/#57/#59/#61/#66; **STAB-WP-05 코드서명 APPROVAL_REQUIRED**) |
+| C-12 | 빌드/버전 재현성·무결성·정본 테스트·테스트 suite 구조 | STAB-WP-01~04 | VERSION 단일원천·manifest 검증·런타임 Fail-Closed·정본 합계·suite 분리 | — | PARTIAL (STAB-WP-01~04 DONE #56/#57/#59/#61/#66; **STAB-WP-05 코드서명 APPROVAL_REQUIRED — 승인 문서 READY** ADR-012/`docs/41 §6`, 인증서 결정 대기) |
+| C-17 | v0.7.0 정식 릴리스 컷(버전 범프 락스텝) | REL-v0.7.0 | `VERSION`+`ExpectedVersion`+`PackagingTests` 락스텝·`Total=714` 불변·build/03 PASS·미서명 ZIP/SHA256 | — | **NEXT UP**(구현 가능; 코드서명=STAB-WP-05 후속) |
 | C-22 | Smart Assist Core (Engine·Context·Item·Provider 계약·Registry·NoModel) | UX-WP-01 | 결정성·언어 라우팅·개수 상한·SafetyHint pinned·accept 해시 audit(원문 미저장) — `AssistTests`(+23) | A | **VERIFIED**(local-gate, #70. 계약+코어 한정; 실 Provider=C-23·UI=C-24 미구현) |
 | C-23 | 정적 Provider (SQL/VBA/Excel2021+365차단/SafetyHint/RiskPhrase) | UX-WP-02 | 차단 DML/금지 API 미추천·365 대체힌트·RuleSet 재사용·실데이터 0 | A | **VERIFIED**(local-gate, #72. 정적·NoModel 한정; 실 Test PC Gate BLOCKED) |
 | C-24 | WPF Completion Popup (Ctrl+Space·선택 삽입·자동삽입 없음) | UX-WP-03 | 자동삽입 없음·Source/Kind/RequiresReview 노출·결과패널 연계 | A | **VERIFIED**(local-gate, #73. WPF 기본 컨트롤·외부 Editor 0 한정; 실 Test PC Gate BLOCKED) |
