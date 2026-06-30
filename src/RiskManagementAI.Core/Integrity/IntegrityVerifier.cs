@@ -24,7 +24,7 @@ public static class IntegrityVerifier
     /// Assembly version: a tampered file-version cannot satisfy it and the value is reproducible
     /// offline. Bump in lock-step with the VERSION file at each release.
     /// </summary>
-    public const string ExpectedVersion = "0.6.0";
+    public const string ExpectedVersion = "0.7.0";
 
     public const string ManifestFileName = "approved_manifest.json";
 
