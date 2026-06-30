@@ -10,7 +10,8 @@ public static class KbRepositoryGuard
     {
         Normalize("kb/README.md"),
         Normalize("kb/public_regulation_catalog.csv"),
-        Normalize("kb/ncr_placeholder.md")
+        Normalize("kb/ncr_placeholder.md"),
+        Normalize("kb/clause_pack_sample/public_clause_pack_sample.csv")
     };
 
     private static readonly string[] SuspiciousNameTokens =
@@ -18,6 +19,7 @@ public static class KbRepositoryGuard
         "internal_rule_original",
         "internal_regulation_original",
         "ncr_official_original",
+        "clause_original",
         "official_text",
         "full_text"
     ];
@@ -26,6 +28,7 @@ public static class KbRepositoryGuard
     [
         "내부규정 원문",
         "NCR 공식본 원문",
+        "조항 원문",
         "official text",
         "full text"
     ];

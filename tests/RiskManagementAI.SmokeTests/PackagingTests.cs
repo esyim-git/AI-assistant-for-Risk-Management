@@ -29,6 +29,7 @@ context.AssertTrue(File.Exists("global.json") && File.ReadAllText("global.json")
         ("config/ncr/ncr_ruleset_sample.json", "Ncr", true),
         ("kb/README.md", "Kb", true),
         ("kb/ncr_placeholder.md", "Kb", true),
+        ("kb/clause_pack_sample/public_clause_pack_sample.csv", "Kb", true),
         ("kb/public_regulation_catalog.csv", "Kb", true),
         ("rules/excel_2021_blocked_functions.txt", "Rules", true),
         ("rules/excel_2021_completion_allow_functions.txt", "Rules", true),

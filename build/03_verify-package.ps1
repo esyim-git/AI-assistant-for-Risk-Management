@@ -31,7 +31,8 @@ $SourceTextScanDirs = @("kb", "config", "samples", "data_sources")
 $SourceTextAllowlist = @(
     "kb/README.md",
     "kb/public_regulation_catalog.csv",
-    "kb/ncr_placeholder.md"
+    "kb/ncr_placeholder.md",
+    "kb/clause_pack_sample/public_clause_pack_sample.csv"
 )
 
 function New-StringFromCodeUnits {
@@ -47,17 +48,20 @@ function New-StringFromCodeUnits {
 
 $InternalRegulationOriginalText = New-StringFromCodeUnits @(0xB0B4, 0xBD80, 0xADDC, 0xC815, 0x0020, 0xC6D0, 0xBB38)
 $NcrOfficialOriginalText = New-StringFromCodeUnits @(0x004E, 0x0043, 0x0052, 0x0020, 0xACF5, 0xC2DD, 0xBCF8, 0x0020, 0xC6D0, 0xBB38)
+$ClauseOriginalText = New-StringFromCodeUnits @(0xC870, 0xD56D, 0x0020, 0xC6D0, 0xBB38)
 
 $SuspiciousNameTokens = @(
     "internal_rule_original",
     "internal_regulation_original",
     "ncr_official_original",
+    "clause_original",
     "official_text",
     "full_text"
 )
 $SuspiciousContentTokens = @(
     $InternalRegulationOriginalText,
     $NcrOfficialOriginalText,
+    $ClauseOriginalText,
     "official text",
     "full text"
 )

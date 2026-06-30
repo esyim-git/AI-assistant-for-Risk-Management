@@ -123,6 +123,68 @@ var unknownStatusSearchResponse = new KbSearch(RegulationCatalog.LoadFromFile(un
 var unknownStatusResult = unknownStatusSearchResponse.Results.Single(result => result.SourceId == "UNKNOWN_STATUS");
 context.AssertTrue(unknownStatusResult.Disclosure == KbDisclosure.MetadataOnly, "KbSearch should conservatively mark unknown status as metadata-only");
 context.AssertTrue(unknownStatusSearchResponse.Findings.Any(finding => finding.Code == "KB_UNKNOWN_STATUS" && finding.Severity == SafetySeverity.High), "KbSearch should emit structured finding for unknown status");
+var clauseSampleLoad = ClausePackLoader.LoadDefault();
+context.AssertTrue(!clauseSampleLoad.UsedFallback, "KbSearch clause pack loader should load synthetic sample without fallback");
+context.AssertTrue(clauseSampleLoad.Clauses.Count == 2, "KbSearch clause pack loader should load synthetic sample clauses");
+var firstClause = clauseSampleLoad.Clauses.First();
+context.AssertTrue(firstClause.ChunkId.StartsWith("clause-", StringComparison.Ordinal) && firstClause.ChunkId.Length == 19, "KbSearch clause pack ChunkId should use deterministic clause prefix");
+context.AssertTrue(LogHash.IsSha256Hex(firstClause.SourceTextHash), "KbSearch clause pack SourceTextHash should be SHA256 hex");
+context.AssertTrue(
+    clauseSampleLoad.Clauses.Select(clause => clause.ChunkId).SequenceEqual(ClausePackLoader.LoadDefault().Clauses.Select(clause => clause.ChunkId)),
+    "KbSearch clause pack loader should produce deterministic ChunkIds for the same sample");
+var missingClausePack = ClausePackLoader.Load("kb/clause_pack_sample/missing_clause_pack.csv");
+context.AssertTrue(missingClausePack.UsedFallback && missingClausePack.Clauses.Count == 0 && missingClausePack.Findings.Any(finding => finding.Code == "KB_CLAUSE_PACK_MISSING"), "KbSearch clause pack loader should safe-fallback with diagnostics when pack is missing");
+var rejectedClausePackPath = ClausePackLoader.Load("kb/../clause_pack.csv");
+context.AssertTrue(rejectedClausePackPath.UsedFallback && rejectedClausePackPath.Findings.Any(finding => finding.Code == "KB_CLAUSE_PACK_PATH_REJECTED"), "KbSearch clause pack loader should reject traversal paths with diagnostics");
+var rootedClausePackPath = ClausePackLoader.Load(Path.GetFullPath(ClausePackLoader.DefaultSamplePath));
+context.AssertTrue(rootedClausePackPath.UsedFallback && rootedClausePackPath.Findings.Any(finding => finding.Code == "KB_CLAUSE_PACK_PATH_REJECTED"), "KbSearch clause pack loader should reject rooted paths with diagnostics");
+var nonCsvClausePackPath = ClausePackLoader.Load("kb/clause_pack_sample/not_csv.txt");
+context.AssertTrue(nonCsvClausePackPath.UsedFallback && nonCsvClausePackPath.Findings.Any(finding => finding.Code == "KB_CLAUSE_PACK_PATH_REJECTED"), "KbSearch clause pack loader should reject non-CSV packs with diagnostics");
+var clausePackSampleText = File.ReadAllText(ClausePackLoader.DefaultSamplePath);
+foreach (var token in PrivateGuardStrings("SuspiciousNameTokens").Concat(PrivateGuardStrings("SuspiciousContentTokens")))
+{
+    context.AssertTrue(!clausePackSampleText.Contains(token, StringComparison.OrdinalIgnoreCase), $"KbSearch clause pack synthetic sample should avoid suspicious token '{token}'");
+}
+var tempClausePackPaths = new List<string>();
+try
+{
+    var duplicateClausePackPath = Path.Combine("kb", "clause_pack_sample", $"smoke_duplicate_{Guid.NewGuid():N}.csv");
+    tempClausePackPaths.Add(duplicateClausePackPath);
+    File.WriteAllText(
+        duplicateClausePackPath,
+        "clause_ref,clause_body,source_id,effective_date,repeal_date,pack_version\nArticle-X,alpha synthetic body,FIA_REG,2026-01-01,,pack-smoke\nArticle-X,beta synthetic body,FIA_REG,2026-01-01,,pack-smoke\n",
+        Encoding.UTF8);
+    var duplicateClauseLoad = ClausePackLoader.Load(duplicateClausePackPath);
+    context.AssertTrue(duplicateClauseLoad.Clauses.Count == 1 && duplicateClauseLoad.Findings.Any(finding => finding.Code == "KB_CLAUSE_PACK_DUPLICATE_NATURAL_KEY"), "KbSearch clause pack loader should reject conflicting duplicate natural keys with diagnostics");
+
+    var missingHeaderClausePackPath = Path.Combine("kb", "clause_pack_sample", $"smoke_missing_header_{Guid.NewGuid():N}.csv");
+    tempClausePackPaths.Add(missingHeaderClausePackPath);
+    File.WriteAllText(
+        missingHeaderClausePackPath,
+        "clause_ref,clause_body,source_id,effective_date,repeal_date\nArticle-Y,alpha synthetic body,FIA_REG,2026-01-01,\n",
+        Encoding.UTF8);
+    var missingHeaderLoad = ClausePackLoader.Load(missingHeaderClausePackPath);
+    context.AssertTrue(missingHeaderLoad.UsedFallback && missingHeaderLoad.Findings.Any(finding => finding.Code == "KB_CLAUSE_PACK_HEADER_MISSING"), "KbSearch clause pack loader should safe-fallback when required headers are missing");
+
+    var skippedRowClausePackPath = Path.Combine("kb", "clause_pack_sample", $"smoke_skipped_row_{Guid.NewGuid():N}.csv");
+    tempClausePackPaths.Add(skippedRowClausePackPath);
+    File.WriteAllText(
+        skippedRowClausePackPath,
+        "clause_ref,clause_body,source_id,effective_date,repeal_date,pack_version\n,alpha synthetic body,FIA_REG,2026-01-01,,pack-smoke\nArticle-Z,beta synthetic body,FIA_REG,2026-01-01,,pack-smoke\n",
+        Encoding.UTF8);
+    var skippedRowLoad = ClausePackLoader.Load(skippedRowClausePackPath);
+    context.AssertTrue(skippedRowLoad.Clauses.Count == 1 && !skippedRowLoad.UsedFallback && skippedRowLoad.Findings.Any(finding => finding.Code == "KB_CLAUSE_PACK_ROW_SKIPPED"), "KbSearch clause pack loader should skip invalid rows with diagnostics while loading valid rows");
+}
+finally
+{
+    foreach (var path in tempClausePackPaths)
+    {
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+        }
+    }
+}
 var repoGuardFindings = KbRepositoryGuard.Scan(Directory.GetCurrentDirectory());
 context.AssertTrue(!repoGuardFindings.Any(finding => finding.Severity == SafetySeverity.Blocker), "KbRepositoryGuard should not find internal/NCR original text in repo assets");
 var suspiciousKbRoot = Path.Combine(Path.GetTempPath(), $"kb_guard_{Guid.NewGuid():N}");

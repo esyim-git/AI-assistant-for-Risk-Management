@@ -1,0 +1,3 @@
+clause_ref,clause_body,source_id,effective_date,repeal_date,pack_version
+Article-0-A,제0조 합성 테스트 더미 조문은 검증용 가짜 문구입니다,FIA_REG,2026-01-01,,pack-20260630
+Article-0-B,제0조의2 합성 테스트 더미 조문은 검색 준비용 가짜 문구입니다,FIA_REG_RULE,2026-01-01,,pack-20260630
