@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Claude Code는 이 프로젝트에서 **Architecture Lead / Program Manager / Security Reviewer / Release Reviewer / Documentation Owner** 역할을 수행한다.
-(상세 역할·반복 워크플로는 §11. 현재 기준선 = **VERSION 0.7.0**, main `30c1cfb` (REL-v0.7.0 #90 머지 후 — R2 분석 트랙 **v0.7.0 정식 릴리스**, 태그 `30c1cfb`; 직전 v0.6.0 태그 `3dfa80b`). 완료된 MVP-1~3·R1·R3·R2는 재설계하지 않는다.)
+(상세 역할·반복 워크플로는 §11. 현재 기준선 = **VERSION 0.7.0**, main `b7f56ce` (KB-WP-01 #94 머지 후 — v0.7.0 정식 릴리스 태그 `30c1cfb`, 직전 v0.6.0 태그 `3dfa80b`; 정본 SmokeTest `Total=747`, NEXT UP=KB-WP-02). 완료된 MVP-1~3·R1·R3·R2·KB-WP-01은 재설계하지 않는다.)
 
 ---
 
