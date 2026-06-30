@@ -2,10 +2,14 @@
 
 > Codex는 Claude Code Skill을 **자동 실행하지 못한다.** Skill은 Codex에게 **읽고 따르는 체크리스트**다. (정본 인덱스 = root `SKILLS.md`, 원칙 = `AGENTS.md §8` / `CLAUDE.md §12`.)
 
-## 0. 매 구현 전 (필수)
-1. `SKILLS.md`를 읽는다 — 현재 기준선·Skill 목록·금지사항.
-2. 지정된 **NEXT UP WP**(`docs/39` Resume Brief)와 그 **Codex 프롬프트**(`prompts/codex/<WP-ID>_*.md`)를 읽는다.
-3. 그 WP에 **관련된 `.claude/skills/<skill-name>/SKILL.md`(+support `.md`)를 체크리스트처럼** 읽는다.
+## 0. 매 구현 전 (자동 — 사용자 재요청 불필요)
+> **자동 참조가 기본값.** Codex는 사용자가 `AGENTS.md`/`SKILLS.md`/Skill 문서를 매번 붙여넣지 않아도, **모든 구현 착수 전 항상** 아래를 스스로 읽는다. (정본 = `AGENTS.md §9 Automatic Skill Bridge`.)
+1. `AGENTS.md` — 우선순위·절대원칙·STOP·Gate.
+2. `SKILLS.md` — 현재 기준선·Skill 목록·금지사항·자동 적용/자동 Preflight/STOP Gate 분류(`SKILLS.md §6`).
+3. 지정된 **NEXT UP WP**(`docs/39` Resume Brief)와 그 **Codex 프롬프트**(`prompts/codex/<WP-ID>_*.md`)를 읽는다.
+4. 그 WP에 **관련된 `.claude/skills/<skill-name>/SKILL.md`(+support `.md`)를 체크리스트처럼** 읽는다(작업 유형 매핑 = §1).
+
+> 예시 — 사용자가 "**STAB-UX-01 구현해**"라고만 해도 Codex는 자동으로 `risk-ui-ux-review` + `risk-smoke-governance` + `risk-security-guard` + `prompts/codex/STAB-UX-01_resizable_editor_layout.md`를 적용하고, 보고에 `Applied Skill Checklists`를 명시한다.
 
 ## 1. 작업 유형 → 먼저 읽을 Skill
 | 작업 | 먼저 읽을 Skill |
@@ -35,7 +39,7 @@
 - Skill 원칙을 어기는 구현 금지.
 
 ## 4. 완료 보고 형식
-build 결과 · SmokeTest **`Total=N PASS / 0 FAIL`** 합계 줄 · Gate A 결과 · 변경 파일 · 양성/음성 케이스 · **"사용한 Skill 체크리스트"**(예: `risk-data-limit-review`, `risk-smoke-governance`, `risk-security-guard`).
+build 결과 · SmokeTest **`Total=N PASS / 0 FAIL`** 합계 줄 · Gate A 결과 · 변경 파일 · 양성/음성 케이스 · **"사용한 Skill 체크리스트"**(= **Applied Skill Checklists**, 예: `risk-data-limit-review`, `risk-smoke-governance`, `risk-security-guard`).
 
 ## 5. 머지 게이트 (Local-Gate, `CLAUDE.md §11.6`)
 로컬 `dotnet build` + `dotnet run --project tests/RiskManagementAI.SmokeTests`(→ `Total=N PASS / 0 FAIL`) 증거 + Claude 코드리뷰(`risk-codex-review`). GitHub CI green을 전제로 요구하지 않는다.
