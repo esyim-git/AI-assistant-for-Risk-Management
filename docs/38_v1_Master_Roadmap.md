@@ -41,7 +41,7 @@ Offline · 외부 NuGet 0 · 외부 API/Telemetry/AutoUpdate 0 · SQL/VBA/Golden
 | 합성 한도 제거·DEMO_ONLY · CP949/UTF-8/XLSX 입력 · Column Mapping · Exposure-Limit Join+6상태 · 대사 9종 · Dashboard=Report | R1(v0.5.0) | **VERIFIED** |
 | 공개 규정 KB Metadata · Keyword/Inverted Index · 인용형 답변 · KbAccessPolicy · KbRepositoryGuard(+build/03) | R3(v0.6.0) | **VERIFIED** |
 | NCR Rule Set 8요소 구조 | R3(v0.6.0) | **SCAFFOLD_ONLY** (승인 Rule Pack·계수 미적재) |
-| 빌드/버전 재현성 · 정본 테스트 베이스라인 · SmokeTest suite 구조(04) | STAB(v0.6.1) | VERIFIED(STAB-WP-01/02/04) |
+| 빌드/버전 재현성 · 정본 테스트 베이스라인 · SmokeTest suite 구조(04) | STAB(v0.6.1) | **PARTIAL**(STAB-WP-01/02/03a/03b/04 VERIFIED; **STAB-WP-05 코드서명 APPROVAL_REQUIRED**) |
 | Release 보안 · Integrity Manifest(build측 03a) · 런타임 Fail-Closed(03b) | STAB(v0.6.1) | **VERIFIED**(local-gate; 03a #59, 03b #61. 실 Test PC Gate B/C 별도 BLOCKED) |
 | Smart Assist **Core**(Engine·Context·Item·Provider 계약·Registry·NoModel) + Accept 해시 Audit | UX(v0.7.x) | **VERIFIED**(local-gate; UX-WP-01 #70. 계약+코어 한정) |
 | 정적 Provider(SQL/VBA/Excel2021+365차단/SafetyHint/RiskPhrase) | UX(v0.7.x) | **VERIFIED**(local-gate; UX-WP-02 #72. 정적·NoModel·RuleSet 단일원천 재사용 한정; 실 LLM 랭킹=R4 미구현) |

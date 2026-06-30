@@ -57,4 +57,4 @@
 
 ## Codex 리뷰 반영 (P2 — 필수 준수)
 - **(P2) DuplicateLimit 리포트 반영**: R2-WP-01이 추가하는 `DuplicateLimit`/`DUPLICATE_LIMIT`를 RISK_VISUAL 상태분포·SUMMARY 등 report/aggregator 회귀가 **상태 존재 시 카운트에 포함**(6상태만 동결 금지 — WP-01 hardening 신호 은폐 방지).
-- **(P2) 집중도/HHI는 절대 노출 기준**: `LimitMonitorRow.ExposureAmount`는 음수 가능하고 usage ratio는 `Math.Abs(exposure)`를 쓴다(`LimitMonitor.cs:576`). 집중도/HHI 분모·share는 **`Abs(ExposureAmount)` 합** 기준(또는 양수만/부호버킷 규칙 명시). raw 합 0/음수면 undefined → **분모 0 graceful(빈 시각화·Finding)** 회귀 추가.
+- **(P2) 집중도/HHI는 절대 노출 기준**: `LimitMonitorRow.ExposureAmount`는 음수 가능하고 usage ratio는 `Math.Abs(exposureAmount) / limitAmount`를 쓴다(`LimitMonitor.cs`의 `Math.Abs(exposureAmount) / limitAmount` 계산 — R2-WP-01/03으로 라인 이동, 심볼로 탐색; 현재 ~672·857). 집중도/HHI 분모·share는 **`Abs(ExposureAmount)` 합** 기준(또는 양수만/부호버킷 규칙 명시). raw 합 0/음수면 undefined → **분모 0 graceful(빈 시각화·Finding)** 회귀 추가.
