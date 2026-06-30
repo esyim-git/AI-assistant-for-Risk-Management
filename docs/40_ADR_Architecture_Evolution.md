@@ -166,6 +166,7 @@
 ## ADR-012. Authenticode 코드 서명 — 독립 신뢰 앵커 (STAB-WP-05 승인 요건 · STOP 게이트)
 
 - **상태**: 채택(요건 정의) — 서명 도입 **CODE_SIGNING_APPROVAL_REQUIRED**. ADR-008(§결정2·5) 보강, STAB-WP-05. **v0.7.0은 본 결정 전 미서명+manifest/Fail-Closed 앵커로 출하**(서명은 후속·릴리스 전제 아님). 외부 신뢰 루트(인증서·서명 도구)가 필요하므로 **STOP 규칙(§11.5)** — 인증서 경로 승인(`docs/41 §6`) 전 서명 도구/인증서/Dependency 추가 0.
+- **인증서 경로 결정(2026-06-30, 사용자 승인) = (A) 사내 Enterprise CA 코드서명 인증서.** 오프라인·비용 0·반입 용이, 내부 신뢰 한정(사내 오프라인 배포 성격에 적합). 나머지 §6.2 항목(인증서 보관·반입 절차·런타임 검증 정책·오프라인 폐기 처리·Rollback)과 서명 도구(**인박스 `Set-AuthenticodeSignature` 1순위**, signtool=Windows SDK이면 별도 승인)는 **STAB-WP-05 구현 WP에서 확정**한다. 실 인증서·서명·검증은 Windows 실 Test PC/운영 환경 의존 → 그 전까지 STAB-WP-05는 **APPROVAL_REQUIRED(경로만 확정)** 유지, 실 증거 전 VERIFIED 금지.
 - **맥락**: ADR-008이 Release Integrity Manifest + 런타임 Fail-Closed(STAB-WP-03a/03b, #59/#61 VERIFIED-local)를 세웠으나, **§결정5에서 명시한 3건의 잔여 위험은 manifest만으로 닫히지 않는다**(쓰기 가능 폴더에 manifest가 같이 있어 독립 신뢰 앵커가 없음):
   1. **콘텐츠 lock-step co-tamper** — 파일과 `approved_manifest.json`을 동시에 같은 해시/크기로 변조하면 통과.
   2. **self-contained 런타임 DLL(~150개: coreclr/hostfxr/System.Security.Cryptography 등) 미해시** — 관리 어셈블리 게이트 우회 가능.
@@ -191,3 +192,45 @@
 - **대안/기각**: ① 서명 없이 manifest만 유지 → §결정5 잔여 3건 미해소(co-tamper/런타임 DLL/폴더 변조) → 부분 보호로 잔여 OPEN 명시(현 v0.7.0 상태). ② 승인 없이 인증서·서명 도구 선반입 → STOP·원칙 위반 → 기각. ③ 기대해시 Core 상수 임베드(앵커 시도) → 해시 고정점 부재로 정상 패키지 brick → ADR-008에서 이미 기각.
 
 > 관련: `docs/40` ADR-008(무결성 manifest/Fail-Closed)·`docs/41 §6`(코드서명 승인 게이트)·`docs/39`(STAB-WP-05)·`docs/47 §1·§4`(v0.7.0 미서명 출하 고지)·`CLAUDE.md §3·§8·§11.5`.
+
+## ADR-013. 공개 규정 원문 Clause/Chunk 검색 — 인박스 keyword-only · Pack 적재 (KB 트랙 v0.8)
+
+- **상태**: 채택(설계) — 구현 = KB-WP-01/02(Codex 로컬). ADR-007(Knowledge Pack Contract)의 미구현 단계(Clause/Chunk)를 구체화. 실 규정 원문 적재는 Prod 권한통제(repo 미포함), 실 Test PC Gate 전 VERIFIED 금지(§11.4).
+- **맥락**: 현재 KB 검색은 공개 catalog **metadata 레벨**까지만 동작한다(`RegulationCatalog` 16필드 → `KbIndex` 인박스 inverted index → `KbSearch` 인용형 DraftAnswer + 해시 audit). 그러나 **조항(clause) 원문은 의도적으로 부재**: `KbSearchResult.Clause`는 항상 고정 문자열로 채워지고(`KbSearch.cs`), `KbAccessPolicy`의 **`SourceTextAllowed`는 항상 false 하드코딩**이라 어떤 경로로도 원문이 노출되지 않는다. v0.8 목표 "공개 규정 원문 Clause/Chunk 검색"을 **인박스 keyword-only**로 올리되, 절대원칙(원문 repo 미포함·NuGet 0·Vector/Embedding STOP)을 깨지 않아야 한다.
+- **결정**:
+  1. **데이터 = Clause Pack(repo 미포함, 런타임 적재).** 공개 규정 원문 clause는 ADR-007 ②(Public Knowledge Pack / Offline Ingestion)로만 적재한다. **repo에는 합성(dummy) clause 샘플만** 둔다(테스트·데모용, 실 규정 원문 0). 신규 record `RegulationClause`(또는 `KbChunk`): `ChunkId·SourceId(catalog FK)·ClauseRef(제N조 등)·ClauseText·EffectiveDate·RepealDate·PackVersion·SourceTextHash`. 신규 `ClausePackLoadResult`는 `Clauses`와 함께 `Warnings/Findings`·`UsedFallback`을 반환한다. Pack 미적재/거부/헤더누락/행 skip 시 **catalog-only로 graceful fallback**(기존 검색 동작 불변)하되, 호출자와 SmokeTest가 진단을 관측할 수 있어야 한다.
+  2. **`ChunkId` 결정성 + 충돌 방지.** `ChunkId`는 `(SourceId, ClauseRef, PackVersion, SourceTextHash)`로 결정한다 — `SourceTextHash`(=`LogHash.Sha256Hex(ClauseText)`)를 키에 포함해, **동일 `(SourceId,ClauseRef,PackVersion)`에 상이한 `ClauseText`가 같은 ID로 silent overwrite되는 것을 차단**. 동일 키+상이 텍스트 로드 시 **거부+Warning**(결정적).
+  3. **인덱스 알고리즘 단일 원천(중복 엔진 금지).** `KbIndex`의 inverted index 코어(`TextKeys`/`BoundedSubstrings` L≤32 cap/`SplitTerms`/`RequiresLinearFallback`/`DeterministicSignature`)를 **internal static 유틸로 추출**해 catalog 인덱스와 clause 인덱스가 **동일 알고리즘**을 호출한다(별도 ClauseIndex 엔진 신설 금지). **후보 발견은 단일 원천**, **점수 함수는 입력 타입별 분리**(catalog 7필드 가중 vs clause 본문 가중). 기존 `KbTests`의 linear==index/`DeterministicSignature`/한글 부분일치 단언이 catalog 경로에서 전부 PASS 보존됨을 완료조건화.
+  4. **노출 게이트 분리 — `SourceTextAllowed`는 false 불변.** catalog 원문은 영구 차단(`KbAccessPolicy.SourceTextAllowed`=false **변경 0**). clause 발췌(Snippet) 허용은 **신규 단일 게이트 `ClauseSnippetAllowed(entry)`**로만 판정: `status=PublicCited`(공개) **AND** gate-metadata 비-placeholder(`approval_status`/`license_status`가 `CONFIRM_*`/`NOT_LOADED` 아님, `effective_date` 확정)일 때만 true. `KbAccessDecision`에 필드 **additive 추가**. `KbClauseSearchResult`는 발췌 조각뿐 아니라 문서명·버전·시행일·출처·검색기준일·검토필요 문구 등 citation metadata를 직접 포함해 caller가 별도 catalog lookup이나 draft text 파싱 없이 인용 완비성을 검증/표시할 수 있어야 한다. PROD_ONLY/MANUAL_APPROVAL/미지 status·placeholder-metadata 공개항목은 **발췌 0**(메타+표식만).
+  5. **clause 유효구간 결정성.** `EffectiveDate`/`RepealDate` 문자열 파싱 계약을 명시: 빈 `RepealDate`=무기한 활성, 미파싱 `EffectiveDate`=비활성+경고, `asOfDate`(주입 `IClock`) 경계 결정적. (기존 `NormalizeSearchDate`는 query asOf만 다루므로 clause 경계 파싱은 별도.)
+  6. **원문 유입 가드(4자 정합).** clause-pack/합성샘플 경로는 아래 4곳이 **대칭**이어야 원문 유입을 막는다 — 어느 하나라도 비대칭이면 가드 우회. 합성 샘플은 **`kb/` 하위**(예 `kb/clause_pack_sample/`)에 둬 기존 가드 커버를 받는 것을 **디폴트**로 한다(ScanDirectories 변경 0). `config/kb/clauses` 등 신규 경로가 필요하면 4곳 동기 갱신 필수.
+
+| 경로/가드 | 커버 범위 | 신규 추가 시 동기화 |
+|---|---|---|
+| `KbRepositoryGuard.ScanDirectories` | `kb`, `config/ncr` | clause-pack가 `config/kb`면 여기에 add-only |
+| `build/03_verify-package.ps1` SourceTextScanDirs | `kb`,`config`,`samples`,`data_sources` | 한글 토큰은 `New-StringFromCodeUnits @(0x..)` UTF-16 리터럴 |
+| `KbTests.cs:169` 하드코딩 ScanDir 리스트 | `{kb,config,samples,data_sources}` | reflection 미러(옵션) 또는 명시 추가 — **세 곳 미러는 토큰/allowlist에만 자동 적용, ScanDir는 4번째 수동** |
+| `KbRepositoryGuard.MetadataAllowlist` | 합성 샘플 파일 등재 | build/03 `$SourceTextAllowlist` 미러 동기 |
+
+  7. **합성 더미 비충돌 규칙.** 합성 clause 샘플의 파일명·헤더·본문은 신규/기존 `SuspiciousNameTokens`·`SuspiciousContentTokens` 어느 것도 부분문자열로 포함하지 않는다(헤더=`clause_ref`/`clause_body` 영문, 본문=`제0조 (합성 테스트) 본 더미 조문…`처럼 `원문`/`조항 원문` 토큰 회피). 신규 한글 토큰(`조항 원문` 등)은 build/03에 UTF-16 code-unit 리터럴로 추가하고 `KbTests` code-unit 미러 단언을 통과시킨다. **`KbRepositoryGuard.Scan(현 repo) Blocker=0`이 합성 샘플·신규 토큰 추가 후에도 보존**됨을 회귀로 고정.
+- **STOP 가드**: 검색은 **인박스 keyword/inverted index만**(NuGet 0). Vector DB·Embedding·LLM Runtime·모델파일 필요 시 즉시 STOP→승인. 실 규정 원문 repo 커밋 0(합성 더미만). 해시 전용 audit(검색 행위 `TaskLogWriter` 재사용).
+- **대안/기각**: ① clause 원문을 repo에 직접 포함 → 원칙 위반·기각(Pack 적재만). ② 별도 ClauseIndex 엔진 신설 → 알고리즘 중복·기각(코어 유틸 공유). ③ `SourceTextAllowed`를 true로 전환해 발췌 허용 → 기존 metadata-only 경로 붕괴·기각(신규 `ClauseSnippetAllowed`로 분리). ④ Vector/Embedding 도입 → STOP·미승인.
+
+> 관련: `docs/40` ADR-007(Knowledge Pack Contract)·`docs/17`(KB RAG 설계)·`docs/41 §2`(RAG/NCR Approval Gate)·`docs/39`(KB-WP-01/02)·`CLAUDE.md §10`(규정 답변 10단계)·`AGENTS.md §3·§4`.
+
+## ADR-014. R5 Feedback Learning — 승인 Example RETRIEVAL · Prompt 반영 (학습 아님)
+
+- **상태**: 채택(설계) — 구현 = FEEDBACK-WP-01/02(Codex 로컬). 현재 R5 = **PARTIAL**(승인 Example 승격+영속+UI 표시까지). 실 Test PC Gate 전 VERIFIED 금지.
+- **맥락**: R5 현 상태는 `FeedbackLogEntry`(승인 표식) → `ExamplePromotion.PromoteApproved`(승인 필터·중복차단·UserIdHash 검증) → `PromotedExampleStore`(`config/promoted_examples.jsonl` append/readAll) → MainWindow Feedback Center 표시까지다. 그러나 **(a) `PromotedExample`은 메타데이터만 보관하고 초안 본문(draft text)이 전무**하며, **(b) 저장본을 질의로 검색하거나 `DraftPipeline`/`DraftRequest`에 주입하는 retrieval 경로가 코드에 0**이다. 즉 "검색+Prompt 반영" 중 **저장만 있고 검색→주입은 NOT_IMPLEMENTED**. no-training 경계는 `PromotionMode="ExampleCurationOnly"` 상수·모델 부재로 사실상 보장되나 retrieval-side 명시 가드는 미정의.
+- **결정**:
+  1. **RETRIEVAL이지 학습이 아니다(불변).** R5는 **승인된 Example을 결정적으로 검색해 프롬프트에 read-only 참고로 주입**하는 조회다. **모델 가중치 학습·fine-tune·모델 파일 쓰기/갱신 0**(절대원칙). `PromotionMode=ExampleCurationOnly` 의미 보존. retrieval/주입 경로는 어떤 파일도 모델로 쓰지 않으며 append-only audit만 남긴다.
+  2. **Example 본문 출처 = 로그 DTO와 분리된 non-log input.** 본문은 `FeedbackLogEntry`/`FeedbackLogWriter` 직렬화 경로에 추가하지 않는다. `FeedbackLogEntry` 기존 6-positional 생성자와 해시 전용 로그 스키마는 보존하고, MainWindow/승격 경로는 별도 `FeedbackDraftBodyInput`(또는 동등 non-log DTO)로 본문을 `ExamplePromotion`에 전달한다. 본문이 없으면 `ExampleBody=null` + **검색은 메타만**(정상 경로). 본문 유형(SQL/VBA/기타)은 명시 `kind` 또는 본문 휴리스틱으로 판정하되 **불확실 시 본문 미저장(null)+warning**(보수적 기본값). 만약 UI 편의상 어떤 임시 객체에 raw body 필드가 필요해도 `FeedbackLogWriter`가 serialize하는 타입에는 두지 않고, `[JsonIgnore]` 또는 별도 DTO로 로그 출력과 물리적으로 분리한다.
+  3. **Ingest 게이트(승격 시점).** 본문 저장 전 **`SqlSafetyChecker`/`VbaSafetyChecker` Blocker 0 AND 신규 `ForbiddenTermScanner`(Core, 인박스, 정적 토큰 리스트) 0**을 통과해야 한다. 토큰 집합 = 내부규정/NCR 원문·실데이터·실 테이블/컬럼·PII 패턴(최소 집합 명시). **실패 시 본문 null+warning(승격은 메타로 진행)**. — `KbRepositoryGuard.Scan`은 파일/디렉토리 스캐너이며 토큰이 private이므로 **본문 string 검사에 재사용 불가** → 신규 `ForbiddenTermScanner`를 **단일 토큰 원천**으로 둔다(중복정의 금지, NuGet 0).
+  4. **검색 = 인박스 결정적.** `PromotedExampleStore.ReadAll()` 위에 keyword/score 검색(가능하면 `KbIndex` 코어 유틸 재사용) + **`OrderByDescending(Score).ThenBy(ExampleId, StringComparer.Ordinal)`** 안정 정렬. Vector/Embedding STOP. 검색/주입 행위는 **`TaskLogWriter` 스키마(UserId/RequestHash/OutputHash 모두 SHA-256 hex)** 해시 audit(원문 미저장).
+  5. **Prompt 반영(FEEDBACK-WP-02) = review 경유 read-only 주입.** 검색 결과를 `DraftRequest.Context`(또는 신규 옵션 필드)에 **참고 블록으로 결합**하되 원 Context 보존, **자동 무검토 주입 금지**(review/approval), 산출은 검토용 초안. 관측은 테스트용 capture `ILocalDraftService`로(=`NoModelDraftService`는 Context 결합 직접 관측 불가).
+  6. **영속·커밋 가드.** Example 본문 jsonl은 `config/` 샌드박싱(`PromotedExampleStore.ResolveConfigFile` 패턴) + **`.gitignore`에 `config/promoted_examples*.jsonl`(및 smoke fixture) 추가**(STAB-UX-02 `*.local.json` 동형). 본문 영속 파일이 **tracked되지 않음**을 SmokeTest로 고정. 개수/크기 상한·revoke(무효화)는 후속 고려.
+  7. **테스트 도메인 = Audit.** `SmokeTestContext.ClassifyDomain`은 `Feedback`/`PromotedExample`/`ExamplePromotion` 토큰을 **Audit(line 97)**로, UiContract보다 먼저 분류한다. 신규 단언 설명에 Kb 키워드(`검색`/`원문`/`공개`/`인용`)를 쓰면 Kb로 오분류되므로 영어 `search`/`retrieval` + `PromotedExample`/`Feedback`/`Audit` 토큰을 쓴다. `Unclassified=0` 보존.
+- **STOP 가드**: 모델 가중치 학습 0·모델파일 쓰기 0 · Vector/Embedding/LLM Runtime STOP · NuGet 0 · 해시 전용 audit(원문/raw prompt/user id 평문 미저장) · 쓰기 `config/`·`logs/` 한정 · 실데이터/원문/PII 본문 혼입 차단(ingest 게이트).
+- **대안/기각**: ① 모델 미세조정/가중치 갱신 → 절대원칙 위반·기각(retrieval-only). ② `KbRepositoryGuard.Scan` 본문 재사용 → API 불일치·기각(신규 `ForbiddenTermScanner`). ③ 본문 출처 미정 상태로 `ExampleBody` 채움 → 기각(non-log input + 게이트 통과 시에만 저장). ④ 본문 평문 audit 또는 `FeedbackLogWriter` raw body 직렬화 → 원칙 위반·기각(해시 전용).
+
+> 관련: `docs/40` ADR-003/009(LLM·Model Approval)·`docs/39`(FEEDBACK-WP-01/02, C-20)·`docs/41 §3`(Model Gate)·`CLAUDE.md §3`·`AGENTS.md §3`.
