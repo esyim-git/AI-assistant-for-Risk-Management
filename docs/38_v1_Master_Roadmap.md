@@ -24,7 +24,7 @@ Offline · 외부 NuGet 0 · 외부 API/Telemetry/AutoUpdate 0 · SQL/VBA/Golden
 | PILOT | (병행) | v0.6 오프라인 Test PC Gate B/C 증거 | Pilot Gate B/C | **BLOCKED**(실 Test PC 증거 대기) |
 | **UX** | (병행) v0.7.x | **Smart Assist / Inline Assist** (입력 중 자동완성·snippet·추천 문구·실시간 안전 힌트, **정적·NoModel**) + Resizable Layout(영속화 포함) | Gate A(보안) | **STAB-UX-01/02·UX-WP-01~03 DONE**(#68·#70·#72·#73·#76, local-gate) · **UX/STAB-UX 트랙 완료**(실 LLM 랭킹=R4 미구현; 실 Test PC Gate B/C BLOCKED) |
 | R2 | v0.7.0 | Risk Analytics & Visualization (Semantic Hardening·Streaming·전일대비·차트) | Data Spec Gate | **R2-WP-01~04 DONE — R2 트랙 완결**(#79·#81·#84·#87, local-gate; Semantic Hardening + Streaming/Welford + Prior-Day + Visualization/Report, `Total=714`; 실 Test PC Gate B/C BLOCKED) |
-| **REL** | **v0.7.0** | **정식 릴리스 컷**(버전 범프 `0.6.0→0.7.0` 락스텝 + 미서명 portable ZIP/SHA256/ReleaseNote) | Gate A·B | **REL-v0.7.0 NEXT UP**(`docs/39`·`docs/47`·`prompts/codex/REL-v0.7.0_*`; 기능 0·`Total=714` 불변) · 코드서명=STAB-WP-05 후속 |
+| **REL** | **v0.7.0** | **정식 릴리스 컷**(버전 범프 `0.6.0→0.7.0` 락스텝 + 미서명 portable ZIP/SHA256/ReleaseNote) | Gate A · Local-Gate (Gate B/C=별도 PILOT) | **REL-v0.7.0 NEXT UP**(`docs/39`·`docs/47`·`prompts/codex/REL-v0.7.0_*`; 기능 0·`Total=714` 불변; 컷/태그는 Gate B 차단 아님) · 코드서명=STAB-WP-05 후속 |
 | KB | v0.8.0 | Public Knowledge Pack (조항 원문 Chunk, keyword only) | RAG Approval Gate | 설계(원문 적재 STOP) |
 | NCR | v0.8.x | Approved NCR Rule Pack 계약 | NCR Approval Gate | 설계(계수 미포함) |
 | R4 | v0.9.0 | Local LLM **Adapter (설계 전용)** | Model Approval Gate | 설계만 + STOP |
@@ -76,7 +76,7 @@ R1(DONE) ─► R3(DONE) ─► STAB(v0.6.1) ─► R2(v0.7) ─► KB(v0.8) ─
 | C-10 | KB Metadata·역색인·인용·접근정책·원문가드 | R3-WP-01~04 | 검색 결정성·인용·Blocker 스캔 | RAG | VERIFIED |
 | C-11 | NCR Rule Set 8요소 구조 | R3-WP-05 | 구조·조회전용 SQL·검토용초안 | NCR | SCAFFOLD_ONLY |
 | C-12 | 빌드/버전 재현성·무결성·정본 테스트·테스트 suite 구조 | STAB-WP-01~04 | VERSION 단일원천·manifest 검증·런타임 Fail-Closed·정본 합계·suite 분리 | — | PARTIAL (STAB-WP-01~04 DONE #56/#57/#59/#61/#66; **STAB-WP-05 코드서명 APPROVAL_REQUIRED — 승인 문서 READY** ADR-012/`docs/41 §6`, 인증서 결정 대기) |
-| C-17 | v0.7.0 정식 릴리스 컷(버전 범프 락스텝) | REL-v0.7.0 | `VERSION`+`ExpectedVersion`+`PackagingTests` 락스텝·`Total=714` 불변·build/03 PASS·미서명 ZIP/SHA256 | — | **NEXT UP**(구현 가능; 코드서명=STAB-WP-05 후속) |
+| C-27 | v0.7.0 정식 릴리스 컷(버전 범프 락스텝) | REL-v0.7.0 | `VERSION`+`ExpectedVersion`+`PackagingTests` 락스텝·`Total=714` 불변·build/03 PASS·미서명 ZIP/SHA256 | A·Local-Gate | **NEXT UP**(구현 가능; Gate B/C=별도 PILOT·컷 차단 아님; 코드서명=STAB-WP-05 후속) |
 | C-22 | Smart Assist Core (Engine·Context·Item·Provider 계약·Registry·NoModel) | UX-WP-01 | 결정성·언어 라우팅·개수 상한·SafetyHint pinned·accept 해시 audit(원문 미저장) — `AssistTests`(+23) | A | **VERIFIED**(local-gate, #70. 계약+코어 한정; 실 Provider=C-23·UI=C-24 미구현) |
 | C-23 | 정적 Provider (SQL/VBA/Excel2021+365차단/SafetyHint/RiskPhrase) | UX-WP-02 | 차단 DML/금지 API 미추천·365 대체힌트·RuleSet 재사용·실데이터 0 | A | **VERIFIED**(local-gate, #72. 정적·NoModel 한정; 실 Test PC Gate BLOCKED) |
 | C-24 | WPF Completion Popup (Ctrl+Space·선택 삽입·자동삽입 없음) | UX-WP-03 | 자동삽입 없음·Source/Kind/RequiresReview 노출·결과패널 연계 | A | **VERIFIED**(local-gate, #73. WPF 기본 컨트롤·외부 Editor 0 한정; 실 Test PC Gate BLOCKED) |

@@ -49,7 +49,7 @@ artifacts/release/ReleaseNote-v0.7.0.md / DependencyList-v0.7.0.csv
 
 **검증 포인트(v0.7.0)**:
 - `build/03`이 manifest `version`=`0.7.0` 일치, ZIP SHA256, PDB/Dev-Test config 0, **원문 미포함 스캔**(v0.6.0 도입, `KbRepositoryGuard` 토큰 mirror) 통과.
-- **DependencyList-v0.7.0.csv = 외부 NuGet `PackageReference` 0**(인박스 `System.*`만) 입증 — 새 외부 의존성 0(차트 포함 자체 렌더).
+- **외부 NuGet 0 증거 = 프로젝트 `<PackageReference>` 0** — `dotnet list package`(또는 csproj 검사)에 외부 패키지 0(차트 포함 자체 렌더). ⚠️ **`DependencyList-v0.7.0.csv`는 self-contained 동봉 .NET 런타임 어셈블리(~150개 `System.*`/coreclr 등) 목록(문서화·반입용)이지 `PackageReference=0`의 증거가 아니다** — self-contained는 런타임을 동봉하므로 항상 다수 어셈블리가 나열된다.
 - ZIP 내부에 신규 분석/시각화 산출물은 **런타임 생성물**(`reports/`)이며 패키지에 동봉되지 않음(샘플만).
 
 ---
@@ -58,7 +58,7 @@ artifacts/release/ReleaseNote-v0.7.0.md / DependencyList-v0.7.0.csv
 
 - [ ] `00~03` 통과(03이 해시·내용·금지파일·**원문 미포함 스캔** 자동검증), VERSION `0.7.0`
 - [ ] ZIP 내부: `RiskManagementAI.exe`·`run.bat`·`config/ rules/ kb/ templates/ samples/ deploy/ logs/ reports/`·`approved_manifest.json`(version `0.7.0`)
-- [ ] ZIP 내부: 모델파일·`real_data/`·`internal_*`·`secrets/`·`*.pem/key/pfx`·**내부규정/NCR 원문 0**
+- [ ] ZIP 내부: 모델파일·`real_data/`·`internal_*`·`secrets/`·`*.pem/key/pfx/p12/cer/crt/der`·**내부규정/NCR 원문 0**
 - [ ] **인터넷 차단** 실행 → **NoModelMode** 기동(무결성 검증 PASS) · 자동업데이트/telemetry/외부 API 0
 - [ ] R1: CP949·UTF-8·XLSX → 한도분석(**7상태** incl `DUPLICATE_LIMIT`)·**대사(원천=분석 PASS)**·Excel Report·**화면=리포트 동일 수치**·History·Audit
 - [ ] **R2-신규**: **대용량 CSV**(행/바이트 상한 동작) 입력 → 스트리밍 프로파일 = in-memory 동일 수치 · **전일대비**(Current/Prior 2일 입력 → New/Resolved/Δ·movers) · **`RISK_VISUAL` 시트** 생성(7상태 분포·TopN·집중도 HHI·Heatmap) · 화면 차트(WPF Shapes) 렌더 · **Exception Count = 정확 숫자**(COUNTA 아님)

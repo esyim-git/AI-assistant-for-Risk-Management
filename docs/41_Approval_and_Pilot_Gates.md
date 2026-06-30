@@ -81,15 +81,18 @@
 
 ### 6.2 승인 문서 필수 항목 (ADR-012 §결정)
 - [ ] 인증서 발급 주체·신뢰 체인·**비용/갱신주기**·사내 정책 적합성
-- [ ] 인증서 보관·반입 절차 · 개인키 저장(HSM/토큰/저장소)·서명 PC·키 접근 권한 · **repo에 인증서/키 0**(`*.pfx/*.pem/*.key` 미포함, Gate A)
+- [ ] 인증서 보관·반입 절차 · 개인키 저장(HSM/토큰/저장소)·서명 PC·키 접근 권한 · **repo에 인증서/키 0**(개인키 `*.pfx/*.p12/*.pem/*.key` **및** 공개 인증서 `*.cer/*.crt/*.der` 모두 미포함, Gate A — 반입 절차로만)
 - [ ] 서명 대상 범위(관리 어셈블리 1차 → 런타임 DLL은 서명 카탈로그/배포 정책)
 - [ ] 런타임 검증 정책 — 서명 검증을 **manifest 신뢰의 선행**으로 · **오프라인 폐기(CRL/OCSP)/타임스탬프 처리** 명시 · 미서명/불일치 Fail-Closed
 - [ ] Rollback / 인증서 만료·폐기 대응
-- [ ] 오프라인·**NuGet-0** 영향(서명 검증=인박스 `signtool`/`X509Certificates` 가능; **서명 생성=외부 인증서 = STOP**)
+- [ ] **서명 도구 선택** + 오프라인·**NuGet-0** 영향 — ⚠️ `signtool.exe`=**Windows SDK**(인박스 아님 → 도입 시 승인 범위); **인박스 대안=PowerShell `Set-AuthenticodeSignature`**(1순위). 서명 **검증**=인박스 `X509Certificates`(+`WinVerifyTrust`)로 NuGet 0. **서명 생성=외부 인증서 + 서명 도구 둘 다 STOP**
 
-### 6.3 구현/검증 (승인 후, Windows 실 Test PC)
+### 6.3 구현/검증 (승인 후, Windows 실 Test PC) — 잔여 3건 폐쇄 매핑
+> 현재 STAB-WP-03b SmokeTest는 아래 3건을 **"미탐지=양성"으로 고정** 중 → 서명 도입 시 **"탐지/차단"으로 전환**하는 회귀가 PASS 되어야 VERIFIED(과대표기 금지).
 - [ ] 정상 서명 패키지 = 기동 · 미서명/서명 불일치 = 차단
-- [ ] **co-tamper(파일+manifest 동시 변조) = 서명 앵커로 차단**(STAB-WP-03b에서 미탐지였던 케이스 회귀로 PASS 전환)
+- [ ] **① 콘텐츠 co-tamper**(파일+`approved_manifest.json` 동시 변조) = **서명 검증 실패로 차단**(03b에서 통과하던 케이스 FAIL→차단)
+- [ ] **② 런타임 DLL 변조**(coreclr 등 self-contained DLL) = **서명 카탈로그(.cat)/게시자 검증으로 차단**(카탈로그 미적용 범위는 명시적 OPEN 표기)
+- [ ] **③ 폴더 동반 변조**(미선언 파일 주입) = 서명 앵커 + manifest 인벤토리 교차로 차단/표면화
 - [ ] Gate C(`§4`) "Code Signing 확인" 항목 = 서명본 검증으로 BLOCKED 해소
 
 > **승인 전 = STOP.** 본 게이트가 열리기 전에는 서명 관련 코드/도구/인증서를 추가하지 않으며, STAB-WP-05는 NEXT UP 구현 WP로 잡지 않는다(코드 서명은 인증서 결정 선행).
