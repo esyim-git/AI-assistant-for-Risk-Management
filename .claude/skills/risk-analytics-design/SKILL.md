@@ -1,7 +1,10 @@
 ---
 name: risk-analytics-design
-description: "R2 Risk Analytics 설계 — Semantic Hardening(RR-15: 중복키 차단·통화/단위 ColumnMapping·RECON_UNIT 활성·BASE_DT 정규화)·전일대비(WP-09)를 ADR/WP 초안으로. R2 분석 기능 계획 시 사용."
-allowed-tools: Read, Grep, Glob, Write, Edit
+description: Design prior-day risk analytics, charts, heatmap, Top N, concentration, market/hedge/valuation/liquidity views, and Excel report extensions.
+argument-hint: "[topic or WP-ID]"
+arguments: [topic]
+disable-model-invocation: true
+allowed-tools: Read Grep Glob
 ---
 
 # Risk Analytics Design
@@ -25,9 +28,9 @@ R2 리스크 분석 강화(Semantic Hardening·전일대비)를 **ADR 초안(`do
 ## 절차
 1. **알려진 한계·범위 확인**: `docs/41` §1의 R2 후속 한계(통화 비교 하드코딩 `RECON_CURRENCY_MISMATCH` 등)와 `docs/38` RR-15(중복 한도키 임의선택)·Cap C-13~C-16(Traceability §5)를 읽어 R2 범위를 확정한다. 상세는 [r2-scope.md](r2-scope.md).
 2. **ADR 초안 작성**: 설계 결정은 `docs/40` ADR 형식(상태·맥락·결정·결과·대안/기각)으로 초안화한다. RR-15 Semantic Hardening과 전일대비(WP-09 설계 산출물)를 각 결정 또는 ADR-002 보강으로 정리한다.
-3. **R2-WP 분해**: 구현 단위는 `docs/39` R2-WP 형식으로 쪼갠다(목표·범위·수정예상파일·테스트·Branch·Commit·Review Checklist). 단일 WP 프롬프트화는 [/codex-work-package](../codex-work-package/SKILL.md)로 넘긴다(한 번에 WP 1개).
+3. **R2-WP 분해**: 구현 단위는 `docs/39` R2-WP 형식으로 쪼갠다(목표·범위·수정예상파일·테스트·Branch·Commit·Review Checklist). 단일 WP 프롬프트화는 [/risk-wp-planner](../risk-wp-planner/SKILL.md)로 넘긴다(한 번에 WP 1개).
 4. **절대 원칙 준수 설계**: NuGet 0·결정성·승인형 매핑·실데이터 미포함·기존 테스트 보존을 각 WP 보안조건/테스트에 명시한다(중복키 양성/차단, 통화·단위 매핑, RECON_UNIT 양성/음성, BASE_DT 비정상 정규화, Audit 기록).
-5. **게이트 연결**: R2는 **Data Spec Gate**(`docs/41` §1) 후속이다. 각 WP가 결정성·감사가능성·회귀를 어떻게 Data Gate에 연결하는지 명시하고, 실 검증은 Pilot Gate B/C(`docs/41` §4, BLOCKED)로 분리한다. 상세 점검은 [/data-limit-review](../data-limit-review/SKILL.md).
+5. **게이트 연결**: R2는 **Data Spec Gate**(`docs/41` §1) 후속이다. 각 WP가 결정성·감사가능성·회귀를 어떻게 Data Gate에 연결하는지 명시하고, 실 검증은 Pilot Gate B/C(`docs/41` §4, BLOCKED)로 분리한다. 상세 점검은 [/risk-data-limit-review](../risk-data-limit-review/SKILL.md).
 
 ## 산출물/보고
 - **R2 ADR 초안**(`docs/40` 형식: 상태/맥락/결정/결과/대안·기각) — RR-15 Semantic Hardening + 전일대비.
@@ -44,4 +47,4 @@ R2 범위(RR-15·전일대비·통화/단위 매핑) 설계 노트·항목은 [r
 - `docs/40_ADR_Architecture_Evolution.md` (ADR 형식 · ADR-002 공통 AnalysisResult)
 - `docs/39_Work_Package_Backlog.md` (R2-WP-01~04 백로그 · WP-09 전일대비 설계)
 - 관련 코드(경로만, 원문 미포함): `src/RiskManagementAI.Core/Risk/LimitMonitor.cs`, `src/RiskManagementAI.Core/Mapping/ColumnMapping*.cs`
-- 연계 스킬: [/codex-work-package](../codex-work-package/SKILL.md)(WP 1개 분해·프롬프트) · [/data-limit-review](../data-limit-review/SKILL.md)(데이터/한도 코드리뷰)
+- 연계 스킬: [/risk-wp-planner](../risk-wp-planner/SKILL.md)(WP 1개 분해·프롬프트) · [/risk-data-limit-review](../risk-data-limit-review/SKILL.md)(데이터/한도 코드리뷰)
