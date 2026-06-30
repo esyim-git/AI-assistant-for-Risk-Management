@@ -27,21 +27,38 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="{Binding Label}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                            <TextBlock Grid.Column="1" Text="검토용 초안" Foreground="#92400E" FontSize="11" Margin="8,0,0,0" />
-                            <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,3,0,0">
+                            <Border Grid.Column="1" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="3" Padding="4,1" Margin="8,0,0,0">
+                                <TextBlock Text="{Binding KindLabel}" Foreground="#334155" FontSize="11" />
+                            </Border>
+                            <TextBlock Grid.Column="2" Text="{Binding ReviewLabel}" Foreground="#92400E" FontSize="11" Margin="8,1,0,0" />
+                            <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,3,0,0">
                                 <TextBlock Text="Source:" Foreground="#64748B" FontSize="11" />
                                 <TextBlock Text="{Binding Source}" Foreground="#475569" FontSize="11" Margin="3,0,8,0" />
-                                <TextBlock Text="Kind:" Foreground="#64748B" FontSize="11" />
-                                <TextBlock Text="{Binding Kind}" Foreground="#475569" FontSize="11" Margin="3,0,8,0" />
-                                <TextBlock Text="RequiresReview:" Foreground="#64748B" FontSize="11" />
-                                <TextBlock Text="{Binding RequiresReview}" Foreground="#475569" FontSize="11" Margin="3,0,0,0" />
+                                <TextBlock Text="Action:" Foreground="#64748B" FontSize="11" />
+                                <TextBlock Text="{Binding InsertabilityLabel}" Foreground="#475569" FontSize="11" Margin="3,0,8,0" />
                             </StackPanel>
+                            <TextBlock Grid.Row="2" Grid.ColumnSpan="3"
+                                       Text="{Binding PreviewText}"
+                                       TextWrapping="Wrap"
+                                       Foreground="#0F172A"
+                                       FontFamily="Consolas"
+                                       FontSize="11"
+                                       Margin="0,4,0,0" />
+                            <TextBlock Grid.Row="3" Grid.ColumnSpan="3"
+                                       Text="{Binding SafetyText}"
+                                       TextWrapping="Wrap"
+                                       Foreground="#B91C1C"
+                                       FontSize="11"
+                                       Margin="0,3,0,0" />
                         </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>

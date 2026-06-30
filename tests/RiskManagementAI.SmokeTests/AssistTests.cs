@@ -57,6 +57,40 @@ internal static class AssistTests
             && !CompletionTriggerPolicy.ShouldShowExplicitInvocation(matchCount: 0),
             "Assist explicit Ctrl+Space completion trigger should ignore prefix threshold and depend only on matches");
 
+        var displaySnippet = CompletionDisplayFormatter.FromItem(new CompletionItem(
+            "safe snippet",
+            "Line1\nLine2",
+            CompletionItemKind.Snippet,
+            "display-provider",
+            RequiresReview: true,
+            Insertable: true,
+            null,
+            "Review before use",
+            10));
+        context.AssertTrue(
+            displaySnippet.KindLabel == "Snippet"
+            && displaySnippet.PreviewText == "Line1 | Line2"
+            && displaySnippet.SafetyText == "Review before use"
+            && displaySnippet.InsertabilityLabel == "Insert on select",
+            "Assist popup display formatter should expose snippet preview SafetyNote and insert-on-select label");
+
+        var displayBlocked = CompletionDisplayFormatter.FromItem(new CompletionItem(
+            "blocked delete",
+            "DELETE FROM SAMPLE",
+            CompletionItemKind.BlockedHint,
+            "display-provider",
+            RequiresReview: true,
+            Insertable: false,
+            new SafetyFinding("SQL_DML_DELETE", SafetySeverity.Blocker, "DELETE is blocked."),
+            null,
+            1));
+        context.AssertTrue(
+            displayBlocked.KindLabel == "Blocked Hint"
+            && displayBlocked.PreviewText.Length == 0
+            && displayBlocked.SafetyText.Contains("SQL_DML_DELETE", StringComparison.Ordinal)
+            && displayBlocked.InsertabilityLabel == "Info only",
+            "Assist popup display formatter should keep blocked hints non-insertable and surface structured finding text");
+
         var blockedFinding = new SafetyFinding("SQL_BLOCKED_DELETE", SafetySeverity.Blocker, "Blocked statement", "DELETE", 0);
         var reviewFinding = new SafetyFinding("SQL_REVIEW_REQUIRED", SafetySeverity.Medium, "Review statement", null, 7);
         var safetyRegistry = new CompletionProviderRegistry([
