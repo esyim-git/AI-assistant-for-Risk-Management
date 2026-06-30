@@ -34,7 +34,7 @@
 - [ ] **공통 Domain Model 재사용**: 공통 `LimitAnalysisResult` 기반(임의 데이터 생성 금지). Current·Previous·Δ·%·New/Resolved/Increased/Decreased·TopN.
 - [ ] **분리 표기**: Data Fact / Methodology / User Validation / Hidden Risk 구분(설계로 명시).
 - [ ] **결정성·감사가능성**: 비교 기준일 선택 규칙을 결정적으로·감사 메타에 기록.
-- [ ] WP-09는 **설계 산출물**(구현은 R2). NEXT UP은 한 번에 1개만(`/codex-work-package`).
+- [ ] WP-09는 **설계 산출물**(구현은 R2). NEXT UP은 한 번에 1개만(`/risk-wp-planner`).
 
 ---
 
@@ -57,4 +57,4 @@
 
 ## 5. 산출물
 - R2 ADR 초안(`docs/40` 형식) + R2-WP 분해(`docs/39` 형식) + Data Gate 연결 서술.
-- 계획 작업은 `planning/*` 브랜치(main 직접 수정 금지). 단일 WP 프롬프트화는 [/codex-work-package](../codex-work-package/SKILL.md), 데이터/한도 코드리뷰는 [/data-limit-review](../data-limit-review/SKILL.md).
+- 계획 작업은 `planning/*` 브랜치(main 직접 수정 금지). 단일 WP 프롬프트화는 [/risk-wp-planner](../risk-wp-planner/SKILL.md), 데이터/한도 코드리뷰는 [/risk-data-limit-review](../risk-data-limit-review/SKILL.md).
