@@ -4,7 +4,7 @@
 v0.7.0 portable ZIP을 **실 오프라인 Test PC(Gate B)** 및 **운영 반입 / Excel 2021(Gate C)** 에서 실행해 `docs/41 §4`·`docs/47 §3` 체크리스트를 **증거 기반**으로 봉인하기 위한 **정본** 문서. v0.6.0 정본은 `docs/45`(R1+R3) — 본 문서는 그 위에 **R2(Risk Analytics & Visualization)** 항목을 추가한다.
 
 - **현재 판정: 🔴 BLOCKED** — **선행 A(패키지 컷)는 충족**(v0.7.0 정식 릴리스 완료, 아래 A1~A3 PASS), 미충족은 **실 오프라인 Test PC 증거**뿐(repo/CI/로컬 빌드 아티팩트로 생성 불가). 단, WPF portable UI에 노출되지 않은 R2 내부 경로는 **local-gate 전용 증거로만 기록**하고 Test PC PASS로 봉인하지 않는다.
-- **2026-06-30 사용자 수동 Gate B 검증(부분 수행)**: 실제 Release ZIP로 `docs/47 §3` Gate B 10항목 중 다수 PASS(아래 **§B′**). **단 B-5 SQL/VBA/Excel 검사 = 🟡 PARTIAL PASS**(Excel 함수 상세설명/예시/대체식 부재 → 신규 **UX-WP-04**; Smart Assist/입력중 추천 부재 → **UX Enhancement**, Gate B blocker 아님), **B-6 CSV/XLSX 분석·B-8 Excel Report = ⬜ PENDING**. 일부만 수행 + 미수행 항목 존재 → **전체 Gate B는 🔴 BLOCKED 유지**(`CLAUDE.md §11.4`).
+- **2026-06-30 사용자 수동 Gate B 검증(부분 수행)**: 실제 Release ZIP로 `docs/47 §3` Gate B 10항목 중 다수가 **user-reported PASS**(아래 **§B′**) — **단, 실 증거(`Get-FileHash` 출력·스크린샷·기동 로그)가 repo에 미첨부**이므로 정식 봉인 PASS가 아니라 **user-reported**로만 기록한다(`CLAUDE.md §11.4`·본 문서 §판정 규칙). **B-5 SQL/VBA/Excel 검사 = 🟡 PARTIAL**(Excel 함수 상세설명/예시/대체식 부재 → 신규 **UX-WP-04**; Smart Assist/입력중 추천 부재 → **UX Enhancement**, Gate B blocker 아님), **B-6 CSV/XLSX 분석·B-8 Excel Report = ⬜ PENDING**. 증거 미첨부 + 미수행 항목 → **전체 Gate B는 🔴 BLOCKED 유지**.
 - **판정 규칙**: Gate B/C는 아래 Test PC 실행 항목이 `PASS`이거나, 문서에 명시된 `N/A`/`ACCEPTED_RISK` 예외여야 봉인할 수 있다. 하나라도 누락/불일치면 그 항목 `BLOCKED/FAIL` + 전체 BLOCKED 유지. **실 PC 증거 없이 PASS로 적지 않는다**(`CLAUDE.md §11.4`).
 - **기준선**: 문서 truth-sync 기준 `dafa63b`(#91), VERSION `0.7.0`, **v0.7.0 정식 릴리스 태그 `30c1cfb`**(미서명 portable ZIP), 정본 SmokeTest `Total=714 PASS=714 FAIL=0`.
 
@@ -23,11 +23,11 @@ v0.7.0 portable ZIP을 **실 오프라인 Test PC(Gate B)** 및 **운영 반입 
 ## B. Gate B — 오프라인 Test PC (`docs/47 §3`)
 | # | 항목 | 상태 | 증거 |
 |---|---|---|---|
-| B0 | **Test PC로 반입한 ZIP 자체를 `Get-FileHash`로 재대조** — SHA256 = published Release 값 `42C835983127B127438AB97747B99FD0C3FA2E4363D4CB85641E45FE62E09DD5` | 🟢 PASS (B′ B-1, 2026-06-30) | Test PC `Get-FileHash` 출력 + Release URL |
+| B0 | **Test PC로 반입한 ZIP 자체를 `Get-FileHash`로 재대조** — SHA256 = published Release 값 `42C835983127B127438AB97747B99FD0C3FA2E4363D4CB85641E45FE62E09DD5` | 🟢 user-reported (B′ B-1) — 증거 첨부 시 봉인 | Test PC `Get-FileHash` 출력 + Release URL |
 | B1 | ZIP 내부 필수: `RiskManagementAI.exe`·`run.bat`·`config/ rules/ kb/ templates/ samples/ deploy/ logs/ reports/`·`approved_manifest.json`(version `0.7.0`) | ⬜ | 트리 |
 | B2 | ZIP 내부 금지 **0**: 모델(`*.gguf/*.bin/*.safetensors/*.onnx/*.pt`)·`real_data/`·`internal_*`·`secrets/`·`credentials/`·`exports/`·`*.pem/*.key/*.pfx/*.p12/*.cer/*.crt/*.der/*.env`·**내부규정/NCR 원문** | ⬜ | 트리/스캔 + build/03 출력 |
-| B3 | **인터넷 차단** 실행 → **NoModelMode 기동**(무결성 검증 PASS, manifest version `0.7.0`) · 자동업데이트/telemetry/외부 API **0** | 🟢 PASS (B′ B-3·B-4, 2026-06-30) | 차단 캡처 + 기동 로그 |
-| B4 | R1: **CP949·UTF-8·XLSX** 입력 → 한도분석 **7상태**(incl `DUPLICATE_LIMIT`) | 🟡 한도분석 실행 PASS (B′ B-7); 입력 다양성·7상태 상세 = B-6 PENDING | 화면 |
+| B3 | **인터넷 차단** 실행 → **NoModelMode 기동**(무결성 검증 PASS, manifest version `0.7.0`) · 자동업데이트/telemetry/외부 API **0** | 🟢 user-reported (B′ B-3·B-4) — 증거 첨부 시 봉인 | 차단 캡처 + 기동 로그 |
+| B4 | R1: **CP949·UTF-8·XLSX** 입력 → 한도분석 **7상태**(incl `DUPLICATE_LIMIT`) | 🟡 user-reported(한도분석 실행, B′ B-7); 입력 다양성·7상태 상세·증거 = B-6 PENDING | 화면 |
 | B5 | R1: **대사 9종**(원천합계=분석합계 PASS) | ⬜ | 화면/로그 |
 | B6 | R1: **화면=리포트 동일 수치**(LIMIT_MONITORING == 대시보드, `DuplicateLimitCount` 노출) | ⬜ | 캡처 2장 |
 | B7 | **R2 local-gate 전용**: 대용량 CSV streaming parity·행/바이트 상한·Welford/Outlier parity는 현재 WPF portable UI에 직접 노출되지 않음. Test PC에서 PASS로 봉인하지 말고, 후속 UI/harness가 생기기 전까지 local-gate 증거로만 유지 | N/A (local-gate) | SmokeTest `Csv`/`DataProfile` 도메인 + #81 local-gate |
@@ -36,12 +36,13 @@ v0.7.0 portable ZIP을 **실 오프라인 Test PC(Gate B)** 및 **운영 반입 
 | B10 | **R2-신규**: **WPF Shapes/Canvas 화면 차트** 렌더(외부 charting NuGet 0, 다양 창크기) | ⬜ | 캡처 |
 | B11 | R3: **KB 검색** → 인용(문서명·버전·시행일·조항·출처·검색기준일·검토필요) | ⬜ | 화면 |
 | B12 | R3: 내부/NCR = **메타+표식만(원문 0)** · **NCR Rule Set 구조** 설명(검토용 초안, 계산 아님) | ⬜ | 화면 |
-| B13 | SQL/VBA/Excel **검사**(자동실행 0) 동작 | 🟡 PARTIAL (B′ B-5, 2026-06-30) | 정상/비정상 입력 검사결과 표시 PASS; **Excel 함수 상세설명/예시/대체식 부재 → UX-WP-04**; Smart Assist 부재 → UX Enhancement(blocker 아님) |
-| B14 | **History** 기록 + **Audit JSONL(해시)** | 🟢 PASS (B′ B-9, 2026-06-30) | 캡처 |
-| B15 | 종료/재실행 정상 | 🟢 PASS (B′ B-10, 2026-06-30) | — |
+| B13 | SQL/VBA/Excel **검사**(자동실행 0) 동작 | 🟡 user-reported PARTIAL (B′ B-5) | 정상/비정상 입력 검사결과 표시 user-reported; **Excel 함수 상세설명/예시/대체식 부재 → UX-WP-04**; Smart Assist 부재 → UX Enhancement(blocker 아님) |
+| B14 | **History** 기록 + **Audit JSONL(해시)** | 🟢 user-reported (B′ B-9) — 증거 첨부 시 봉인 | 캡처 |
+| B15 | 종료/재실행 정상 | 🟢 user-reported (B′ B-10) — 증거 첨부 시 봉인 | — |
 
 ## B′. 사용자 수동 Gate B 검증 라운드 (2026-06-30, 실제 Release ZIP) — 부분 수행
 > `docs/47 §3` Gate B 10항목 기준 실제 사용자 수동 검증. **본 라운드는 일부만 수행**(B-6·B-8 PENDING) → 전체 Gate B 봉인 아님(상단 🔴 BLOCKED 유지). 위 granular B0~B15와 매핑.
+> **⚠️ 아래 ✅는 전부 `user-reported`** — 실 증거(`Get-FileHash` 출력·스크린샷·기동/Audit 로그)가 repo에 미첨부이므로 **정식 봉인 PASS가 아니다**(`CLAUDE.md §11.4`, §판정 규칙). 증거 첨부 시 항목별 봉인 PASS로 승격.
 
 | 항목(`docs/47 §3`) | 결과 | 비고 | granular 매핑 |
 |---|---|---|---|

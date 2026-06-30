@@ -58,7 +58,7 @@ Offline · 외부 NuGet 0 · 외부 API/Telemetry/AutoUpdate 0 · SQL/VBA/Golden
 | 승인 NCR Rule Pack · 내부 Knowledge Pack | NCR/KB | APPROVAL_REQUIRED (Prod 적재, repo 미포함) |
 | Local LLM Adapter 계약/Manifest/ProcessBoundary | R4 | 설계만, Runtime APPROVAL_REQUIRED |
 | 승인 Feedback Example 검색·Prompt 반영 | R5 | **PARTIAL · 설계(ADR-014) · FEEDBACK-WP-01/02 계획**(`Core/Feedback` 승격+영속까지; 검색/주입 RETRIEVAL=학습 아님·인박스·Vector STOP) |
-| Test PC Gate B/C · Team Pilot | PILOT/R6 | **BLOCKED**(2026-06-30 사용자 수동 부분검증: B-1~4·B-7·B-9·B-10 PASS·B-5 PARTIAL·B-6/B-8 PENDING, `docs/48 §B′`; 전체 BLOCKED 유지) |
+| Test PC Gate B/C · Team Pilot | PILOT/R6 | **BLOCKED**(2026-06-30 사용자 수동 부분검증: B-1~4·B-7·B-9·B-10 **user-reported PASS(증거 미첨부)**·B-5 PARTIAL·B-6/B-8 PENDING, `docs/48 §B′`; 전체 BLOCKED 유지) |
 
 ## 4. 의존성 그래프
 ```text
