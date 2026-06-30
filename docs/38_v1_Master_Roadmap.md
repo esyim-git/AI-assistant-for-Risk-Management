@@ -1,6 +1,6 @@
 # 38. v1.0 Master Roadmap & Release Train (v0.6.0 → v1.0.0)
 
-> **현재 기준선 = v0.7.0 (R2 정식 릴리스) + STAB-WP-01~04 + STAB-UX-01/02 + UX-WP-01~03 + R2-WP-01~04 + REL-v0.7.0** (main `30c1cfb`, REL-v0.7.0 #90 머지 후; **R2 분석 트랙 v0.7.0 정식 릴리스** 태그 `30c1cfb`·ZIP SHA256 `42C835…`·미서명; 직전 v0.6.0 태그 `3dfa80b`). **NEXT UP = KB-WP-01**(공개 규정 Clause/Chunk Pack 계약·로더·가드 — ADR-013, 인박스 keyword-only·원문 repo 미포함). WP 시퀀스 = KB-WP-01→KB-WP-02→FEEDBACK-WP-01→FEEDBACK-WP-02. **STAB-WP-05 인증서 경로 = A(사내 Enterprise CA) 확정**(나머지 §6.2·서명도구는 구현 WP, 실 증거 전 APPROVAL_REQUIRED 유지). 본 문서는 v0.6.0 다음 단계부터 v1.0 Team Pilot까지의 통합 실행 로드맵이다.
+> **현재 기준선 = v0.7.0 (R2 정식 릴리스) + STAB-WP-01~04 + STAB-UX-01/02 + UX-WP-01~03 + R2-WP-01~04 + REL-v0.7.0** (main `b7f56ce`, KB-WP-01 #94 머지 후; **R2 분석 트랙 v0.7.0 정식 릴리스** 태그 `30c1cfb`·ZIP SHA256 `42C835…`·미서명; 직전 v0.6.0 태그 `3dfa80b`). **KB-WP-01 DONE**(#94 `b7f56ce`, 공개 규정 Clause/Chunk Pack 계약·로더·fail-closed 가드, local-gate). **NEXT UP = KB-WP-02**(clause keyword 검색·ClauseSnippetAllowed 게이트·clause 인용 — ADR-013, 인박스 keyword-only·원문 repo 미포함). WP 시퀀스 = KB-WP-01(DONE)→KB-WP-02→FEEDBACK-WP-01→FEEDBACK-WP-02. **STAB-WP-05 인증서 경로 = A(사내 Enterprise CA) 확정**(나머지 §6.2·서명도구는 구현 WP, 실 증거 전 APPROVAL_REQUIRED 유지). 본 문서는 v0.6.0 다음 단계부터 v1.0 Team Pilot까지의 통합 실행 로드맵이다.
 > 개념 로드맵은 `docs/10`, WP 상세는 `docs/39`, 아키텍처 결정은 `docs/40`, 게이트는 `docs/41`, Gate 증거는 `docs/44`(v0.5)·`docs/45`(v0.6).
 
 ## 0. 기준선 (재설계 금지)
@@ -8,7 +8,7 @@
 - **v0.5.0 = R1 Data & Limit Foundation — DONE** (CP949/UTF-8/XLSX 입력, Column Mapping, 실 Exposure-Limit Join + 공통 `LimitAnalysisResult`, 6상태, 대사 9종, Dashboard=Report 일원화).
 - **v0.6.0 = R3 Regulation/NCR 구조 — DONE** (공개 규정 KB Metadata, Keyword/Inverted Index, 인용형 답변, `KbAccessPolicy`+`KbRepositoryGuard`(+build/03 패키징 스캔), NCR Rule Set 8요소 **구조**).
 - **완료 기능(MVP-1~3, R1, R3)은 재설계하지 않는다.**
-- **SmokeTest**: **Total=714 PASS=714 FAIL=0** (정본 합계 — R2-WP-04(#87, `35e6f01`) local-gate + **REL-v0.7.0(#90, `30c1cfb`) 버전 범프 후 합계 불변**: `dotnet build` 0/0 + SmokeTest, 2026-06-30). 이력: 513(STAB-WP-02) → 572(STAB-WP-03b +59) → 579(STAB-UX-01 +7) → 602(UX-WP-01 +23) → 631(UX-WP-02/03 +29) → 646(STAB-UX-02 +15) → 671(R2-WP-01 +25) → 680(R2-WP-02 +9) → 698(R2-WP-03 +18) → 714(R2-WP-04 +16). 과거 484/502는 하니스가 합계를 안 찍던 시절의 미집계 추정치였고, STAB-WP-02가 **합계·도메인별 PASS/FAIL·실행시간**을 출력한다.
+- **SmokeTest**: **Total=747 PASS=747 FAIL=0** (정본 합계 — **REL-v0.7.0(#90, `30c1cfb`) 버전 범프 후 합계 불변 + KB-WP-01(#94, `b7f56ce`) Clause Pack +33**: `dotnet build` 0/0 + SmokeTest, 2026-06-30). 이력: 513(STAB-WP-02) → 572(STAB-WP-03b +59) → 579(STAB-UX-01 +7) → 602(UX-WP-01 +23) → 631(UX-WP-02/03 +29) → 646(STAB-UX-02 +15) → 671(R2-WP-01 +25) → 680(R2-WP-02 +9) → 698(R2-WP-03 +18) → 714(R2-WP-04 +16) → 747(KB-WP-01 +33). 과거 484/502는 하니스가 합계를 안 찍던 시절의 미집계 추정치였고, STAB-WP-02가 **합계·도메인별 PASS/FAIL·실행시간**을 출력한다.
 - ⚠️ R2(Risk Analytics)는 R3보다 뒤로 밀렸다(R3 먼저 출시). R2는 v0.6.1 STAB 이후.
 
 ## 1. 절대 원칙 (전 릴리스 유지)
@@ -25,7 +25,7 @@ Offline · 외부 NuGet 0 · 외부 API/Telemetry/AutoUpdate 0 · SQL/VBA/Golden
 | **UX** | (병행) v0.7.x | **Smart Assist / Inline Assist** (입력 중 자동완성·snippet·추천 문구·실시간 안전 힌트, **정적·NoModel**) + Resizable Layout(영속화 포함) | Gate A(보안) | **STAB-UX-01/02·UX-WP-01~03 DONE**(#68·#70·#72·#73·#76, local-gate) · **UX/STAB-UX 트랙 완료**(실 LLM 랭킹=R4 미구현; 실 Test PC Gate B/C BLOCKED) |
 | R2 | v0.7.0 | Risk Analytics & Visualization (Semantic Hardening·Streaming·전일대비·차트) | Data Spec Gate | **R2-WP-01~04 DONE — R2 트랙 완결**(#79·#81·#84·#87, local-gate; Semantic Hardening + Streaming/Welford + Prior-Day + Visualization/Report, `Total=714`; 실 Test PC Gate B/C BLOCKED) |
 | **REL** | **v0.7.0** | **정식 릴리스 컷**(버전 범프 `0.6.0→0.7.0` 락스텝 + 미서명 portable ZIP/SHA256/ReleaseNote) | Gate A · Local-Gate (Gate B/C=별도 PILOT) | **REL-v0.7.0 DONE**(#90 머지 `30c1cfb`, local-gate; VERSION 0.7.0·`Total=714` 불변·ZIP SHA256 `42C835…`·**태그 `30c1cfb` 미서명 릴리스**) · 코드서명=STAB-WP-05 후속 |
-| KB | v0.8.0 | Public Knowledge Pack (조항 원문 Chunk, keyword only) | RAG Approval Gate | **KB-WP-01 NEXT UP**(ADR-013; 인박스 keyword-only·원문 repo 미포함·합성 더미·Vector/Embedding STOP) · KB-WP-02 큐 |
+| KB | v0.8.0 | Public Knowledge Pack (조항 원문 Chunk, keyword only) | RAG Approval Gate | **KB-WP-01 DONE**(#94 `b7f56ce`, local-gate; Clause Pack 계약·로더·fail-closed 가드·합성 더미·`Total=747`) · **KB-WP-02 NEXT UP**(clause 검색·ClauseSnippetAllowed 게이트) · 인박스 keyword-only·원문 repo 미포함·Vector/Embedding STOP |
 | NCR | v0.8.x | Approved NCR Rule Pack 계약 | NCR Approval Gate | 설계(계수 미포함) |
 | R4 | v0.9.0 | Local LLM **Adapter (설계 전용)** | Model Approval Gate | 설계만 + STOP |
 | R5 | v0.9.x | Feedback Learning (승인 Example 검색) | — | **PARTIAL**(`Core/Feedback` 승격 구조 존재 · 영속/검색/재사용 확장 필요) |
@@ -52,7 +52,7 @@ Offline · 외부 NuGet 0 · 외부 API/Telemetry/AutoUpdate 0 · SQL/VBA/Golden
 | Streaming/대용량 입력 · 행/바이트 상한 · Welford 누산 + 정확 Outlier parity · 중복행 해시 | R2 | **VERIFIED**(local-gate, #81; `Total=680 PASS=680 FAIL=0`, 실 Test PC Gate B/C BLOCKED) |
 | 전일 대비(Prior-Day: Current/Prev/Δ·movers·4구획 계약) | R2 | **VERIFIED**(local-gate, #84; `Total=698 PASS=698 FAIL=0`, 실 Test PC Gate B/C BLOCKED) |
 | 인박스 시각화(RISK_VISUAL 시트·7상태 분포·TopN·집중도 HHI·Heatmap·WPF Shapes) · 정확 Exception Count | R2 | **VERIFIED**(local-gate, #87; `Total=714`, 외부 charting NuGet 0·결정적; 실 Test PC Gate B/C[Excel 수동열기 포함] BLOCKED) |
-| 공개 규정 **원문 Clause/Chunk 검색** | KB | **설계(ADR-013) · KB-WP-01 NEXT UP** (인박스 keyword-only·원문 Pack 적재(repo 미포함)·합성 더미만; 현재 Catalog/Metadata까지) |
+| 공개 규정 **원문 Clause/Chunk 검색** | KB | **KB-WP-01 VERIFIED**(계약·로더·fail-closed 가드, local-gate #94) **· KB-WP-02 NEXT UP**(clause 검색·ClauseSnippetAllowed) (인박스 keyword-only·원문 Pack repo 미포함·합성 더미만; clause 검색 자체는 KB-WP-02) |
 | 승인 NCR Rule Pack · 내부 Knowledge Pack | NCR/KB | APPROVAL_REQUIRED (Prod 적재, repo 미포함) |
 | Local LLM Adapter 계약/Manifest/ProcessBoundary | R4 | 설계만, Runtime APPROVAL_REQUIRED |
 | 승인 Feedback Example 검색·Prompt 반영 | R5 | **PARTIAL · 설계(ADR-014) · FEEDBACK-WP-01/02 계획**(`Core/Feedback` 승격+영속까지; 검색/주입 RETRIEVAL=학습 아님·인박스·Vector STOP) |
@@ -76,7 +76,7 @@ R1(DONE) ─► R3(DONE) ─► STAB(v0.6.1) ─► R2(v0.7) ─► KB(v0.8) ─
 | C-10 | KB Metadata·역색인·인용·접근정책·원문가드 | R3-WP-01~04 | 검색 결정성·인용·Blocker 스캔 | RAG | VERIFIED |
 | C-11 | NCR Rule Set 8요소 구조 | R3-WP-05 | 구조·조회전용 SQL·검토용초안 | NCR | SCAFFOLD_ONLY |
 | C-12 | 빌드/버전 재현성·무결성·정본 테스트·테스트 suite 구조 | STAB-WP-01~04 | VERSION 단일원천·manifest 검증·런타임 Fail-Closed·정본 합계·suite 분리 | — | PARTIAL (STAB-WP-01~04 DONE #56/#57/#59/#61/#66; **STAB-WP-05 코드서명 APPROVAL_REQUIRED — 인증서 경로 A(사내CA) 확정** ADR-012/`docs/41 §6`; 나머지·실 증거 = 구현 WP/Test PC) |
-| C-28 | 공개 규정 Clause/Chunk 검색 (인박스 keyword-only) | KB-WP-01/02 | Clause Pack 계약·결정적 ChunkId·원문 가드·clause keyword 검색·ClauseSnippetAllowed 게이트·clause 인용 | RAG | **설계(ADR-013) · KB-WP-01 NEXT UP** (원문 repo 미포함·합성 더미·Vector/Embedding STOP) |
+| C-28 | 공개 규정 Clause/Chunk 검색 (인박스 keyword-only) | KB-WP-01/02 | Clause Pack 계약·결정적 ChunkId·원문 가드·clause keyword 검색·ClauseSnippetAllowed 게이트·clause 인용 | RAG | **KB-WP-01 VERIFIED**(local-gate #94 `b7f56ce`; Clause Pack 계약·length-prefixed ChunkId·fail-closed catalog-only fallback·원문 가드·합성 더미·`Total=747`) **· KB-WP-02 NEXT UP**(clause keyword 검색·ClauseSnippetAllowed 게이트·clause 인용) (원문 repo 미포함·Vector/Embedding STOP) |
 | C-27 | v0.7.0 정식 릴리스 컷(버전 범프 락스텝) | REL-v0.7.0 | `VERSION`+`ExpectedVersion`+`PackagingTests` 락스텝·`Total=714` 불변·build/03 PASS·미서명 ZIP/SHA256 | A·Local-Gate | **VERIFIED**(local-gate, #90 `30c1cfb`; 3파일 락스텝·`Total=714` 불변·build/03 PASS·ZIP SHA256 `42C835…`·**태그 `30c1cfb` 미서명**; Gate B/C BLOCKED; 코드서명=STAB-WP-05 후속) |
 | C-22 | Smart Assist Core (Engine·Context·Item·Provider 계약·Registry·NoModel) | UX-WP-01 | 결정성·언어 라우팅·개수 상한·SafetyHint pinned·accept 해시 audit(원문 미저장) — `AssistTests`(+23) | A | **VERIFIED**(local-gate, #70. 계약+코어 한정; 실 Provider=C-23·UI=C-24 미구현) |
 | C-23 | 정적 Provider (SQL/VBA/Excel2021+365차단/SafetyHint/RiskPhrase) | UX-WP-02 | 차단 DML/금지 API 미추천·365 대체힌트·RuleSet 재사용·실데이터 0 | A | **VERIFIED**(local-gate, #72. 정적·NoModel 한정; 실 Test PC Gate BLOCKED) |
