@@ -162,3 +162,32 @@
 - **(-)** `LimitAnalysisMetadata` 생성자 변경으로 메타 소비부(BuildResult·Dashboard·Report) 동기 컴파일 수정 필요(기능 변경 0). 중복키를 더 이상 묵시 채택하지 않으므로, 기존 중복 입력은 이제 `DUPLICATE_LIMIT`로 드러나 사용자 조치(데이터 정합)가 요구된다 — 의도된 행동 변경.
 - **(-)** 인박스 시각화는 외부 라이브러리 대비 표현/공수 제약이 크다(차트 종류·렌더 품질). 이를 감수해 NuGet-0·반입 안전을 우선한다.
 - **(검증 한계)** 본 ADR·R2 WP는 이 Linux 환경에서 빌드/실행 불가 → 설계/계약만. 기존 SmokeTest Total 보존 + 신규 단언은 도메인 분류기로 분류(Unclassified=0). 생성 xlsx 손상 검증·WPF 렌더·streaming 벤치는 실 Test PC PILOT Gate(BLOCKED) 증거 전까지 PASS/VERIFIED 금지(과대표기 금지 §11.4).
+
+## ADR-012. Authenticode 코드 서명 — 독립 신뢰 앵커 (STAB-WP-05 승인 요건 · STOP 게이트)
+
+- **상태**: 채택(요건 정의) — 서명 도입 **CODE_SIGNING_APPROVAL_REQUIRED**. ADR-008(§결정2·5) 보강, STAB-WP-05. **v0.7.0은 본 결정 전 미서명+manifest/Fail-Closed 앵커로 출하**(서명은 후속·릴리스 전제 아님). 외부 신뢰 루트(인증서·서명 도구)가 필요하므로 **STOP 규칙(§11.5)** — 인증서 경로 승인(`docs/41 §6`) 전 서명 도구/인증서/Dependency 추가 0.
+- **맥락**: ADR-008이 Release Integrity Manifest + 런타임 Fail-Closed(STAB-WP-03a/03b, #59/#61 VERIFIED-local)를 세웠으나, **§결정5에서 명시한 3건의 잔여 위험은 manifest만으로 닫히지 않는다**(쓰기 가능 폴더에 manifest가 같이 있어 독립 신뢰 앵커가 없음):
+  1. **콘텐츠 lock-step co-tamper** — 파일과 `approved_manifest.json`을 동시에 같은 해시/크기로 변조하면 통과.
+  2. **self-contained 런타임 DLL(~150개: coreclr/hostfxr/System.Security.Cryptography 등) 미해시** — 관리 어셈블리 게이트 우회 가능.
+  3. **폴더 동반 변조**(추가 파일 주입).
+  이들은 **빌드 시점에 외부 신뢰 루트로 서명**하고, 런타임이 그 서명을 **manifest 신뢰의 선행 앵커**로 검증해야만 닫힌다. ADR-008 §대안에서 "기대해시를 Core 상수로 임베드"는 해시 고정점 부재(정상 패키지 brick)로 **기각**되었고 코드 서명으로 대체하기로 명문화됨.
+- **결정 — 승인 문서 필수 항목**(서명 도입 전 STAB-WP-05 STOP 해제 조건; 게이트 `docs/41 §6`):
+  1. **인증서 경로 선택**(아래 4안 중 1) — 발급 주체·신뢰 체인·**비용/갱신주기**·사내 정책 적합성.
+  2. **인증서 보관·반입 절차** — 개인키 저장(HSM/USB 토큰/Windows 인증서 저장소)·서명 PC·키 접근 권한·**repo에 인증서/키 0**(개인키 `*.pfx/*.p12/*.pem/*.key` **및** 공개 인증서 `*.cer/*.crt/*.der` **모두 절대 미포함**, Gate A — 공개 인증서도 신뢰 material이므로 repo에 두지 않고 반입 절차로만).
+  3. **서명 대상 범위** — 관리 어셈블리(`RiskManagementAI.exe`/`.dll`/`.Core.dll`) 1차, self-contained 런타임 DLL은 **서명 카탈로그(.cat) 또는 배포 정책**으로 확장(범위 2의 닫힘 방식).
+  4. **런타임 검증 정책** — 시작 시 자기(게시자/서명) 검증을 **manifest 신뢰의 선행**으로 둔다(서명 검증 PASS 후에만 manifest 신뢰). 오프라인 환경에서 **체인/타임스탬프/폐기(CRL/OCSP) 검증을 어떻게 처리**하는지(오프라인 = 폐기 조회 불가 → 정책 명시) · 미서명/불일치 시 Fail-Closed 동작.
+  5. **Rollback / 인증서 만료·폐기 대응** — 서명 만료·인증서 교체 시 기존 릴리스 동작·재서명 절차.
+  6. **서명 도구 선택 + 오프라인·NuGet-0 영향** — 서명 **생성** 도구를 명시·승인한다. ⚠️ **`signtool.exe`는 .NET 8 SDK 인박스가 아니라 Windows SDK 구성요소**(별도 설치) → 도입 시 **외부 도구 = 승인 범위**. **인박스 대안 = PowerShell `Set-AuthenticodeSignature`**(Windows 내장, 추가 설치 0) — 1순위. 서명 **검증**(런타임)은 인박스 `System.Security.Cryptography.X509Certificates`(+ `WinVerifyTrust` P/Invoke)로 가능하므로 NuGet 0 유지. **결론**: 서명 생성은 ⓐ 외부 인증서 + ⓑ 서명 도구(인박스 `Set-AuthenticodeSignature` 우선, signtool은 Windows SDK 승인 시) 둘 다 STOP 트리거 — 본 게이트에서 함께 승인.
+- **인증서 경로 후보(승인 결정 = 사용자/문서오너)**:
+  - **(A) 사내 Enterprise CA 발급 코드서명 인증서** — 사내 신뢰 루트가 도메인에 배포되어 있으면 **오프라인·비용 0·반입 용이**. 사내 PC 외부에선 신뢰 안 됨(내부 배포 한정 = 본 제품 성격에 적합). **권장 1순위 후보**(사내 CA 존재 시).
+  - **(B) 상용 OV(Organization Validation) 코드서명 인증서** — 공인 신뢰 루트, 외부에서도 신뢰. 연 비용·발급 심사. 폐기/타임스탬프 온라인 의존(오프라인 검증 정책 필요).
+  - **(C) 상용 EV(Extended Validation) 코드서명 인증서** — 하드웨어 토큰/HSM 강제, SmartScreen 평판 즉시. 비용·운영 부담 최대. 본 제품(사내 오프라인 배포)엔 과함.
+  - **(D) 자체 서명(self-signed) + 사내 신뢰 저장소 수동 등록** — 비용 0이나 신뢰 배포가 수동·취약. (A) 불가 시의 최소안.
+- **검증(승인 후 — 잔여 3건 폐쇄 매핑, 과대표기 금지)**: ADR-008 §결정5 잔여가 실제로 닫혔음을 **각각 회귀로 고정**한다(현재 STAB-WP-03b SmokeTest는 이 3건을 "미탐지=양성"으로 고정 중 → 서명 도입 시 "탐지/차단"으로 **전환**).
+  - ① **콘텐츠 lock-step co-tamper**: 파일+`approved_manifest.json` 동시 변조 패키지 = **서명 검증 실패로 기동 차단**(03b에서 통과하던 케이스가 FAIL→차단). 미서명/서명 불일치도 차단.
+  - ② **런타임 DLL 변조**: self-contained DLL(coreclr 등) 변조 = **서명 카탈로그(.cat)/게시자 검증으로 차단**(범위 항목 3의 닫힘 입증). 카탈로그 미적용 DLL이 남으면 그 범위를 **명시적 OPEN으로 표기**(과대표기 금지).
+  - ③ **폴더 동반 변조**(미선언 파일 주입): 서명 앵커 + manifest 인벤토리 교차로 **차단/표면화**.
+  - 위 회귀가 PASS 전환되기 전까지 STAB-WP-05는 VERIFIED로 적지 않으며, 실 Windows Test PC Gate B/C 증거 전까지 **BLOCKED** 유지.
+- **대안/기각**: ① 서명 없이 manifest만 유지 → §결정5 잔여 3건 미해소(co-tamper/런타임 DLL/폴더 변조) → 부분 보호로 잔여 OPEN 명시(현 v0.7.0 상태). ② 승인 없이 인증서·서명 도구 선반입 → STOP·원칙 위반 → 기각. ③ 기대해시 Core 상수 임베드(앵커 시도) → 해시 고정점 부재로 정상 패키지 brick → ADR-008에서 이미 기각.
+
+> 관련: `docs/40` ADR-008(무결성 manifest/Fail-Closed)·`docs/41 §6`(코드서명 승인 게이트)·`docs/39`(STAB-WP-05)·`docs/47 §1·§4`(v0.7.0 미서명 출하 고지)·`CLAUDE.md §3·§8·§11.5`.
