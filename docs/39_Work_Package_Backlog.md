@@ -68,17 +68,17 @@
 > ADR-013. KB-WP-01(#94 `b7f56ce` DONE) 토대 위. 인박스 keyword-only.
 - **목표**: clause 본문 keyword 검색 + clause-level 인용(문서명·버전·시행일·**조항**·출처·검색기준일·검토필요) + 발췌 노출 게이트.
 - **선행조건**: KB-WP-01(계약/로더/가드, #94 `b7f56ce` DONE).
-- **작업범위**: ① `KbIndex` 코어 알고리즘을 **internal static 유틸로 추출**(catalog·clause 공유, 별도 엔진 금지) — 후보발견 단일원천, 점수는 타입별 분리 ② `KbSearch.SearchClauses(query, asOf)` + 신규 `KbClauseSearchResult`(ClauseId·SourceId·ClauseRef·Snippet·Score·Disclosure + **DocumentName·Version·EffectiveDate·SourceLocator·SearchDate·ReviewDraftNotice** 등 catalog citation metadata 포함) ③ **신규 `ClauseSnippetAllowed(entry)` 게이트**(PublicCited **AND** 비-placeholder metadata만 발췌 true), `KbAccessDecision`에 필드 additive ④ clause 유효구간(EffectiveDate/RepealDate 결정적 파싱, asOf 경계) ⑤ 검색 행위 해시 audit 재사용.
+- **작업범위**: ① `KbIndex` 코어 알고리즘을 **internal static 유틸로 추출**(catalog·clause 공유, 별도 엔진 금지) — 후보발견 단일원천, 점수는 타입별 분리 ② `KbSearch.SearchClauses(query, asOf)` + 신규 `KbClauseSearchResult`(ClauseId·SourceId·ClauseRef·Snippet·Score·Disclosure + **DocumentName·Version·EffectiveDate·SourceLocator·SearchDate·ReviewDraftNotice** 등 catalog citation metadata 포함) ③ **신규 `ClauseSnippetAllowed(entry)` 게이트**(PublicCited **AND** version/effective_date/approval_status/license_status 모두 비-placeholder일 때만 발췌 true), `KbAccessDecision`에 필드 additive ④ clause 유효구간(EffectiveDate/RepealDate 결정적 파싱, blank RepealDate=무기한 active, asOf 경계) ⑤ 검색 행위 해시 audit 재사용.
 - **제외범위**: `SourceTextAllowed` 변경(false 불변). 실 원문. UI 위젯. Vector/모델.
 - **읽을문서**: ADR-013, KB-WP-01 산출, `Core/Kb/{KbIndex,KbSearch,KbAccessPolicy}.cs`.
 - **수정예상파일**: `Core/Kb/KbIndex.cs`(코어 유틸 추출·후방호환), `KbSearch.cs`, `KbAccessPolicy.cs`(`ClauseSnippetAllowed`·`KbAccessDecision` additive), `KbClauseSearchResult.cs`(신규), `KbTests.cs`.
 - **Public Interface**: `KbSearch.SearchClauses(...)`·`KbClauseSearchResult`(caller가 추가 catalog lookup 없이 문서명·버전·시행일·출처·검색일·검토필요 문구를 표시/검증 가능)·`KbAccessPolicy.ClauseSnippetAllowed(entry)`. 기존 catalog 검색 경로·`KbSearchResult` 불변.
 - **구현세부**: 코어 유틸 추출 시 기존 `KbTests` linear==index/`DeterministicSignature`/한글 부분일치(catalog 경로) 전부 PASS 보존. 점수=`OrderByDescending(Score).ThenBy(...,Ordinal)`.
-- **보안조건**: 발췌는 `ClauseSnippetAllowed`만 게이트(공개 비-placeholder만). PROD_ONLY/MANUAL/placeholder→발췌 0. NuGet 0·해시 audit.
-- **테스트**(도메인 `Kb`): clause hit·인용 metadata 완비(추가 lookup/본문 파싱 없이 검증)·`ClauseSnippetAllowed` 양성(공개)/음성(PROD_ONLY·placeholder-metadata→발췌 0)·유효구간 경계·코어 유틸 추출 후 catalog 회귀 보존·`SourceTextAllowed` false 불변 회귀. `Total`+N, Unclassified 0.
+- **보안조건**: 발췌는 `ClauseSnippetAllowed`만 게이트(공개 + version/effective_date/approval_status/license_status 비-placeholder만). PROD_ONLY/MANUAL/placeholder/catalog-미매칭→발췌 0, `Snippet=""`. NuGet 0·해시 audit.
+- **테스트**(도메인 `Kb`): clause hit·인용 metadata 완비(추가 lookup/본문 파싱 없이 검증)·`ClauseSnippetAllowed` 양성(공개)/음성(PROD_ONLY·placeholder-metadata·blank approval/license→`Snippet=""`)·blank RepealDate active indefinitely·non-empty invalid date 보수 처리·유효구간 경계·코어 유틸 추출 후 catalog 회귀 보존·`SourceTextAllowed` false 불변 회귀. `Total`+N, Unclassified 0.
 - **완료조건**: clause 검색+인용+게이트 + build 0/0 + 기존 보존 + Gate A.
 - **Branch**: `feature/kb-wp-02-clause-search` · **Commit**: `feat: clause keyword search + citation + snippet gate (KB-WP-02)`
-- **Claude Review Checklist**: 코어 유틸 단일원천(중복 0)·후방호환 / `ClauseSnippetAllowed` 단일 게이트·`SourceTextAllowed` false 불변 / placeholder-metadata 발췌 차단 / 유효구간 결정성 / catalog 회귀 보존 / NuGet 0 / `Total` 보존+신규 / Gate A. **프롬프트**: `prompts/codex/KB-WP-02_clause_search.md`.
+- **Claude Review Checklist**: 코어 유틸 단일원천(중복 0)·후방호환 / `ClauseSnippetAllowed` 단일 게이트·`SourceTextAllowed` false 불변 / version·effective_date·approval_status·license_status placeholder/blank 발췌 차단(`Snippet=""`) / blank RepealDate active indefinitely·유효구간 결정성 / catalog 회귀 보존 / NuGet 0 / `Total` 보존+신규 / Gate A. **프롬프트**: `prompts/codex/KB-WP-02_clause_search.md`.
 
 ## ★ FEEDBACK-WP-01. 승인 Example 본문 Ingest 게이트 + 결정적 검색 + audit (RETRIEVAL, 학습 아님) (Cap C-20 확장)
 > 권위 설계 = **ADR-014**(`docs/40`). RETRIEVAL이지 학습 아님 — 모델 가중치 학습/모델파일 쓰기 0. 인박스, Vector/Embedding STOP.

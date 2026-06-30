@@ -19,11 +19,11 @@ KB-WP-01이 깐 **Clause Pack 계약/로더** 위에서 **clause 본문 keyword 
    - 게이트/문구: `Disclosure`(`KbDisclosure`)·`DisclosureReason`·`SnippetAllowed`(bool)·`SearchDate`·`ReviewDraftNotice`(="검토용 초안").
    - clause↔catalog 조인은 **`SourceId`로 결정적**. **catalog 매칭 실패 시 fail-closed**: `Disclosure=MetadataOnly`/`SnippetAllowed=false`/`Snippet=""` + warning(임의 노출 금지).
 4. **신규 `ClauseSnippetAllowed` 게이트(`KbAccessPolicy`)** — `SourceTextAllowed`와 **분리된 별도 게이트**:
-   - `public static bool ClauseSnippetAllowed(RegulationCatalogEntry entry)`: **`Disclosure==PublicCited` AND 비-placeholder 인용 metadata**(version/effective_date 등 `CONFIRM_*`/`NOT_LOADED` 아님)일 때만 `true`. `PROD_ONLY`·`MANUAL_APPROVAL_REQUIRED`·`MetadataOnly`·unknown·placeholder → `false`.
+   - `public static bool ClauseSnippetAllowed(RegulationCatalogEntry entry)`: **`Disclosure==PublicCited` AND 비-placeholder 인용/승인 metadata**일 때만 `true`. 필수 확인값은 `version`·`effective_date`·`approval_status`·`license_status`이며, 각 값이 blank/`CONFIRM_*`/`NOT_LOADED`이면 fail-closed. `PROD_ONLY`·`MANUAL_APPROVAL_REQUIRED`·`MetadataOnly`·unknown·placeholder → `false`.
    - `KbAccessDecision`에 **`bool ClauseSnippetAllowed = false` 를 기본값 있는 positional 파라미터로 add-only**(기존 4-인자 생성 호출부 불변). 기존 `Evaluate(...)`는 이 값을 채워 반환.
-   - **`SourceTextAllowed`는 false 불변**(절대 변경 0). ClauseSnippetAllowed=false면 `Snippet=""`(또는 "(원문 미노출 - 승인/공개 확인 필요)")로 **발췌 미노출**.
+   - **`SourceTextAllowed`는 false 불변**(절대 변경 0). ClauseSnippetAllowed=false면 **항상 `Snippet=""`**로 발췌 0. 거부 사유는 `DisclosureReason`/warning에만 둔다(비어 있지 않은 안내문을 `Snippet`에 넣지 않는다).
 5. **Snippet 결정성**: 발췌는 `ClauseText`에서 **결정적 window**(첫 매칭 term 주변 고정 길이 또는 선두 N자, `MaxSubstringKeyLength` 동형 상한)로 산출 — 비결정 0, 줄바꿈/제어문자 정규화. 게이트 false면 본문 미접근.
-6. **Clause 유효구간(asOf 경계)**: `EffectiveDate`/`RepealDate`를 KB-WP-01과 동일 결정적 파싱(`yyyy-MM-dd`, `CultureInfo.InvariantCulture`)으로 처리. `asOfDate` 밖(시행 전/폐기 후) clause는 **결과에서 제외 또는 `(기준일 외)` 표식**(결정적·테스트 고정). 파싱 실패 = warning + 보수적 처리(노출 축소).
+6. **Clause 유효구간(asOf 경계)**: `EffectiveDate`/`RepealDate`를 KB-WP-01과 동일 결정적 파싱(`yyyy-MM-dd`, `CultureInfo.InvariantCulture`)으로 처리. **blank `RepealDate`는 무기한 active**로 해석한다. non-empty invalid `EffectiveDate`/`RepealDate`만 파싱 실패 = warning + 보수적 처리(노출 축소). `asOfDate` 밖(시행 전/폐기 후) clause는 **결과에서 제외 또는 `(기준일 외)` 표식**(결정적·테스트 고정).
 7. **검색 행위 해시 audit 재사용**: clause 검색도 기존 `TaskLogWriter`/`TaskLogEntry` 스키마(UserId/RequestHash/OutputHash 모두 SHA-256 hex)로 audit, **원문/쿼리 평문 미저장**. `auditRuleVersion` 없으면 기존 패턴대로 미기록+warning.
 
 ## 2. 제외 범위
@@ -31,7 +31,7 @@ KB-WP-01이 깐 **Clause Pack 계약/로더** 위에서 **clause 본문 keyword 
 
 ## 3. 보안조건 (risk-rag-ncr-governance · risk-security-guard)
 - 외부 NuGet 0 · 외부 API/Telemetry 0 · 쓰기 경로 = audit(`logs/`)만, clause Pack은 **읽기 전용**.
-- **발췌(snippet) 노출은 `ClauseSnippetAllowed`만 게이트**(공개·비-placeholder만). `PROD_ONLY`/`MANUAL`/placeholder-metadata/unknown/catalog-미매칭 → **발췌 0**.
+- **발췌(snippet) 노출은 `ClauseSnippetAllowed`만 게이트**(공개·비-placeholder version/effective_date/approval_status/license_status만). `PROD_ONLY`/`MANUAL`/placeholder-metadata/unknown/catalog-미매칭 → **발췌 0, `Snippet=""`**.
 - 해시 전용 audit(원문·쿼리·userId 평문 미저장). `ReviewDraftNotice="검토용 초안"`·공식해석 아님 문구 유지.
 - 실데이터/실 테이블·컬럼명/내부규정 원문/NCR 공식본 원문 **repo 미포함**(검색 대상 = 합성 Pack). 신규 단언·샘플도 합성 더미만.
 - `SourceTextAllowed` false 불변 회귀로 고정.
@@ -39,8 +39,8 @@ KB-WP-01이 깐 **Clause Pack 계약/로더** 위에서 **clause 본문 keyword 
 ## 4. 테스트 (SmokeTest, 외부 프레임워크 0 — 도메인 `Kb`)
 > 단언 설명에 한글 `검색`/`원문`/`공개`/`인용` 토큰만 쓰면 도메인 오분류 위험 없음(이미 `Kb`). `Unclassified=0` 유지.
 - **양성**: 합성 clause Pack hit → `KbClauseSearchResult` 인용 metadata 완비(문서명·버전·시행일·조항·출처·검색일·검토필요)를 **추가 lookup/본문 파싱 없이** 검증 · 점수 내림차순+`ClauseId` Ordinal tie-break 결정성 · snippet 결정적 window.
-- **게이트 음성**: `PROD_ONLY`/`MANUAL_APPROVAL_REQUIRED`/placeholder-metadata(`CONFIRM_*`/`NOT_LOADED`)/catalog-미매칭 → `SnippetAllowed=false`·`Snippet` 미노출(발췌 0). `SourceTextAllowed` false 불변 회귀.
-- **유효구간**: `asOfDate` 시행 전/폐기 후 clause 제외(또는 표식) 경계 결정성.
+- **게이트 음성**: `PROD_ONLY`/`MANUAL_APPROVAL_REQUIRED`/placeholder-metadata(`version`·`effective_date`·`approval_status`·`license_status`의 blank/`CONFIRM_*`/`NOT_LOADED`)/catalog-미매칭 → `SnippetAllowed=false`·`Snippet=""`(발췌 0). `SourceTextAllowed` false 불변 회귀.
+- **유효구간**: `asOfDate` 시행 전/폐기 후 clause 제외(또는 표식) 경계 결정성. blank `RepealDate`는 active indefinitely, non-empty invalid repeal date만 warning/보수 처리.
 - **fail-closed**: `ClausePackLoadResult.UsedFallback=true`(Pack 미적재) → `SearchClauses` 0건 + warning(예외 0).
 - **코어 유틸 추출 회귀**: 기존 `KbTests`의 catalog 경로(linear==index·`DeterministicSignature`·한글 부분일치) **전부 보존**(키잉 단일원천화 후에도 동일 결과).
 - 종료부 **`Total=747 → 747+N PASS / 0 FAIL`**, `Unclassified=0`, build 0/0.
@@ -50,4 +50,4 @@ KB-WP-01이 깐 **Clause Pack 계약/로더** 위에서 **clause 본문 keyword 
 - Branch `feature/kb-wp-02-clause-search` · Commit: `feat: clause keyword search + citation + snippet gate (KB-WP-02)`
 
 ## 6. Claude Review Checklist
-코어 키잉 유틸 단일원천(중복 0)·기존 `KbIndex`/catalog 경로 후방호환·`DeterministicSignature` 불변 / `ClauseSnippetAllowed` **단일 게이트**·`KbAccessDecision` 필드 add-only(기본값, 4-인자 호출부 불변) / `SourceTextAllowed` false 불변 / placeholder-metadata·PROD_ONLY·catalog-미매칭 발췌 차단(fail-closed) / 인용 metadata 완비(추가 lookup 0) / snippet·정렬·유효구간 결정성 / `UsedFallback` 시 0건 graceful / 해시 audit(원문 미저장) / NuGet 0 / 기존 `KbTests` 보존 / `Total` 보존+신규 / Gate A.
+코어 키잉 유틸 단일원천(중복 0)·기존 `KbIndex`/catalog 경로 후방호환·`DeterministicSignature` 불변 / `ClauseSnippetAllowed` **단일 게이트**·`KbAccessDecision` 필드 add-only(기본값, 4-인자 호출부 불변) / `SourceTextAllowed` false 불변 / version·effective_date·approval_status·license_status placeholder/blank·PROD_ONLY·catalog-미매칭 발췌 차단(`Snippet=""`, fail-closed) / blank `RepealDate` active indefinitely·non-empty invalid date 보수 처리 / 인용 metadata 완비(추가 lookup 0) / snippet·정렬·유효구간 결정성 / `UsedFallback` 시 0건 graceful / 해시 audit(원문 미저장) / NuGet 0 / 기존 `KbTests` 보존 / `Total` 보존+신규 / Gate A.
