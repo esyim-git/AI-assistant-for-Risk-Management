@@ -142,11 +142,57 @@
                             <RowDefinition Height="*" />
                             <RowDefinition Height="36" />
                         </Grid.RowDefinitions>
-                        <TextBox x:Name="ExcelRequestBox" TextWrapping="Wrap" AcceptsReturn="True" AcceptsTab="True"
-                                 HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-                                 VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
-                                 FontFamily="Consolas" FontSize="14"
-                                 Text="=XLOOKUP(A2,LimitTable[Desk],LimitTable[Limit])" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="3*" MinWidth="360" />
+                                <ColumnDefinition Width="8" />
+                                <ColumnDefinition Width="2*" MinWidth="300" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="ExcelRequestBox" TextWrapping="Wrap" AcceptsReturn="True" AcceptsTab="True"
+                                     HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                     VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                                     FontFamily="Consolas" FontSize="14"
+                                     Text="=XLOOKUP(A2,LimitTable[Desk],LimitTable[Limit])" />
+                            <GridSplitter Grid.Column="1"
+                                          Width="8"
+                                          HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                          ResizeBehavior="PreviousAndNext" ResizeDirection="Columns"
+                                          Background="#E2E8F0" />
+                            <Border Grid.Column="2" BorderBrush="#CBD5E1" BorderThickness="1" Padding="8" Background="#FFFFFF">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="30" />
+                                        <RowDefinition Height="118" />
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="36" />
+                                    </Grid.RowDefinitions>
+                                    <DockPanel>
+                                        <Button Content="검색" Width="64" DockPanel.Dock="Right" Margin="8,0,0,0" Click="OnSearchExcelFunctionHelper" />
+                                        <TextBox x:Name="ExcelFunctionHelperQueryBox" Text="XLOOKUP" />
+                                    </DockPanel>
+                                    <ListBox x:Name="ExcelFunctionHelperList"
+                                             Grid.Row="1"
+                                             DisplayMemberPath="Name"
+                                             SelectionChanged="OnExcelFunctionHelperSelectionChanged"
+                                             Margin="0,8,0,0" />
+                                    <TextBox x:Name="ExcelFunctionHelperDetailBox"
+                                             Grid.Row="2"
+                                             TextWrapping="Wrap"
+                                             AcceptsReturn="True"
+                                             VerticalScrollBarVisibility="Auto"
+                                             Margin="0,8,0,0"
+                                             Text="Excel 2021 함수 Helper를 검색하세요."
+                                             IsReadOnly="True" />
+                                    <Button x:Name="InsertExcelFunctionExampleButton"
+                                            Grid.Row="3"
+                                            Content="예시 수식 삽입"
+                                            Width="120"
+                                            HorizontalAlignment="Left"
+                                            Margin="0,10,0,0"
+                                            Click="OnInsertExcelFunctionExample" />
+                                </Grid>
+                            </Border>
+                        </Grid>
                         <Button Grid.Row="1" Content="Excel 검사" Width="110" HorizontalAlignment="Left" Margin="0,10,0,0" Click="OnCheckExcel" />
                     </Grid>
                 </TabItem>

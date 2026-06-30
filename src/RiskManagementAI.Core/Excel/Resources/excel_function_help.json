@@ -1,0 +1,250 @@
+[
+  {
+    "Name": "XLOOKUP",
+    "Description": "Looks up a key in one range and returns the matching value from another range.",
+    "Args": "lookup_value, lookup_array, return_array, [if_not_found], [match_mode], [search_mode]",
+    "RiskMgmtExample": "Find the approved limit for a dummy portfolio key before comparing exposure.",
+    "FormulaExample": "=XLOOKUP(A2,$A$2:$A$20,$B$2:$B$20,\"Review\")",
+    "Excel2021Alternative": "Excel 2021 supports XLOOKUP. INDEX/MATCH is also acceptable when workbook compatibility is uncertain."
+  },
+  {
+    "Name": "XMATCH",
+    "Description": "Returns the relative position of a lookup value in a one-dimensional range.",
+    "Args": "lookup_value, lookup_array, [match_mode], [search_mode]",
+    "RiskMgmtExample": "Locate a dummy bucket position before returning a control value with INDEX.",
+    "FormulaExample": "=XMATCH(A2,$A$2:$A$20,0)",
+    "Excel2021Alternative": "Excel 2021 supports XMATCH. MATCH is acceptable for older compatibility."
+  },
+  {
+    "Name": "FILTER",
+    "Description": "Returns rows or columns that satisfy a Boolean include condition.",
+    "Args": "array, include, [if_empty]",
+    "RiskMgmtExample": "Show dummy rows whose status equals BREACH for manual review.",
+    "FormulaExample": "=FILTER($A$2:$D$20,$D$2:$D$20=\"BREACH\",\"None\")",
+    "Excel2021Alternative": "Excel 2021 supports FILTER. Use PivotTable, helper columns, or SUMIFS for static summaries."
+  },
+  {
+    "Name": "SORT",
+    "Description": "Sorts a range or array by one or more columns.",
+    "Args": "array, [sort_index], [sort_order], [by_col]",
+    "RiskMgmtExample": "Order dummy exposure rows by severity for manual review.",
+    "FormulaExample": "=SORT($A$2:$D$20,4,-1)",
+    "Excel2021Alternative": "Excel 2021 supports SORT. Manual sort or PivotTable is also acceptable."
+  },
+  {
+    "Name": "SORTBY",
+    "Description": "Sorts an array based on values in one or more corresponding arrays.",
+    "Args": "array, by_array1, [sort_order1], [by_array2], [sort_order2], ...",
+    "RiskMgmtExample": "Order dummy risk rows by usage ratio while keeping the full row visible.",
+    "FormulaExample": "=SORTBY($A$2:$D$20,$D$2:$D$20,-1)",
+    "Excel2021Alternative": "Excel 2021 supports SORTBY. Manual sort or PivotTable is also acceptable."
+  },
+  {
+    "Name": "UNIQUE",
+    "Description": "Returns unique rows or values from a range.",
+    "Args": "array, [by_col], [exactly_once]",
+    "RiskMgmtExample": "List unique dummy risk factors before creating a review checklist.",
+    "FormulaExample": "=UNIQUE($A$2:$A$20)",
+    "Excel2021Alternative": "Excel 2021 supports UNIQUE. Remove Duplicates or PivotTable is also acceptable."
+  },
+  {
+    "Name": "SEQUENCE",
+    "Description": "Generates a sequence of numbers.",
+    "Args": "rows, [columns], [start], [step]",
+    "RiskMgmtExample": "Create dummy row numbers for a review worksheet.",
+    "FormulaExample": "=SEQUENCE(10,1,1,1)",
+    "Excel2021Alternative": "Excel 2021 supports SEQUENCE. Manual fill series is also acceptable."
+  },
+  {
+    "Name": "LET",
+    "Description": "Assigns names to formula expressions and returns a final calculation.",
+    "Args": "name1, value1, calculation_or_name2, [value2], ...",
+    "RiskMgmtExample": "Name a dummy usage ratio once and reuse it in a readable threshold formula.",
+    "FormulaExample": "=LET(usage,B2/C2,IF(usage>=1,\"BREACH\",\"OK\"))",
+    "Excel2021Alternative": "Excel 2021 supports LET. Helper columns are preferred when reviewers need step-by-step visibility."
+  },
+  {
+    "Name": "SUMIFS",
+    "Description": "Sums values that satisfy one or more criteria.",
+    "Args": "sum_range, criteria_range1, criteria1, [criteria_range2], [criteria2], ...",
+    "RiskMgmtExample": "Aggregate dummy exposure by portfolio and risk factor before limit review.",
+    "FormulaExample": "=SUMIFS($C:$C,$A:$A,A2,$B:$B,B2)",
+    "Excel2021Alternative": "Excel 2021 supports SUMIFS. PivotTable or SQLAggregation can also be used for reviewed summaries."
+  },
+  {
+    "Name": "COUNTIFS",
+    "Description": "Counts rows that satisfy one or more criteria.",
+    "Args": "criteria_range1, criteria1, [criteria_range2], [criteria2], ...",
+    "RiskMgmtExample": "Count dummy unresolved exceptions by status and owner.",
+    "FormulaExample": "=COUNTIFS($D:$D,\"OPEN\",$E:$E,E2)",
+    "Excel2021Alternative": "Excel 2021 supports COUNTIFS. PivotTable can also be used for reviewed counts."
+  },
+  {
+    "Name": "INDEX",
+    "Description": "Returns a value at a row and column position in a range.",
+    "Args": "array, row_num, [column_num]",
+    "RiskMgmtExample": "Return a dummy threshold after MATCH identifies the row position.",
+    "FormulaExample": "=INDEX($B$2:$B$20,MATCH(A2,$A$2:$A$20,0))",
+    "Excel2021Alternative": "Excel 2021 supports INDEX. Pair with MATCH for broad compatibility."
+  },
+  {
+    "Name": "MATCH",
+    "Description": "Returns the relative position of a value in a range.",
+    "Args": "lookup_value, lookup_array, [match_type]",
+    "RiskMgmtExample": "Find the dummy control row used by an INDEX formula.",
+    "FormulaExample": "=MATCH(A2,$A$2:$A$20,0)",
+    "Excel2021Alternative": "Excel 2021 supports MATCH. Pair with INDEX for broad compatibility."
+  },
+  {
+    "Name": "VSTACK",
+    "Description": "Stacks arrays vertically. This is not in the Excel 2021 compatibility set used by this app.",
+    "Args": "array1, [array2], ...",
+    "RiskMgmtExample": "Combining dummy exception tables should be reviewed through Excel 2021-compatible steps.",
+    "FormulaExample": "=VSTACK($A$2:$D$10,$A$12:$D$20)",
+    "Excel2021Alternative": "Use Power Query outside this app, helper sheets, PivotTable, or reviewed SQLAggregation instead of VSTACK."
+  },
+  {
+    "Name": "HSTACK",
+    "Description": "Stacks arrays horizontally. This is not in the Excel 2021 compatibility set used by this app.",
+    "Args": "array1, [array2], ...",
+    "RiskMgmtExample": "Combining dummy comparison columns should stay explicit with helper columns.",
+    "FormulaExample": "=HSTACK($A$2:$A$20,$B$2:$B$20)",
+    "Excel2021Alternative": "Use helper columns, INDEX/MATCH, or reviewed joins outside the workbook instead of HSTACK."
+  },
+  {
+    "Name": "TEXTSPLIT",
+    "Description": "Splits text into columns or rows. This is not in the Excel 2021 compatibility set used by this app.",
+    "Args": "text, col_delimiter, [row_delimiter], [ignore_empty], [match_mode], [pad_with]",
+    "RiskMgmtExample": "Parsing dummy composite keys should be done with visible helper columns.",
+    "FormulaExample": "=TEXTSPLIT(A2,\"|\")",
+    "Excel2021Alternative": "Use Text to Columns, LEFT/MID/RIGHT helper columns, or reviewed upstream parsing instead of TEXTSPLIT."
+  },
+  {
+    "Name": "GROUPBY",
+    "Description": "Groups rows and aggregates values. This is not in the Excel 2021 compatibility set used by this app.",
+    "Args": "row_fields, values, function, [field_headers], [total_depth], [sort_order], [filter_array]",
+    "RiskMgmtExample": "Dummy exposure grouping should use reviewable Excel 2021 summaries.",
+    "FormulaExample": "=GROUPBY($A$2:$A$20,$C$2:$C$20,SUM)",
+    "Excel2021Alternative": "Use SUMIFS, COUNTIFS, PivotTable, or reviewed SQLAggregation instead of GROUPBY."
+  },
+  {
+    "Name": "PIVOTBY",
+    "Description": "Creates a dynamic pivot-style summary. This is not in the Excel 2021 compatibility set used by this app.",
+    "Args": "row_fields, col_fields, values, function, [field_headers], [row_total_depth], [row_sort_order], [col_total_depth]",
+    "RiskMgmtExample": "Dummy portfolio summaries should use standard PivotTable or static formulas.",
+    "FormulaExample": "=PIVOTBY($A$2:$A$20,$B$2:$B$20,$C$2:$C$20,SUM)",
+    "Excel2021Alternative": "Use PivotTable, SUMIFS, COUNTIFS, or reviewed SQLAggregation instead of PIVOTBY."
+  },
+  {
+    "Name": "MAP",
+    "Description": "Maps a LAMBDA over array values. This is not in the Excel 2021 compatibility set used by this app.",
+    "Args": "array1, lambda_or_array2, ...",
+    "RiskMgmtExample": "Dummy row-by-row risk labels should stay visible with helper columns.",
+    "FormulaExample": "=MAP($C$2:$C$20,LAMBDA(x,IF(x>1,\"BREACH\",\"OK\")))",
+    "Excel2021Alternative": "Use helper columns or LET with standard formulas instead of MAP."
+  },
+  {
+    "Name": "REDUCE",
+    "Description": "Reduces an array to an accumulated result. This is not in the Excel 2021 compatibility set used by this app.",
+    "Args": "initial_value, array, lambda",
+    "RiskMgmtExample": "Dummy aggregation should use explicit SUMIFS or reviewed SQLAggregation.",
+    "FormulaExample": "=REDUCE(0,$C$2:$C$20,LAMBDA(a,b,a+b))",
+    "Excel2021Alternative": "Use SUMIFS, COUNTIFS, PivotTable, or reviewed SQLAggregation instead of REDUCE."
+  },
+  {
+    "Name": "BYROW",
+    "Description": "Applies a LAMBDA to each row. This is not in the Excel 2021 compatibility set used by this app.",
+    "Args": "array, lambda",
+    "RiskMgmtExample": "Dummy row checks should remain visible as helper columns.",
+    "FormulaExample": "=BYROW($A$2:$C$20,LAMBDA(r,SUM(r)))",
+    "Excel2021Alternative": "Use helper columns with standard formulas instead of BYROW."
+  },
+  {
+    "Name": "BYCOL",
+    "Description": "Applies a LAMBDA to each column. This is not in the Excel 2021 compatibility set used by this app.",
+    "Args": "array, lambda",
+    "RiskMgmtExample": "Dummy column checks should remain visible as helper rows or reviewed summaries.",
+    "FormulaExample": "=BYCOL($A$2:$C$20,LAMBDA(c,SUM(c)))",
+    "Excel2021Alternative": "Use helper rows, SUMIFS, or reviewed SQLAggregation instead of BYCOL."
+  },
+  {
+    "Name": "TAKE",
+    "Description": "Returns rows or columns from the start or end of an array. This is not in the Excel 2021 compatibility set used by this app.",
+    "Args": "array, rows, [columns]",
+    "RiskMgmtExample": "Dummy top-row review should be done with visible filters or SORT.",
+    "FormulaExample": "=TAKE($A$2:$D$20,5)",
+    "Excel2021Alternative": "Use filters, SORT, helper rank columns, or PivotTable instead of TAKE."
+  },
+  {
+    "Name": "DROP",
+    "Description": "Drops rows or columns from an array. This is not in the Excel 2021 compatibility set used by this app.",
+    "Args": "array, rows, [columns]",
+    "RiskMgmtExample": "Dummy header or exception removal should stay explicit through filters.",
+    "FormulaExample": "=DROP($A$1:$D$20,1)",
+    "Excel2021Alternative": "Use filters, explicit ranges, or helper columns instead of DROP."
+  },
+  {
+    "Name": "CHOOSECOLS",
+    "Description": "Returns selected columns from an array. This is not in the Excel 2021 compatibility set used by this app.",
+    "Args": "array, col_num1, [col_num2], ...",
+    "RiskMgmtExample": "Dummy report column selection should use explicit ranges or reviewed exports.",
+    "FormulaExample": "=CHOOSECOLS($A$2:$D$20,1,4)",
+    "Excel2021Alternative": "Use explicit ranges, INDEX, or reviewed report generation instead of CHOOSECOLS."
+  },
+  {
+    "Name": "TOCOL",
+    "Description": "Converts an array to one column. This is not in the Excel 2021 compatibility set used by this app.",
+    "Args": "array, [ignore], [scan_by_column]",
+    "RiskMgmtExample": "Dummy matrix flattening should be prepared through reviewed data steps.",
+    "FormulaExample": "=TOCOL($A$2:$D$20)",
+    "Excel2021Alternative": "Use helper columns or reviewed upstream reshaping instead of TOCOL."
+  },
+  {
+    "Name": "TOROW",
+    "Description": "Converts an array to one row. This is not in the Excel 2021 compatibility set used by this app.",
+    "Args": "array, [ignore], [scan_by_column]",
+    "RiskMgmtExample": "Dummy matrix flattening should be prepared through reviewed data steps.",
+    "FormulaExample": "=TOROW($A$2:$D$20)",
+    "Excel2021Alternative": "Use helper rows or reviewed upstream reshaping instead of TOROW."
+  },
+  {
+    "Name": "TEXTBEFORE",
+    "Description": "Returns text before a delimiter. This is not in the Excel 2021 compatibility set used by this app.",
+    "Args": "text, delimiter, [instance_num], [match_mode], [match_end], [if_not_found]",
+    "RiskMgmtExample": "Dummy composite-key parsing should be visible and reviewable.",
+    "FormulaExample": "=TEXTBEFORE(A2,\"|\")",
+    "Excel2021Alternative": "Use LEFT/FIND helper columns or reviewed upstream parsing instead of TEXTBEFORE."
+  },
+  {
+    "Name": "TEXTAFTER",
+    "Description": "Returns text after a delimiter. This is not in the Excel 2021 compatibility set used by this app.",
+    "Args": "text, delimiter, [instance_num], [match_mode], [match_end], [if_not_found]",
+    "RiskMgmtExample": "Dummy composite-key parsing should be visible and reviewable.",
+    "FormulaExample": "=TEXTAFTER(A2,\"|\")",
+    "Excel2021Alternative": "Use MID/FIND helper columns or reviewed upstream parsing instead of TEXTAFTER."
+  },
+  {
+    "Name": "REGEXTEST",
+    "Description": "Tests text with a regular expression. This is not in the Excel 2021 compatibility set used by this app.",
+    "Args": "text, pattern, [case_sensitivity]",
+    "RiskMgmtExample": "Dummy pattern checks should be handled by the app checker or reviewed preprocessing.",
+    "FormulaExample": "=REGEXTEST(A2,\"^[A-Z]+$\")",
+    "Excel2021Alternative": "Use helper columns with SEARCH/ISNUMBER or reviewed preprocessing instead of REGEXTEST."
+  },
+  {
+    "Name": "REGEXEXTRACT",
+    "Description": "Extracts regex matches from text. This is not in the Excel 2021 compatibility set used by this app.",
+    "Args": "text, pattern, [return_mode], [case_sensitivity]",
+    "RiskMgmtExample": "Dummy key extraction should be handled by reviewed preprocessing.",
+    "FormulaExample": "=REGEXEXTRACT(A2,\"[A-Z]+\")",
+    "Excel2021Alternative": "Use LEFT/MID/RIGHT/FIND helper columns or reviewed preprocessing instead of REGEXEXTRACT."
+  },
+  {
+    "Name": "REGEXREPLACE",
+    "Description": "Replaces regex matches in text. This is not in the Excel 2021 compatibility set used by this app.",
+    "Args": "text, pattern, replacement, [occurrence], [case_sensitivity]",
+    "RiskMgmtExample": "Dummy normalization should be handled by reviewed preprocessing.",
+    "FormulaExample": "=REGEXREPLACE(A2,\"[^A-Z0-9]\",\"\")",
+    "Excel2021Alternative": "Use SUBSTITUTE helper formulas or reviewed preprocessing instead of REGEXREPLACE."
+  }
+]

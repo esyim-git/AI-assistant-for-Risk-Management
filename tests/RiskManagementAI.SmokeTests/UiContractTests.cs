@@ -215,6 +215,27 @@ context.AssertTrue(mainWindowXamlText.Contains("MinWidth=\"1180\"", StringCompar
 context.AssertTrue(ResizableEditorOk("SqlRequestBox"), "UI SQL editor box should stretch with Consolas font");
 context.AssertTrue(ResizableEditorOk("VbaRequestBox"), "UI VBA editor box should stretch with Consolas font");
 context.AssertTrue(ResizableEditorOk("ExcelRequestBox"), "UI Excel editor box should stretch with Consolas font");
+context.AssertTrue(
+    new[] { "ExcelFunctionHelperQueryBox", "ExcelFunctionHelperList", "ExcelFunctionHelperDetailBox", "InsertExcelFunctionExampleButton" }
+        .All(name => mainWindowXamlText.Contains($"x:Name=\"{name}\"", StringComparison.Ordinal)),
+    "UI UX-WP-04 should expose stable Excel Function Helper controls in the Excel tab");
+context.AssertTrue(
+    mainWindowXaml.Descendants(wpf + "Button").Any(button =>
+        string.Equals((string?)button.Attribute("Content"), "검색", StringComparison.Ordinal)
+        && string.Equals((string?)button.Attribute("Click"), "OnSearchExcelFunctionHelper", StringComparison.Ordinal))
+    && mainWindowXaml.Descendants(wpf + "Button").Any(button =>
+        string.Equals((string?)button.Attribute(xaml + "Name"), "InsertExcelFunctionExampleButton", StringComparison.Ordinal)
+        && string.Equals((string?)button.Attribute("Click"), "OnInsertExcelFunctionExample", StringComparison.Ordinal)),
+    "UI UX-WP-04 Excel Function Helper should wire search and explicit insert buttons");
+context.AssertTrue(
+    mainWindowCode.Contains("_excelFunctionHelper = new ExcelFunctionHelper(_ruleSet)", StringComparison.Ordinal)
+    && mainWindowCode.Contains("RefreshExcelFunctionHelper(showFindings: false)", StringComparison.Ordinal)
+    && mainWindowCode.Contains("InsertExcelFunctionExample(ExcelRequestBox", StringComparison.Ordinal),
+    "UI UX-WP-04 Excel Function Helper should be backed by Core helper and explicit user-selected insertion");
+context.AssertTrue(
+    !mainWindowXamlText.Contains("TextChanged=\"OnSearchExcelFunctionHelper\"", StringComparison.Ordinal)
+    && mainWindowCode.Contains("검색어 원문은 로그에 저장하지 않았습니다.", StringComparison.Ordinal),
+    "UI UX-WP-04 Excel Function Helper should avoid as-you-type search logging and avoid plaintext query logs");
 context.AssertTrue(mainWindowXamlText.Contains("MinWidth=\"280\"", StringComparison.Ordinal) && mainWindowXamlText.Contains("MaxWidth=\"560\"", StringComparison.Ordinal), "UI Safety panel column should set MinWidth and MaxWidth bounds");
 context.AssertTrue(mainWindowXamlText.Contains("x:Name=\"EditorRow\"", StringComparison.Ordinal) && mainWindowXamlText.Contains("x:Name=\"ResultRow\"", StringComparison.Ordinal), "UI layout should name editor/result rows for persistence");
 context.AssertTrue(mainWindowXamlText.Contains("x:Name=\"SafetyPanelColumn\"", StringComparison.Ordinal), "UI layout should name Safety column for persistence");
