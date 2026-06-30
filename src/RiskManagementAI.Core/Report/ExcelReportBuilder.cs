@@ -37,6 +37,7 @@ public sealed class ExcelReportBuilder
         "SUMMARY",
         "LIMIT_MONITORING",
         "EXCEPTION_LIST",
+        "RISK_VISUAL",
         "SQL_USED",
         "CHANGE_LOG",
         "AI_COMMENTARY"
@@ -112,8 +113,9 @@ public sealed class ExcelReportBuilder
     {
         var formulaRawDataRows = "=COUNTA(RAW_DATA!A:A)";
         var formulaLimitSum = "=SUM(LIMIT_MONITORING!E:E)";
-        var formulaExceptionCount = "=COUNTA(EXCEPTION_LIST!A:A)";
-        var formulas = new[] { formulaRawDataRows, formulaLimitSum, formulaExceptionCount };
+        var formulas = new[] { formulaRawDataRows, formulaLimitSum };
+        var exceptionCount = CountExceptions(request.Analysis, request.ValidationFindings);
+        var riskVisual = RiskVisualAggregator.Aggregate(request.Analysis, RiskVisualAggregator.DefaultTopN);
 
         var sheets = new Dictionary<string, string>(StringComparer.Ordinal)
         {
@@ -149,12 +151,13 @@ public sealed class ExcelReportBuilder
                 Row("RemainingLimitSum", Number(request.Analysis.Kpis.RemainingLimitSum)),
                 Row("ReconciliationPassed", request.Analysis.Reconciliation.Passed ? "PASS" : "FAIL"),
                 Row("ReconciliationCheckCount", Number(request.Analysis.Reconciliation.CheckCount)),
+                Row("ExceptionCount", Number(exceptionCount)),
                 Row("RawDataReferenceCountFormula", Formula(formulaRawDataRows)),
-                Row("LimitAmountSumFormula", Formula(formulaLimitSum)),
-                Row("ExceptionListCountFormula", Formula(formulaExceptionCount))
+                Row("LimitAmountSumFormula", Formula(formulaLimitSum))
             ]),
             ["LIMIT_MONITORING"] = BuildSheetData(BuildLimitRows(request.Analysis)),
             ["EXCEPTION_LIST"] = BuildSheetData(BuildExceptionRows(request.Analysis, request.ValidationFindings)),
+            ["RISK_VISUAL"] = BuildSheetData(BuildRiskVisualRows(riskVisual)),
             ["SQL_USED"] = BuildSheetData([
                 Row("SQL", "Review-only text. 자동 실행 금지."),
                 Row("Statement", request.SqlUsed)
@@ -260,6 +263,16 @@ public sealed class ExcelReportBuilder
         }
 
         return "PASS";
+    }
+
+    public static int CountExceptions(
+        LimitAnalysisResult analysis,
+        IReadOnlyList<SafetyFinding> validationFindings)
+    {
+        ArgumentNullException.ThrowIfNull(analysis);
+        ArgumentNullException.ThrowIfNull(validationFindings);
+        return analysis.ExceptionList.Count
+            + validationFindings.Count(finding => finding.Severity is SafetySeverity.Blocker or SafetySeverity.High);
     }
 
     private IEnumerable<IReadOnlyList<ReportCell>> BuildRawDataRows(DataProfileResult profile)
@@ -371,6 +384,57 @@ public sealed class ExcelReportBuilder
         if (!emitted)
         {
             yield return Row("Info", "Info", "NO_EXCEPTION", "예외 항목이 없습니다.", string.Empty, string.Empty, string.Empty);
+        }
+    }
+
+    private static IEnumerable<IReadOnlyList<ReportCell>> BuildRiskVisualRows(RiskVisualModel visual)
+    {
+        yield return Row("Section", "Metric", "Value", "PortfolioId", "RiskFactor", "BaseDate", "Status", "CurrencyCode", "Note");
+        yield return Row("STATUS_DISTRIBUTION", "StatusCode", "Count", "Ratio", string.Empty, string.Empty, string.Empty, string.Empty, "7-state distribution");
+        foreach (var status in visual.StatusDistribution)
+        {
+            yield return Row("STATUS_DISTRIBUTION", status.StatusCode, Number(status.Count), Number(status.Ratio), string.Empty, string.Empty, string.Empty, string.Empty, string.Empty);
+        }
+
+        yield return Row("TOP_EXPOSURE", "Rank", "ExposureAmount", "AbsoluteExposureAmount", "UsageRatio", "PortfolioId", "RiskFactor", "Status", "TopN by Abs(ExposureAmount)");
+        foreach (var row in visual.TopExposures)
+        {
+            yield return Row(
+                "TOP_EXPOSURE",
+                Number(row.Rank),
+                Number(row.ExposureAmount),
+                Number(row.AbsoluteExposureAmount),
+                Number(row.UsageRatio),
+                row.PortfolioId,
+                row.RiskFactor,
+                row.StatusCode,
+                row.CurrencyCode);
+        }
+
+        yield return Row("CONCENTRATION", "Metric", "Value", string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, "Denominator=Sum(Abs(ExposureAmount))");
+        yield return Row("CONCENTRATION", "TotalAbsoluteExposure", Number(visual.Concentration.TotalAbsoluteExposure), string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty);
+        yield return Row("CONCENTRATION", "TopNAbsoluteExposure", Number(visual.Concentration.TopNAbsoluteExposure), string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty);
+        yield return Row("CONCENTRATION", "TopNShare", Number(visual.Concentration.TopNShare), string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty);
+        yield return Row("CONCENTRATION", "HHI", Number(visual.Concentration.Hhi), string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty);
+        yield return Row("CONCENTRATION", "RowCount", Number(visual.Concentration.RowCount), string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty);
+        yield return Row("CONCENTRATION", "TopNCount", Number(visual.Concentration.TopNCount), string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty);
+
+        yield return Row("HEATMAP", "Grade", "UsageRatio", "PortfolioId", "RiskFactor", "BaseDate", "Status", string.Empty, "LOW <0.8 / MID 0.8~1.0 / HIGH >1.0");
+        foreach (var row in visual.Heatmap)
+        {
+            yield return Row("HEATMAP", row.Grade, Number(row.UsageRatio), row.PortfolioId, row.RiskFactor, row.BaseDate, row.StatusCode, string.Empty, string.Empty);
+        }
+
+        yield return Row("VISUAL_FINDING", "Severity", "Code", "Message", string.Empty, string.Empty, string.Empty, string.Empty, string.Empty);
+        if (visual.Findings.Count == 0)
+        {
+            yield return Row("VISUAL_FINDING", "Info", "VISUAL_OK", "시각화 집계 주석이 없습니다.", string.Empty, string.Empty, string.Empty, string.Empty, string.Empty);
+            yield break;
+        }
+
+        foreach (var finding in visual.Findings)
+        {
+            yield return Row("VISUAL_FINDING", finding.Severity.ToString(), finding.Code, finding.Message, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty);
         }
     }
 

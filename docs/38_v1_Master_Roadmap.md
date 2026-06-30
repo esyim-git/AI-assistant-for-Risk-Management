@@ -1,6 +1,6 @@
 # 38. v1.0 Master Roadmap & Release Train (v0.6.0 → v1.0.0)
 
-> **현재 기준선 = v0.6.0 + STAB-WP-01~04 + STAB-UX-01/02 + UX-WP-01~03 + R2-WP-01~03** (main `9bc83a3`, PR #84 머지 후; R2 트랙 v0.7.0 진행 중·미릴리스, 잔여 R2-WP-04). 본 문서는 v0.6.0 다음 단계부터 v1.0 Team Pilot까지의 통합 실행 로드맵이다.
+> **현재 기준선 = v0.6.0 + STAB-WP-01~04 + STAB-UX-01/02 + UX-WP-01~03 + R2-WP-01~03** (main `685eed6`, PR #86 truth-sync 후; R2 트랙 v0.7.0 진행 중·미릴리스). **R2-WP-04는 Codex feature branch local-gate 후보**(review/merge pending). 본 문서는 v0.6.0 다음 단계부터 v1.0 Team Pilot까지의 통합 실행 로드맵이다.
 > 개념 로드맵은 `docs/10`, WP 상세는 `docs/39`, 아키텍처 결정은 `docs/40`, 게이트는 `docs/41`, Gate 증거는 `docs/44`(v0.5)·`docs/45`(v0.6).
 
 ## 0. 기준선 (재설계 금지)
@@ -23,7 +23,7 @@ Offline · 외부 NuGet 0 · 외부 API/Telemetry/AutoUpdate 0 · SQL/VBA/Golden
 | **STAB** | **v0.6.1** | **Stabilization**(빌드/버전 재현성·Release 보안·Integrity Manifest·정본 테스트 베이스라인·테스트 구조) | — | **STAB-WP-01/02/03/04 DONE**(#56/#57/#59/#61/#66) · **STAB-WP-05**(코드서명) **APPROVAL_REQUIRED** |
 | PILOT | (병행) | v0.6 오프라인 Test PC Gate B/C 증거 | Pilot Gate B/C | **BLOCKED**(실 Test PC 증거 대기) |
 | **UX** | (병행) v0.7.x | **Smart Assist / Inline Assist** (입력 중 자동완성·snippet·추천 문구·실시간 안전 힌트, **정적·NoModel**) + Resizable Layout(영속화 포함) | Gate A(보안) | **STAB-UX-01/02·UX-WP-01~03 DONE**(#68·#70·#72·#73·#76, local-gate) · **UX/STAB-UX 트랙 완료**(실 LLM 랭킹=R4 미구현; 실 Test PC Gate B/C BLOCKED) |
-| R2 | v0.7.0 | Risk Analytics & Visualization (Semantic Hardening·Streaming·전일대비·차트) | Data Spec Gate | **R2-WP-01·R2-WP-02·R2-WP-03 DONE**(#79·#81·#84, local-gate; Semantic Hardening + Streaming/Welford + Prior-Day) · R2-WP-04 설계 완료(ADR-011 · WP+프롬프트 READY) · **R2-WP-04 NEXT**(R2 트랙 마지막) |
+| R2 | v0.7.0 | Risk Analytics & Visualization (Semantic Hardening·Streaming·전일대비·차트) | Data Spec Gate | **R2-WP-01·R2-WP-02·R2-WP-03 DONE**(#79·#81·#84, local-gate; Semantic Hardening + Streaming/Welford + Prior-Day) · **R2-WP-04 Codex local-gate candidate**(`feature/r2-wp-04-visualization-report`, `Total=713 PASS=713 FAIL=0`; Claude review/merge pending) |
 | KB | v0.8.0 | Public Knowledge Pack (조항 원문 Chunk, keyword only) | RAG Approval Gate | 설계(원문 적재 STOP) |
 | NCR | v0.8.x | Approved NCR Rule Pack 계약 | NCR Approval Gate | 설계(계수 미포함) |
 | R4 | v0.9.0 | Local LLM **Adapter (설계 전용)** | Model Approval Gate | 설계만 + STOP |
@@ -49,7 +49,7 @@ Offline · 외부 NuGet 0 · 외부 API/Telemetry/AutoUpdate 0 · SQL/VBA/Golden
 | Risk Semantic Hardening(중복키/통화·단위 매핑/RECON_UNIT) | R2 | **VERIFIED**(local-gate, #79; Core 의미 경화 한정·실 Test PC Gate B/C BLOCKED) |
 | Streaming/대용량 입력 · 행/바이트 상한 · Welford 누산 + 정확 Outlier parity · 중복행 해시 | R2 | **VERIFIED**(local-gate, #81; `Total=680 PASS=680 FAIL=0`, 실 Test PC Gate B/C BLOCKED) |
 | 전일 대비(Prior-Day: Current/Prev/Δ·movers·4구획 계약) | R2 | **VERIFIED**(local-gate, #84; `Total=698 PASS=698 FAIL=0`, 실 Test PC Gate B/C BLOCKED) |
-| 차트/Heatmap/TopN/집중도 · Excel Report 강화 · 정확 Exception Count | R2 | NOT_IMPLEMENTED (R2-WP-04) |
+| 차트/Heatmap/TopN/집중도 · Excel Report 강화 · 정확 Exception Count | R2 | **PARTIAL**(R2-WP-04 Codex local-gate candidate; review/merge pending, 실 Test PC Gate B/C BLOCKED) |
 | 공개 규정 **원문 Clause/Chunk 검색** | KB | NOT_IMPLEMENTED (현재 Catalog/Metadata까지) |
 | 승인 NCR Rule Pack · 내부 Knowledge Pack | NCR/KB | APPROVAL_REQUIRED (Prod 적재, repo 미포함) |
 | Local LLM Adapter 계약/Manifest/ProcessBoundary | R4 | 설계만, Runtime APPROVAL_REQUIRED |
@@ -82,7 +82,7 @@ R1(DONE) ─► R3(DONE) ─► STAB(v0.6.1) ─► R2(v0.7) ─► KB(v0.8) ─
 | C-13 | Risk Semantic Hardening | R2-WP-01 | 중복키 차단(DUPLICATE_LIMIT)·통화/단위 ColumnMapping·RECON_UNIT 활성·BASE_DT 검증/정규화·Join Audit | Data | **VERIFIED**(local-gate, #79 `59a752f`; `Total=671 PASS=671 FAIL=0`, Claude review APPROVE; Dashboard/Report 일원화 포함; 실 Test PC Gate B/C BLOCKED) |
 | C-14 | Streaming/Perf (대용량 streaming·행/바이트 상한·Welford 온라인 누산·중복 해시·결정적 프로파일) | R2-WP-02 | streaming==기존 결정성·상한 `InvalidDataException`·Welford 누산·legacy-compatible OutlierCount·`DuplicateRowCount` 불변·(선택)벤치 | Data | **VERIFIED**(local-gate, #81 `5280d54`; `Total=680 PASS=680 FAIL=0`, Claude review APPROVE; streaming==in-memory 전필드 동일·OutlierCount 2-pass 정확·CP949 streaming 보존·상한 활성; 실 Test PC Gate B/C BLOCKED) |
 | C-15 | 전일 대비(Prior-Day Analytics: Current/Prev/Δ·TopN movers·BASE_DT prior-day 결합·4구획 출력계약) | R2-WP-03 | prior-day comparison/New·Resolved/TopN ordering/state-transition 비숫자 mover/BASE_DT format mismatch/same-day guard/duplicate-key Hidden-Risk/4구획 결정성·R1 7상태 보존 (`LimitReconciliationTests` +18) | Data | **VERIFIED**(local-gate, #84 `9bc83a3`; `Total=698 PASS=698 FAIL=0`, Claude review APPROVE; `LimitMonitor` 2회 diff·새 엔진 0·`PRIOR_DAY_DUPLICATE_KEY` 보정 포함; 실 Test PC Gate B/C BLOCKED) |
-| C-16 | Visualization/Report(인박스 차트·Heatmap·TopN·집중도·정확 Exception Count) | R2-WP-04 | 정확 Exception Count(Number SoT)·신규 RISK_VISUAL 시트 배선·TopN/집중도 결정성·Heatmap 등급·NuGet 0 | Data | NOT_IMPLEMENTED (TODO) |
+| C-16 | Visualization/Report(인박스 차트·Heatmap·TopN·집중도·정확 Exception Count) | R2-WP-04 | 정확 Exception Count(Number SoT)·신규 RISK_VISUAL 시트 배선·TopN/집중도 결정성·Heatmap 등급·NuGet 0 (`ReportTests` +15) | Data | **PARTIAL**(Codex local-gate candidate: `dotnet build` 0/0, SmokeTest `Total=713 PASS=713 FAIL=0`, Unclassified=0, PackageReference 0; Claude review/merge pending; 실 Test PC Gate B/C BLOCKED) |
 | C-17 | Knowledge Pack Contract/Ingestion | KB-WP-01~02 | Manifest·Chunk·인용검증 | RAG | 설계 |
 | C-18 | Approved NCR Rule Pack | NCR-WP-01 | Pack 없으면 계산 차단·APPROVAL_REQUIRED | NCR | 설계 |
 | C-19 | Local LLM Adapter 계약 | LLM-WP-01 | NoModel 유지·ProcessBoundary | Model | 설계만 |
