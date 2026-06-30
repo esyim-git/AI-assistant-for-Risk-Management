@@ -430,7 +430,7 @@
   6. "prior-day 4-section contract deterministic" — 동일 입력 2회 → DataFact/Methodology/UserValidation/HiddenRisk 동일(서명 비교), DraftNotice("검토용 초안") 존재, `Current`/`Prior` 가 기존 **7상태** `LimitAnalysisResult` 계약 보존(NormalCount·DuplicateLimitCount 등) 확인. **한도만 변경(노출 불변) 시 `LimitAmountDelta != 0`·`ExposureAmountDelta == 0` 회귀**.
   - **기존 SmokeTest Total 보존 + 신규 추가**(삭제·약화 0). Total 증가분은 R1 진행 원장/§5에 기록.
 - **완료 조건**: 로컬 `dotnet build` 0 error · `dotnet run --project tests/RiskManagementAI.SmokeTests` → `Total=N PASS / 0 FAIL`(N = 기존+신규, Unclassified=0) · 외부 NuGet 0 유지 · 결정성(동일 입력 동일 출력) · R1 **7상태**/RECON_*/LimitAnalysisResult/Dashboard=Report 계약 비파괴 · Claude 코드리뷰(Diff·보안·문서정합) 승인. 실 Test PC Gate B/C 증거 없으면 PASS 표기 금지(BLOCKED 유지).
-- **Codex local-gate 결과(2026-06-30, branch `feature/r2-wp-03-prior-day-analytics`)**: `dotnet build RiskManagementAI.sln -c Release` → 0 warnings / 0 errors. `dotnet run --project tests\RiskManagementAI.SmokeTests -c Release` → `Total=697 PASS=697 FAIL=0`, Unclassified=0. 신규 단언 +17: prior-day Current/Prev/Δ, New/Resolved, TopN ordering, StateTransition 비숫자 mover(NoLimit + DuplicateLimit), BASE_DT no-row Hidden-Risk + same-day normalization guard, 4-section deterministic contract + limit-only delta. 외부 NuGet 0 / 실데이터 0 / 차트·LLM·Vector 0. **남은 게이트**: Claude review/merge pending, 실 Test PC Gate B/C BLOCKED.
+- **Codex local-gate 결과(2026-06-30, #84 merged `9bc83a3`)**: `dotnet build RiskManagementAI.sln -c Release` → 0 warnings / 0 errors. `dotnet run --project tests\RiskManagementAI.SmokeTests -c Release` → `Total=698 PASS=698 FAIL=0`, Unclassified=0. 신규 단언 +18: prior-day Current/Prev/Δ, New/Resolved, TopN ordering, StateTransition 비숫자 mover(NoLimit + DuplicateLimit), BASE_DT no-row Hidden-Risk + same-day normalization guard, 4-section deterministic contract + limit-only delta, duplicate-key Hidden-Risk(`PRIOR_DAY_DUPLICATE_KEY`). 외부 NuGet 0 / 실데이터 0 / 차트·LLM·Vector 0. **남은 게이트**: 실 Test PC Gate B/C BLOCKED.
 - **Branch**: `feature/r2-wp-03-prior-day-analytics`
 - **Commit**: `feat: prior-day analytics (current/prev/delta, TopN movers, 4-section contract) (R2-WP-03)`
 - **Claude Review Checklist**:
@@ -460,7 +460,7 @@ Excel Report와 Risk Dashboard 화면에 **인박스(NuGet 0) 시각화**를 더
 ### 2. 선행조건 (Preconditions)
 - R1 `LimitAnalysisResult`(**7상태** NORMAL/WARNING/BREACH/NO_LIMIT/INVALID_LIMIT/MAPPING_ERROR/**DUPLICATE_LIMIT**, R2-WP-01 #79)·`LimitAnalysisKpis`(`DuplicateLimitCount` 포함)·`ExceptionList`·`ReconciliationSummary` 계약 그대로 사용(변경 금지).
 - `ExcelReportBuilder`(in-box ZipFile + templates/report XML 치환, OpenXML SDK/Interop 미도입) 경로 유지.
-- SmokeTest 정본 Total 보존(현 기준 680; R2-WP-02 #81 머지 후, `5280d54` 직접 local-gate 재확인). 도메인 분류기 Unclassified=0 유지.
+- SmokeTest 정본 Total 보존(현 기준 698; R2-WP-03 #84 머지 후, `9bc83a3` 직접 local-gate 재확인). 도메인 분류기 Unclassified=0 유지.
 - 쓰기 경로 `reports/` 한정(ResolveReportsDirectory 강제). 별도 이미지 파일 산출 금지.
 
 ### 3. 작업범위 (Scope)
@@ -530,7 +530,7 @@ Excel Report와 Risk Dashboard 화면에 **인박스(NuGet 0) 시각화**를 더
 - 완료 시 `Total=N PASS=N FAIL=0`, 모든 신규 단언 분류됨(Unclassified=0).
 
 ### 11. 완료조건 (Definition of Done)
-- 로컬 `dotnet build RiskManagementAI.sln -c Release` 0 error / 0 warning, `dotnet run --project tests/RiskManagementAI.SmokeTests` → `Total=N PASS=N FAIL=0`(기존 정본 680 + R2-WP-03/R2-WP-04 신규, 도메인 Unclassified=0).
+- 로컬 `dotnet build RiskManagementAI.sln -c Release` 0 error / 0 warning, `dotnet run --project tests/RiskManagementAI.SmokeTests` → `Total=N PASS=N FAIL=0`(기존 정본 698 + R2-WP-04 신규, 도메인 Unclassified=0).
 - `git grep PackageReference` → 0(Core/App). 외부 charting 의존 0.
 - 생성 xlsx가 로컬 Excel 2021에서 손상 경고 없이 열림(**BLOCKED 증거 — Test PC**). SDK 없는 Linux에서는 코드 정합·게이트만 사전검증.
 - 정확 Exception Count·신규 시각화 시트·WPF 차트 렌더 동작. 기존 R1 계약(**7상태**·RECON_*·Dashboard=Report 일원화) 회귀 0.
