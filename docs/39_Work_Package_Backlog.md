@@ -329,7 +329,7 @@
 > - **R2-WP-01**: CurrencyCode/UnitCode는 Optional → `ColumnMapping.Physical()`(미매핑 시 `InvalidDataException` throw, `ColumnMapping.cs:44`) 대신 **`TryPhysical`/`ContainsKey` 가드** 후 사용(부재 시 throw 없이 비활성). 6열 config `UsedFallback=false` 유지.
 > - **R2-WP-02**: 기존 `OutlierCount`는 **2-pass**(`DataProfiler.cs:188-208`) → streaming은 2차 pass/상한-bounded 보존으로 **정확 재현**(single-pass 동일 주장 금지). CP949는 .NET Encoding이 아니라 커스텀 `Cp949Decoder.Decode(byte[])` → streaming도 **바이트 디코더 재사용**(CP949 streaming 명시 테스트).
 > - **R2-WP-03**: `DuplicateLimit`(WP-01 신규)을 **비숫자 상태 집합 포함**. BASE_DT 형식 차이만으로 **비교 0건 강제 금지**(빈/실패 선택 기준). `PriorDayComparisonRow`에 **Current/Prior/Δ `LimitAmount` 필드 포함**(Exposure·Limit·UsageRatio·RemainingLimit 전부).
-> - **R2-WP-04**: report/aggregator는 **`DuplicateLimit` 상태 존재 시 카운트 포함**. 집중도/HHI는 **`Abs(ExposureAmount)` 기준**(usage ratio가 Abs 사용, `LimitMonitor.cs:576`) + **분모 0 graceful** 회귀.
+> - **R2-WP-04**: report/aggregator는 **`DuplicateLimit` 상태 존재 시 카운트 포함**. 집중도/HHI는 **`Abs(ExposureAmount)` 기준**(usage ratio가 `Math.Abs(exposureAmount) / limitAmount` 계산을 사용; 현재 `LimitMonitor.cs` ~672·857, 심볼로 탐색) + **분모 0 graceful** 회귀.
 
 ## R2-WP-02. Streaming / Performance (RR-08) — 상태: DONE (#81 merged `5280d54`, VERIFIED — local-gate; Claude 4축 리뷰 APPROVE)
 
