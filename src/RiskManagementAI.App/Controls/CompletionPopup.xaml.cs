@@ -19,7 +19,7 @@ public partial class CompletionPopup : UserControl
 
     public CompletionItem? SelectedCompletion => CompletionList.SelectedItem as CompletionItem;
 
-    public void Show(TextBox placementTarget, IReadOnlyList<CompletionItem> items)
+    public void Show(TextBox placementTarget, IReadOnlyList<CompletionItem> items, bool grabFocus = true)
     {
         ArgumentNullException.ThrowIfNull(placementTarget);
         RootPopup.PlacementTarget = placementTarget;
@@ -27,7 +27,7 @@ public partial class CompletionPopup : UserControl
         CompletionList.ItemsSource = items;
         CompletionList.SelectedIndex = items.Count > 0 ? 0 : -1;
         RootPopup.IsOpen = items.Count > 0;
-        if (RootPopup.IsOpen)
+        if (RootPopup.IsOpen && grabFocus)
         {
             CompletionList.Focus();
         }
@@ -46,6 +46,20 @@ public partial class CompletionPopup : UserControl
         }
 
         ItemAccepted?.Invoke(this, SelectedCompletion);
+        return true;
+    }
+
+    public bool MoveSelection(int delta)
+    {
+        if (!RootPopup.IsOpen || CompletionList.Items.Count == 0)
+        {
+            return false;
+        }
+
+        var currentIndex = CompletionList.SelectedIndex < 0 ? 0 : CompletionList.SelectedIndex;
+        var nextIndex = Math.Clamp(currentIndex + delta, 0, CompletionList.Items.Count - 1);
+        CompletionList.SelectedIndex = nextIndex;
+        CompletionList.ScrollIntoView(CompletionList.Items[nextIndex]);
         return true;
     }
 
