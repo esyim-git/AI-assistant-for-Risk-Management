@@ -36,15 +36,25 @@ public static class ClausePackLoader
 
     public static ClausePackLoadResult Load(string relativeClausePackPath)
     {
-        if (!IsSafeRelativeClausePackPath(relativeClausePackPath))
+        string? resolvedPath;
+        try
         {
-            return CreateFallback(new SafetyFinding(
-                "KB_CLAUSE_PACK_PATH_REJECTED",
-                SafetySeverity.High,
-                $"Clause pack path '{relativeClausePackPath}' is not allowed. Only kb/**/*.csv relative paths are allowed."));
+            if (!IsSafeRelativeClausePackPath(relativeClausePackPath))
+            {
+                return CreateFallback(CreatePathRejectedFinding(
+                    relativeClausePackPath,
+                    "Only kb/**/*.csv relative paths are allowed."));
+            }
+
+            resolvedPath = ResolveClausePackPath(relativeClausePackPath);
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException or NotSupportedException or PathTooLongException or UnauthorizedAccessException)
+        {
+            return CreateFallback(CreatePathRejectedFinding(
+                relativeClausePackPath,
+                $"Path could not be normalized safely: {ex.Message}"));
         }
 
-        var resolvedPath = ResolveClausePackPath(relativeClausePackPath);
         if (resolvedPath is null)
         {
             return CreateFallback(new SafetyFinding(
@@ -68,11 +78,13 @@ public static class ClausePackLoader
             }
 
             var findings = new List<SafetyFinding>();
+            var hasRejectedRows = false;
             var clausesByNaturalKey = new SortedDictionary<string, RegulationClause>(StringComparer.Ordinal);
             foreach (var row in table.Rows)
             {
                 if (row.RawFieldCount > table.Columns.Count)
                 {
+                    hasRejectedRows = true;
                     findings.Add(new SafetyFinding(
                         "KB_CLAUSE_PACK_ROW_SKIPPED",
                         SafetySeverity.Medium,
@@ -83,6 +95,7 @@ public static class ClausePackLoader
                 var missingValueColumn = RequiredValueColumns.FirstOrDefault(column => string.IsNullOrWhiteSpace(row.GetValue(column)));
                 if (missingValueColumn is not null)
                 {
+                    hasRejectedRows = true;
                     findings.Add(new SafetyFinding(
                         "KB_CLAUSE_PACK_ROW_SKIPPED",
                         SafetySeverity.Medium,
@@ -96,6 +109,7 @@ public static class ClausePackLoader
                 {
                     if (!string.Equals(existing.SourceTextHash, clause.SourceTextHash, StringComparison.Ordinal))
                     {
+                        hasRejectedRows = true;
                         findings.Add(new SafetyFinding(
                             "KB_CLAUSE_PACK_DUPLICATE_NATURAL_KEY",
                             SafetySeverity.Medium,
@@ -106,6 +120,11 @@ public static class ClausePackLoader
                 }
 
                 clausesByNaturalKey[naturalKey] = clause;
+            }
+
+            if (hasRejectedRows)
+            {
+                return CreateFallback(findings);
             }
 
             var clauses = clausesByNaturalKey.Values
@@ -165,9 +184,22 @@ public static class ClausePackLoader
         return builder.ToString();
     }
 
+    private static SafetyFinding CreatePathRejectedFinding(string relativeClausePackPath, string reason)
+    {
+        return new SafetyFinding(
+            "KB_CLAUSE_PACK_PATH_REJECTED",
+            SafetySeverity.High,
+            $"Clause pack path '{relativeClausePackPath}' is not allowed. {reason}");
+    }
+
     private static ClausePackLoadResult CreateFallback(SafetyFinding finding)
     {
-        return new ClausePackLoadResult([], UsedFallback: true, [finding]);
+        return CreateFallback([finding]);
+    }
+
+    private static ClausePackLoadResult CreateFallback(IReadOnlyList<SafetyFinding> findings)
+    {
+        return new ClausePackLoadResult([], UsedFallback: true, findings);
     }
 
     private static bool IsSafeRelativeClausePackPath(string relativeClausePackPath)

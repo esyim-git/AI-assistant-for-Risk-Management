@@ -146,6 +146,8 @@ var rootedClausePackPath = ClausePackLoader.Load(Path.GetFullPath(ClausePackLoad
 context.AssertTrue(rootedClausePackPath.UsedFallback && rootedClausePackPath.Findings.Any(finding => finding.Code == "KB_CLAUSE_PACK_PATH_REJECTED"), "KbSearch clause pack loader should reject rooted paths with diagnostics");
 var nonCsvClausePackPath = ClausePackLoader.Load("kb/clause_pack_sample/not_csv.txt");
 context.AssertTrue(nonCsvClausePackPath.UsedFallback && nonCsvClausePackPath.Findings.Any(finding => finding.Code == "KB_CLAUSE_PACK_PATH_REJECTED"), "KbSearch clause pack loader should reject non-CSV packs with diagnostics");
+var malformedClausePackPath = ClausePackLoader.Load("kb/clause_pack_sample/bad\0name.csv");
+context.AssertTrue(malformedClausePackPath.UsedFallback && malformedClausePackPath.Findings.Any(finding => finding.Code == "KB_CLAUSE_PACK_PATH_REJECTED"), "KbSearch clause pack loader should safe-fallback on malformed paths with diagnostics");
 var clausePackSampleText = File.ReadAllText(ClausePackLoader.DefaultSamplePath);
 foreach (var token in PrivateGuardStrings("SuspiciousNameTokens").Concat(PrivateGuardStrings("SuspiciousContentTokens")))
 {
@@ -161,7 +163,7 @@ try
         "clause_ref,clause_body,source_id,effective_date,repeal_date,pack_version\nArticle-X,alpha synthetic body,FIA_REG,2026-01-01,,pack-smoke\nArticle-X,beta synthetic body,FIA_REG,2026-01-01,,pack-smoke\n",
         Encoding.UTF8);
     var duplicateClauseLoad = ClausePackLoader.Load(duplicateClausePackPath);
-    context.AssertTrue(duplicateClauseLoad.Clauses.Count == 1 && duplicateClauseLoad.Findings.Any(finding => finding.Code == "KB_CLAUSE_PACK_DUPLICATE_NATURAL_KEY"), "KbSearch clause pack loader should reject conflicting duplicate natural keys with diagnostics");
+    context.AssertTrue(duplicateClauseLoad.UsedFallback && duplicateClauseLoad.Clauses.Count == 0 && duplicateClauseLoad.Findings.Any(finding => finding.Code == "KB_CLAUSE_PACK_DUPLICATE_NATURAL_KEY"), "KbSearch clause pack loader should safe-fallback on conflicting duplicate natural keys with diagnostics");
 
     var identicalDuplicateClausePackPath = Path.Combine("kb", "clause_pack_sample", $"smoke_identical_duplicate_{Guid.NewGuid():N}.csv");
     tempClausePackPaths.Add(identicalDuplicateClausePackPath);
@@ -188,7 +190,7 @@ try
         "clause_ref,clause_body,source_id,effective_date,repeal_date,pack_version\n,alpha synthetic body,FIA_REG,2026-01-01,,pack-smoke\nArticle-Z,beta synthetic body,FIA_REG,2026-01-01,,pack-smoke\n",
         Encoding.UTF8);
     var skippedRowLoad = ClausePackLoader.Load(skippedRowClausePackPath);
-    context.AssertTrue(skippedRowLoad.Clauses.Count == 1 && !skippedRowLoad.UsedFallback && skippedRowLoad.Findings.Any(finding => finding.Code == "KB_CLAUSE_PACK_ROW_SKIPPED"), "KbSearch clause pack loader should skip invalid rows with diagnostics while loading valid rows");
+    context.AssertTrue(skippedRowLoad.UsedFallback && skippedRowLoad.Clauses.Count == 0 && skippedRowLoad.Findings.Any(finding => finding.Code == "KB_CLAUSE_PACK_ROW_SKIPPED"), "KbSearch clause pack loader should safe-fallback when invalid rows are rejected");
 
     var tooManyFieldsClausePackPath = Path.Combine("kb", "clause_pack_sample", $"smoke_too_many_fields_{Guid.NewGuid():N}.csv");
     tempClausePackPaths.Add(tooManyFieldsClausePackPath);
@@ -197,7 +199,7 @@ try
         "clause_ref,clause_body,source_id,effective_date,repeal_date,pack_version\nArticle-Too-Many,alpha synthetic body,FIA_REG,2026-01-01,,pack-smoke,extra-field\nArticle-Valid,beta synthetic body,FIA_REG,2026-01-01,,pack-smoke\n",
         Encoding.UTF8);
     var tooManyFieldsLoad = ClausePackLoader.Load(tooManyFieldsClausePackPath);
-    context.AssertTrue(tooManyFieldsLoad.Clauses.Count == 1 && !tooManyFieldsLoad.UsedFallback && tooManyFieldsLoad.Findings.Any(finding => finding.Code == "KB_CLAUSE_PACK_ROW_SKIPPED"), "KbSearch clause pack loader should skip rows with too many fields while loading valid rows");
+    context.AssertTrue(tooManyFieldsLoad.UsedFallback && tooManyFieldsLoad.Clauses.Count == 0 && tooManyFieldsLoad.Findings.Any(finding => finding.Code == "KB_CLAUSE_PACK_ROW_SKIPPED"), "KbSearch clause pack loader should safe-fallback when rows have too many fields");
 }
 finally
 {
