@@ -4,7 +4,7 @@
 v0.7.0 = **v0.6.0(R1 데이터 파운데이션 + R3 RAG/NCR 구조 + STAB v0.6.1 + UX Assist)** 위에 **R2 Risk Analytics & Visualization**(R2-WP-01~04)을 얹은 릴리스. 본 문서는 v0.7.0 **릴리스 노트 + Codex/Windows 패키징 런북 + Gate B 체크리스트 + GitHub Release 핸드오프**다. `docs/43`(v0.6.0)·`docs/42`(v0.5.0)·`docs/34`(리허설)·`docs/24`(패키징)·`docs/28`(게이트 B/C)를 v0.7.0 단계로 갱신.
 
 > 빌드·ZIP·태그는 **Windows + .NET 8 SDK + PowerShell**(Codex 로컬). 웹/Linux 세션 및 git proxy는 **태그 push가 403** → **태그·Release 발행은 로컬에서**.
-> **기준선**: v0.6.0 태그 = `3dfa80b`, 현재 main = `35e6f01`(R2-WP-04 #87 머지 후, R2 트랙 완결). **전제**: ① `VERSION` `0.6.0→0.7.0` 버전 범프 + 락스텝(`IntegrityVerifier.ExpectedVersion`·`PackagingTests` 동기화, **REL-v0.7.0 WP**) PR 머지, ② 그 시점 main에서 컷. **`Total=714 PASS=714 FAIL=0`**(버전 범프는 단언 가감 없음 — 합계 불변, drift 가드 `PackagingTests`로 보존).
+> **상태: v0.7.0 정식 릴리스 발행 완료(2026-06-30)**. 태그 `v0.7.0` = main `30c1cfb`(REL-v0.7.0 #90 머지 — 버전 범프 락스텝 `VERSION`·`IntegrityVerifier.ExpectedVersion`·`PackagingTests`). **`Total=714 PASS=714 FAIL=0`**(버전 범프 단언 가감 0 — 합계 불변, drift 가드 `PackagingTests:331` 통과). 직전 v0.6.0 태그 `3dfa80b`.
 > **코드 서명**: v0.7.0은 **미서명 + Integrity Manifest/Fail-Closed 앵커**로 출하한다. Authenticode 코드 서명은 **STAB-WP-05 APPROVAL_REQUIRED**(인증서·외부 신뢰 루트 = STOP, `docs/40` ADR-012 / `docs/41 §6`) — v0.7.0 릴리스의 전제 아님(후속).
 
 ---
@@ -70,9 +70,10 @@ artifacts/release/ReleaseNote-v0.7.0.md / DependencyList-v0.7.0.csv
 
 ---
 
-## 4. GitHub Release 핸드오프 (로컬)
+## 4. GitHub Release 핸드오프 (로컬) — **발행 완료**
+> **발행 완료(2026-06-30)**: 태그 `v0.7.0` @ `30c1cfb` push · Release 발행(draft=false, prerelease=false) · 첨부 3개(portable ZIP·`.sha256`·ReleaseNote-v0.7.0.md). **최종 ZIP SHA256 = `42C835983127B127438AB97747B99FD0C3FA2E4363D4CB85641E45FE62E09DD5`** · ReleaseNote Build Commit `30c1cfb` · 본문에 실제 SHA256 + 미서명 고지 포함 확인. (참고: ZIP 해시는 `AssemblyInformationalVersion`에 커밋 SHA가 박혀 커밋마다 달라지므로, **태그 대상 `30c1cfb`에서 빌드한 ZIP의 실제 해시가 정본**이다.)
 ```powershell
-git tag v0.7.0
+git tag v0.7.0          # main 30c1cfb
 git push origin v0.7.0
 ```
 - 첨부 = portable ZIP + .sha256 + ReleaseNote-v0.7.0.md (소스/모델 첨부 금지).
