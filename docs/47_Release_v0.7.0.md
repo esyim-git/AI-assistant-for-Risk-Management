@@ -73,7 +73,7 @@ artifacts/release/ReleaseNote-v0.7.0.md / DependencyList-v0.7.0.csv
 ## 4. GitHub Release 핸드오프 (로컬) — **발행 완료**
 > **발행 완료(2026-06-30)**: 태그 `v0.7.0` @ `30c1cfb` push · Release 발행(draft=false, prerelease=false) · 첨부 3개(portable ZIP·`.sha256`·ReleaseNote-v0.7.0.md). **최종 ZIP SHA256 = `42C835983127B127438AB97747B99FD0C3FA2E4363D4CB85641E45FE62E09DD5`** · ReleaseNote Build Commit `30c1cfb` · 본문에 실제 SHA256 + 미서명 고지 포함 확인. (참고: ZIP 해시는 `AssemblyInformationalVersion`에 커밋 SHA가 박혀 커밋마다 달라지므로, **태그 대상 `30c1cfb`에서 빌드한 ZIP의 실제 해시가 정본**이다.)
 ```powershell
-git tag v0.7.0          # main 30c1cfb
+git tag v0.7.0 30c1cfb
 git push origin v0.7.0
 ```
 - 첨부 = portable ZIP + .sha256 + ReleaseNote-v0.7.0.md (소스/모델 첨부 금지).

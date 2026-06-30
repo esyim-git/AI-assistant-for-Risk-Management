@@ -14,7 +14,7 @@ Local 실행 PC         = Test (Release ZIP 검증·더미데이터·Gate B)
 
 ---
 
-## 1. 현재 구현 상태 (v0.6.0 정본)
+## 1. 현재 구현 상태 (v0.7.0 정본)
 
 상태 표기: **VERIFIED**(코드+CI 검증) · **PARTIAL** · **SCAFFOLD_ONLY**(구조만) · **PLACEHOLDER** · **BLOCKED**(실 Test PC 증거 대기) · **NOT_IMPLEMENTED** · **APPROVAL_REQUIRED**.
 
@@ -56,8 +56,8 @@ Offline First · 외부 NuGet PackageReference **0** · 외부 API/Telemetry/Aut
 ## 3. 배포 모델
 
 ```text
-artifacts/release/RiskManagementAI-v0.6.0-win-x64-portable.zip(.sha256)
-artifacts/release/ReleaseNote-v0.6.0.md / DependencyList-v0.6.0.csv
+artifacts/release/RiskManagementAI-v0.7.0-win-x64-portable.zip(.sha256)
+artifacts/release/ReleaseNote-v0.7.0.md / DependencyList-v0.7.0.csv
 ```
 운영환경 PC에는 Windows 11 + Excel 2021 + 승인된 Release ZIP만 필요합니다(.NET SDK·Python·Git·NuGet·인터넷 불필요).
 
@@ -73,14 +73,14 @@ cd AI-assistant-for-Risk-Management
 dotnet build RiskManagementAI.sln -c Release
 dotnet run --project tests/RiskManagementAI.SmokeTests   # ALL PASS 확인
 
-Get-Content VERSION                                # -> 0.6.0
+Get-Content VERSION                                # -> 0.7.0
 ./build/00_check-prereqs.ps1
-./build/01_publish-win-x64.ps1  -Version 0.6.0
-./build/02_package-release.ps1  -Version 0.6.0
-./build/03_verify-package.ps1   -Version 0.6.0     # 해시·금지파일·원문 미포함 스캔
+./build/01_publish-win-x64.ps1  -Version 0.7.0
+./build/02_package-release.ps1  -Version 0.7.0
+./build/03_verify-package.ps1   -Version 0.7.0     # 해시·금지파일·원문 미포함 스캔
 ```
-> 태그·GitHub Release 발행은 로컬에서(`git tag v0.6.0`). 웹/Linux 세션 git proxy는 태그 push 403.
-> VERSION 단일 원천화 + Release 재현성은 STAB-WP-01(완료, `docs/39`)에서 처리되어 `build/01~03`는 `VERSION` 파일(`0.6.0`)을 단일 원천으로 사용합니다.
+> 태그·GitHub Release 발행은 로컬에서(`git tag v0.7.0 30c1cfb`). 웹/Linux 세션 git proxy는 태그 push 403.
+> VERSION 단일 원천화 + Release 재현성은 STAB-WP-01(완료, `docs/39`)에서 처리되어 `build/01~03`는 `VERSION` 파일(`0.7.0`)을 단일 원천으로 사용합니다.
 
 ---
 
@@ -93,7 +93,7 @@ Get-Content VERSION                                # -> 0.6.0
 
 ---
 
-## 6. Claude / Codex 역할 (v0.6.0 이후)
+## 6. Claude / Codex 역할 (v0.7.0 이후)
 
 ```text
 Claude Code  = Architecture Lead / Program Manager / Security & Release Reviewer
