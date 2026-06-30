@@ -88,6 +88,51 @@ foreach (var functionName in loadedRuleSet.ExcelBlockedFunctions)
 var allowedExcelFindings = excelChecker.CheckFormula("=XLOOKUP(A1,B:B,C:C)").ToList();
 context.AssertTrue(allowedExcelFindings.All(f => f.Code != "EXCEL_365_FUNCTION"), "Excel 2021 preferred function XLOOKUP should be allowed");
 
+var excelFunctionHelper = new ExcelFunctionHelper(loadedRuleSet);
+var xlookupInfo = excelFunctionHelper.Lookup("=xlookup(");
+context.AssertTrue(
+    xlookupInfo is not null
+    && xlookupInfo.Name == "XLOOKUP"
+    && !xlookupInfo.Is365Only
+    && xlookupInfo.Recommended
+    && !string.IsNullOrWhiteSpace(xlookupInfo.Description)
+    && !string.IsNullOrWhiteSpace(xlookupInfo.Args)
+    && !string.IsNullOrWhiteSpace(xlookupInfo.RiskMgmtExample)
+    && !string.IsNullOrWhiteSpace(xlookupInfo.FormulaExample)
+    && !string.IsNullOrWhiteSpace(xlookupInfo.Excel2021Alternative),
+    "Excel 2021 Function Helper should return complete metadata for XLOOKUP");
+
+var lookupSearch = excelFunctionHelper.Search("lookup").ToList();
+context.AssertTrue(
+    lookupSearch.Count >= 2
+    && lookupSearch[0].Name == "XLOOKUP"
+    && lookupSearch.SequenceEqual(excelFunctionHelper.Search("lookup")),
+    "Excel 2021 Function Helper search should be deterministic and prioritize name matches");
+
+var textSplitInfo = excelFunctionHelper.Lookup("TEXTSPLIT");
+context.AssertTrue(
+    textSplitInfo is not null
+    && textSplitInfo.Is365Only
+    && !textSplitInfo.Recommended
+    && textSplitInfo.Excel2021Alternative.Contains("XLOOKUP", StringComparison.OrdinalIgnoreCase)
+    && textSplitInfo.Excel2021Alternative.Contains("HelperColumn", StringComparison.OrdinalIgnoreCase),
+    "Excel 2021 Function Helper should derive 365-only status and alternatives from active ruleset");
+context.AssertTrue(
+    textSplitInfo is not null
+    && excelChecker.CheckFormula(textSplitInfo.FormulaExample).Any(f => f.Code == "EXCEL_365_FUNCTION"),
+    "Excel 2021 Function Helper 365-only formula examples should remain blocked by Excel2021FunctionChecker");
+
+var malformedExcelFunctionHelper = new ExcelFunctionHelper(loadedRuleSet, "{ broken json");
+context.AssertTrue(
+    malformedExcelFunctionHelper.Warnings.Count == 1
+    && malformedExcelFunctionHelper.Lookup("XLOOKUP") is null
+    && malformedExcelFunctionHelper.Search("XLOOKUP").Count == 0,
+    "Excel 2021 Function Helper should safe-fallback to empty helper on embedded resource parse failure");
+context.AssertTrue(
+    xlookupInfo is not null
+    && excelFunctionHelper.BuildFormulaInsertion(xlookupInfo) == xlookupInfo.FormulaExample,
+    "Excel 2021 Function Helper insertion text should be available only through explicit caller invocation");
+
 var customRulesDirectory = Path.Combine("artifacts", "smoke-rules-b01");
 if (Directory.Exists(customRulesDirectory))
 {

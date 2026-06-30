@@ -30,6 +30,7 @@ public partial class MainWindow : Window
     private readonly SqlSafetyChecker _sqlChecker;
     private readonly VbaSafetyChecker _vbaChecker;
     private readonly Excel2021FunctionChecker _excelChecker;
+    private readonly ExcelFunctionHelper _excelFunctionHelper;
     private readonly ExcelReportBuilder _excelReportBuilder;
     private readonly DataProfiler _dataProfiler = new();
     private readonly LimitMonitor _limitMonitor = new();
@@ -51,6 +52,7 @@ public partial class MainWindow : Window
     private TextBox? _completionTargetBox;
     private CompletionLanguage _completionTargetLanguage;
     private CompletionResult? _completionResult;
+    private IReadOnlyList<ExcelFunctionInfo> _excelFunctionHelperResults = Array.Empty<ExcelFunctionInfo>();
 
     public MainWindow()
     {
@@ -58,6 +60,7 @@ public partial class MainWindow : Window
         _sqlChecker = new SqlSafetyChecker(_ruleSet);
         _vbaChecker = new VbaSafetyChecker(_ruleSet);
         _excelChecker = new Excel2021FunctionChecker(_ruleSet);
+        _excelFunctionHelper = new ExcelFunctionHelper(_ruleSet);
         _excelReportBuilder = new ExcelReportBuilder(_ruleSet, _taskLogWriter);
         _completionEngine = new CompletionEngine(new CompletionProviderRegistry(StaticCompletionProviderFactory.CreateDefault(_ruleSet)));
         _draftService = new NoModelDraftService(_policyLoadResult.Policy);
@@ -90,6 +93,7 @@ public partial class MainWindow : Window
             [MainTabKey.Settings] = SettingsTab
         };
         InitializeCompletionAssist();
+        InitializeExcelFunctionHelper();
         EnvironmentText.Text = $"{BuildEnvironmentText(_policyLoadResult)} / {NoModelDraftService.ModeName}";
         SafetyStatusText.Text = _policyLoadResult.UsedFallback
             ? "Security policy fallback active"
@@ -506,6 +510,101 @@ public partial class MainWindow : Window
         }
 
         ShowFindings("Excel 2021 Function Check", findings);
+    }
+
+    private void InitializeExcelFunctionHelper()
+    {
+        RefreshExcelFunctionHelper(showFindings: false);
+    }
+
+    private void OnSearchExcelFunctionHelper(object sender, RoutedEventArgs e)
+    {
+        RefreshExcelFunctionHelper(showFindings: true);
+    }
+
+    private void RefreshExcelFunctionHelper(bool showFindings)
+    {
+        _excelFunctionHelperResults = _excelFunctionHelper.Search(ExcelFunctionHelperQueryBox.Text);
+        ExcelFunctionHelperList.ItemsSource = _excelFunctionHelperResults;
+        ExcelFunctionHelperList.SelectedIndex = _excelFunctionHelperResults.Count > 0 ? 0 : -1;
+        if (_excelFunctionHelperResults.Count == 0)
+        {
+            ExcelFunctionHelperDetailBox.Text = _excelFunctionHelper.Warnings.Count > 0
+                ? string.Join(Environment.NewLine, _excelFunctionHelper.Warnings)
+                : "검색 결과가 없습니다.";
+        }
+
+        if (showFindings)
+        {
+            var findings = _excelFunctionHelper.Warnings
+                .Select(warning => new SafetyFinding("EXCEL_HELPER_WARNING", SafetySeverity.Low, warning))
+                .ToList();
+            findings.Add(new SafetyFinding(
+                "EXCEL_HELPER_SEARCH_RESULT",
+                SafetySeverity.Info,
+                $"Excel Function Helper 결과 {_excelFunctionHelperResults.Count:N0}건. 검색어 원문은 로그에 저장하지 않았습니다."));
+            ShowFindings("Excel Function Helper", findings);
+        }
+    }
+
+    private void OnExcelFunctionHelperSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (ExcelFunctionHelperList.SelectedItem is ExcelFunctionInfo selected)
+        {
+            ExcelFunctionHelperDetailBox.Text = FormatExcelFunctionInfo(selected);
+        }
+    }
+
+    private void OnInsertExcelFunctionExample(object sender, RoutedEventArgs e)
+    {
+        if (ExcelFunctionHelperList.SelectedItem is not ExcelFunctionInfo selected)
+        {
+            ShowFindings("Excel Function Helper", [
+                new SafetyFinding("EXCEL_HELPER_NO_SELECTION", SafetySeverity.Info, "삽입할 함수 예시를 먼저 선택하세요.")
+            ]);
+            return;
+        }
+
+        InsertExcelFunctionExample(ExcelRequestBox, _excelFunctionHelper.BuildFormulaInsertion(selected));
+        ExcelRequestBox.Focus();
+        ShowFindings("Excel Function Helper", [
+            new SafetyFinding(
+                "EXCEL_HELPER_FORMULA_INSERTED",
+                SafetySeverity.Info,
+                $"{selected.Name} 예시 수식을 사용자 선택으로 삽입했습니다. 자동삽입은 수행하지 않습니다.")
+        ]);
+    }
+
+    private static void InsertExcelFunctionExample(TextBox textBox, string formulaExample)
+    {
+        var safeFormula = formulaExample ?? string.Empty;
+        if (textBox.SelectionLength > 0)
+        {
+            var selectionStart = textBox.SelectionStart;
+            textBox.SelectedText = safeFormula;
+            textBox.CaretIndex = selectionStart + safeFormula.Length;
+            return;
+        }
+
+        var caretIndex = Math.Clamp(textBox.CaretIndex, 0, textBox.Text.Length);
+        textBox.Text = textBox.Text.Insert(caretIndex, safeFormula);
+        textBox.CaretIndex = caretIndex + safeFormula.Length;
+    }
+
+    private static string FormatExcelFunctionInfo(ExcelFunctionInfo info)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"Function: {info.Name}");
+        sb.AppendLine($"Excel 2021: {(info.Is365Only ? "Microsoft 365 only / blocked by active rules" : "Compatible with active rules")}");
+        sb.AppendLine($"Recommended: {(info.Recommended ? "Yes" : "No")}");
+        sb.AppendLine($"Args: {info.Args}");
+        sb.AppendLine();
+        sb.AppendLine(info.Description);
+        sb.AppendLine();
+        sb.AppendLine($"Risk example: {info.RiskMgmtExample}");
+        sb.AppendLine($"Formula example: {info.FormulaExample}");
+        sb.AppendLine($"Excel 2021 alternative: {info.Excel2021Alternative}");
+        return sb.ToString();
     }
 
     private void OnSearchKbCatalog(object sender, RoutedEventArgs e)
