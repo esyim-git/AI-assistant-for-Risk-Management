@@ -20,6 +20,7 @@ using RiskManagementAI.Core.Logging;
 using RiskManagementAI.Core.Report;
 using RiskManagementAI.Core.Risk;
 using RiskManagementAI.Core.Safety;
+using Rectangle = System.Windows.Shapes.Rectangle;
 
 namespace RiskManagementAI.App;
 
@@ -712,6 +713,7 @@ public partial class MainWindow : Window
                 RiskBaseDateBox.Text);
             RiskLimitGrid.ItemsSource = result.Rows.Select(RiskLimitRowDisplay.FromRow).ToList();
             RiskDashboardSummaryText.Text = BuildRiskDashboardSummary(result);
+            RenderRiskCharts(result);
 
             var findings = result.Findings.ToList();
             var resultSeverity = result.BreachCount > 0 || result.MappingErrorCount > 0
@@ -740,10 +742,146 @@ public partial class MainWindow : Window
         {
             RiskDashboardSummaryText.Text = ex.Message;
             RiskLimitGrid.ItemsSource = Array.Empty<RiskLimitRowDisplay>();
+            RiskVisualCanvas.Children.Clear();
+            RiskVisualNoteText.Text = ex.Message;
             var error = new SafetyFinding("RISK_DASHBOARD_ERROR", SafetySeverity.High, ex.Message);
             ShowFindings("Risk Dashboard", [error]);
         }
     }
+
+    private void RenderRiskCharts(LimitAnalysisResult result)
+    {
+        var visual = RiskVisualAggregator.Aggregate(result, topN: 5);
+        RiskVisualCanvas.Children.Clear();
+        var width = Math.Max(220d, RiskVisualCanvas.ActualWidth > 0 ? RiskVisualCanvas.ActualWidth : 260d);
+        var height = Math.Max(360d, RiskVisualCanvas.ActualHeight > 0 ? RiskVisualCanvas.ActualHeight : 380d);
+        RiskVisualCanvas.Width = width;
+        RiskVisualCanvas.Height = height;
+
+        DrawCanvasText(RiskVisualCanvas, "Status Distribution", 10, 6, 12, BrushesFor("#334155"), FontWeights.SemiBold);
+        var maxCount = Math.Max(1, visual.StatusDistribution.Max(row => row.Count));
+        var barLeft = 122d;
+        var barMaxWidth = Math.Max(80d, width - barLeft - 48d);
+        var y = 30d;
+        foreach (var row in visual.StatusDistribution)
+        {
+            DrawCanvasText(RiskVisualCanvas, row.StatusCode, 10, y - 2, 10, BrushesFor("#475569"), FontWeights.Normal);
+            var barWidth = row.Count == 0 ? 0d : barMaxWidth * row.Count / maxCount;
+            DrawCanvasRect(RiskVisualCanvas, barLeft, y, barWidth, 12, BrushForStatus(row.StatusCode));
+            DrawCanvasText(RiskVisualCanvas, row.Count.ToString("N0"), barLeft + barMaxWidth + 6, y - 3, 10, BrushesFor("#475569"), FontWeights.Normal);
+            y += 20d;
+        }
+
+        var concentrationTop = y + 6d;
+        DrawCanvasText(RiskVisualCanvas, "Concentration", 10, concentrationTop, 12, BrushesFor("#334155"), FontWeights.SemiBold);
+        DrawCanvasText(
+            RiskVisualCanvas,
+            $"TopN Share {visual.Concentration.TopNShare:P1} / HHI {visual.Concentration.Hhi:N4}",
+            10,
+            concentrationTop + 20d,
+            10,
+            BrushesFor("#475569"),
+            FontWeights.Normal);
+        var shareWidth = Math.Max(0d, Math.Min(1d, (double)visual.Concentration.TopNShare) * (width - 24d));
+        DrawCanvasRect(RiskVisualCanvas, 10, concentrationTop + 42d, width - 24d, 12, BrushesFor("#E2E8F0"));
+        DrawCanvasRect(RiskVisualCanvas, 10, concentrationTop + 42d, shareWidth, 12, BrushesFor("#2563EB"));
+
+        var heatmapTop = concentrationTop + 72d;
+        DrawCanvasText(RiskVisualCanvas, "Heatmap", 10, heatmapTop, 12, BrushesFor("#334155"), FontWeights.SemiBold);
+        var cellSize = 20d;
+        var gap = 4d;
+        var columns = Math.Max(1, (int)Math.Floor((width - 20d) / (cellSize + gap)));
+        var availableRows = Math.Max(1, (int)Math.Floor((height - heatmapTop - 28d) / (cellSize + gap)));
+        var maxCells = Math.Max(1, columns * availableRows);
+        var index = 0;
+        foreach (var row in visual.Heatmap.Take(maxCells))
+        {
+            var column = index % columns;
+            var line = index / columns;
+            var left = 10d + column * (cellSize + gap);
+            var top = heatmapTop + 24d + line * (cellSize + gap);
+            DrawCanvasRect(RiskVisualCanvas, left, top, cellSize, cellSize, BrushForHeatmapGrade(row.Grade));
+            index++;
+        }
+
+        if (index == 0)
+        {
+            DrawCanvasText(RiskVisualCanvas, "No risk rows", 10, heatmapTop + 24d, 10, BrushesFor("#64748B"), FontWeights.Normal);
+        }
+
+        var findingNote = visual.Findings.Count == 0
+            ? "Risk Visual: in-box deterministic summary."
+            : $"Risk Visual: {string.Join(", ", visual.Findings.Select(finding => finding.Code))}";
+        RiskVisualNoteText.Text = $"{findingNote} Rows={result.Rows.Count:N0}, TopN={visual.Concentration.TopNCount:N0}.";
+    }
+
+    private static void DrawCanvasText(
+        Canvas canvas,
+        string text,
+        double left,
+        double top,
+        double fontSize,
+        Brush foreground,
+        FontWeight fontWeight)
+    {
+        var block = new TextBlock
+        {
+            Text = text,
+            FontSize = fontSize,
+            FontWeight = fontWeight,
+            Foreground = foreground,
+            TextTrimming = TextTrimming.CharacterEllipsis
+        };
+        Canvas.SetLeft(block, left);
+        Canvas.SetTop(block, top);
+        canvas.Children.Add(block);
+    }
+
+    private static void DrawCanvasRect(
+        Canvas canvas,
+        double left,
+        double top,
+        double width,
+        double height,
+        Brush fill)
+    {
+        var rect = new Rectangle
+        {
+            Width = Math.Max(0d, width),
+            Height = Math.Max(0d, height),
+            Fill = fill
+        };
+        Canvas.SetLeft(rect, left);
+        Canvas.SetTop(rect, top);
+        canvas.Children.Add(rect);
+    }
+
+    private static Brush BrushForStatus(string statusCode)
+    {
+        return statusCode switch
+        {
+            "BREACH" => BrushesFor("#DC2626"),
+            "WARNING" => BrushesFor("#F59E0B"),
+            "NO_LIMIT" => BrushesFor("#64748B"),
+            "INVALID_LIMIT" => BrushesFor("#7C3AED"),
+            "MAPPING_ERROR" => BrushesFor("#BE123C"),
+            "DUPLICATE_LIMIT" => BrushesFor("#0F766E"),
+            _ => BrushesFor("#16A34A")
+        };
+    }
+
+    private static Brush BrushForHeatmapGrade(string grade)
+    {
+        return grade switch
+        {
+            "HIGH" => BrushesFor("#DC2626"),
+            "MID" => BrushesFor("#F59E0B"),
+            _ => BrushesFor("#22C55E")
+        };
+    }
+
+    private static Brush BrushesFor(string color)
+        => (Brush)new BrushConverter().ConvertFromString(color)!;
 
     private void OnGenerateExcelReport(object sender, RoutedEventArgs e)
     {
@@ -861,7 +999,7 @@ public partial class MainWindow : Window
 
     private static string BuildRiskDashboardSummary(LimitAnalysisResult result)
     {
-        return $"BASE_DT={result.BaseDate} / Rows={result.Rows.Count:N0} / NORMAL={result.NormalCount:N0} / WARNING={result.WarningCount:N0} / BREACH={result.BreachCount:N0} / NO_LIMIT={result.NoLimitCount:N0} / INVALID_LIMIT={result.InvalidLimitCount:N0} / MAPPING_ERROR={result.MappingErrorCount:N0}";
+        return $"BASE_DT={result.BaseDate} / Rows={result.Rows.Count:N0} / NORMAL={result.NormalCount:N0} / WARNING={result.WarningCount:N0} / BREACH={result.BreachCount:N0} / NO_LIMIT={result.NoLimitCount:N0} / INVALID_LIMIT={result.InvalidLimitCount:N0} / MAPPING_ERROR={result.MappingErrorCount:N0} / DUPLICATE_LIMIT={result.DuplicateLimitCount:N0}";
     }
 
     private static string BuildHistorySummary(AuditLogReadResult result)
