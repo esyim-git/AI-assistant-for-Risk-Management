@@ -51,6 +51,7 @@ public static class IntegrityVerifier
     {
         "config/ncr/ncr_ruleset_sample.json",
         "kb/README.md",
+        "kb/clause_pack_sample/public_clause_pack_sample.csv",
         "kb/ncr_placeholder.md",
         "kb/public_regulation_catalog.csv",
         "rules/excel_2021_blocked_functions.txt",
