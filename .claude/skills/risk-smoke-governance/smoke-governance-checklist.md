@@ -93,7 +93,7 @@ dotnet run --project tests/RiskManagementAI.SmokeTests
 
 ```
 [Smoke Governance] <branch>
-- Total       : <이전 714> → <이후>  (증감 사유: <한 줄>)
+- Total       : <현재 기준선 807> → <이후>  (증감 사유: <한 줄>)
 - 삭제/약화 단언 : 0  (또는 위반 목록)
 - Unclassified  : 0  (또는 N건 목록)
 - 신규 회귀     : 양성/음성 추가됨 (또는 부족)

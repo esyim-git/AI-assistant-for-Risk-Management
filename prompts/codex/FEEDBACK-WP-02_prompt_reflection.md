@@ -23,9 +23,10 @@ public sealed record DraftReferenceExample(string ExampleId, string ReferenceTex
 - **결정적**(동일 입력 → 동일 출력): `Dictionary` 열거·`DateTime`·`Guid`·`Math.Random`·문화권 의존 포맷 **금지**. 개행은 `'\n'` 고정.
 - **입력 순서 보존**: 호출자(retriever)가 이미 `OrderByDescending(Score).ThenBy(ExampleId, Ordinal)`로 결정적 정렬한 순서를 **그대로** 사용한다(결합기 내부 재정렬 없음). 결합기 자체가 비결정성을 도입하지 않음을 보장.
 - **필터**: `ReferenceText`가 null/공백인 항목은 **건너뛴다**(반영 대상 아님).
+- **상한(필수)**: 결합기는 결정적 상한을 공개 상수로 둔다. 예: `public const int MaxReferenceCount = 5`, `public const int MaxReferenceTextChars = 2000`. 필터 후 입력 순서대로 최대 N건만 사용하고, 각 `ReferenceText`는 문자 수 상한에서 결정적으로 truncate한다. truncate 표식도 고정 문자열로 둔다. 상한은 본 WP 필수 범위이며 테스트가 상수로 단언한다.
 - **항등(identity) 규칙**: 유효 reference가 0건이면 **`originalContext`를 그대로 반환**(null이면 null). → "참고 없음 = Context 무변경".
 - **원 Context 보존**: `originalContext`가 non-empty면 결합 결과에 **원문이 그대로(부분 문자열로) 포함**되고, 참고 블록과 **명확히 구분**된다. `originalContext`가 null/공백이면 블록만(선행 빈 줄 없이) 출력.
-- **read-only 표식**: 참고 블록 머리글을 **`public const string ReferenceBlockHeader`**(예: `"[참고 예시 · 읽기 전용 · 검토용 초안 · 자동 적용 아님]"`)로 노출(테스트가 상수로 단언). 각 항목은 `- (i) [{ExampleId}] {ReferenceText}` 형태(i=필터 후 1-based, 입력 순서).
+- **read-only 표식 + fencing**: 참고 블록 머리글을 **`public const string ReferenceBlockHeader`**(예: `"[참고 예시 · 읽기 전용 · 검토용 초안 · 자동 적용 아님]"`)로 노출(테스트가 상수로 단언). 각 항목은 raw inline bullet이 아니라 deterministic fenced data block으로 작성한다. 예: `- (i) [ExampleId] chars=<n>` 다음 줄부터 모든 reference line을 `| ` 접두로 indent/prefix하고, CRLF는 `\n`으로 normalize한다. Reference body 안의 newline, instruction-like comment, markdown fence 문자열이 참고 블록 밖 instruction으로 해석되지 않도록 escaping/indentation을 테스트로 고정한다.
 
 ### 1.3 `DraftPipelineRequest` — 가산(additive) 옵션 필드
 `Core/Generation/DraftPipeline.cs`의 record를 **가산만**:
@@ -53,11 +54,12 @@ public sealed record DraftPipelineRequest(
    ```
 2. `new DraftRequest(request.Kind, request.Prompt, effectiveContext)` — 서비스에 **effectiveContext** 전달.
 3. audit 해시(line 114)의 `request.Context` → **`effectiveContext`**로 교체. (**주입 행위 해시 audit** — 결합된 Context가 해시에 반영됨. 참고가 없거나 미승인이면 `effectiveContext == request.Context`이므로 **기존 audit 해시 불변** → 기존 GenerationTests/AuditTests 회귀 보존.)
+4. **선택 Example identity audit(해시 전용)**: review gate로 실제 반영된 reference의 `ExampleId` 목록을 입력 순서대로 join한 payload를 별도 hash로 남긴다. 구현 방식은 (a) `TaskLogEntry.OutputHash` payload에 selected-id hash를 포함하거나, (b) 별도 `TaskLogEntry` task type(예: `PromotedExampleReflection`)으로 `RequestHash=LogHash.Sha256Hex(effectiveContext)`, `OutputHash=LogHash.Sha256Hex(selectedExampleIdsPayload)`를 남기는 방식 중 하나를 택한다. 어느 쪽이든 raw context/reference/user id 평문 저장 0, 선택된 ExampleId 목록은 hash-only로 감사 가능해야 한다.
 - **review 게이트 = `ReferencesReviewed`.** `ReferenceExamples`가 있어도 `ReferencesReviewed==false`면 결합 0(자동 무검토 주입 금지). 이것이 유일한 주입 관문이다.
 - `DraftPipeline`은 **`PromotedExampleRetriever`를 직접 호출하지 않는다**(검색은 호출자 몫; 파이프라인은 순수 결합·감사만) — 검색↔주입 분리.
 
 ## 2. 제외 범위
-실 모델 추론/생성(R4). 모델 가중치 학습·모델파일 쓰기. **App/MainWindow 실 review UI 배선**(Gate B 후속 — 본 WP는 Core+테스트). ingest 게이트 재구현(WP-01). Example revoke/만료·개수/크기 상한. Vector/Embedding. 신규 NuGet.
+실 모델 추론/생성(R4). 모델 가중치 학습·모델파일 쓰기. **App/MainWindow 실 review UI 배선**(Gate B 후속 — 본 WP는 Core+테스트). ingest 게이트 재구현(WP-01). Example revoke/만료. Vector/Embedding. 신규 NuGet.
 
 ## 3. 보안조건
 - 모델 가중치 학습 0·모델 파일 쓰기 0 · NuGet 0 · Vector/Embedding/LLM Runtime STOP.
@@ -77,8 +79,10 @@ public sealed record DraftPipelineRequest(
 - **review 게이트 음성**: `ReferenceExamples` 존재하지만 `ReferencesReviewed=false` → effectiveContext == 원 Context(결합 0), capture fake가 원 Context 그대로 관측, **audit RequestHash == 무참고 기준선과 동일**.
 - **원 Context 보존**: non-empty 원 Context에 대해 결합 결과 `Contains(originalContext)` true, 블록이 구분되어 존재.
 - **필터/항등**: `ReferenceText` null/공백 항목 제외; 전부 무효면 Context 무변경(항등). 유효 0건 + `ReferencesReviewed=true`여도 결합 0.
+- **상한**: `MaxReferenceCount` 초과 입력은 입력 순서 기준 N건만 반영, `MaxReferenceTextChars` 초과 body는 deterministic truncate 표식 포함. 동일 입력 2회 결과 동일.
+- **fencing**: newline/instruction-like reference body가 `| ` 접두 fenced data block 안에만 남고 블록 밖 instruction으로 탈출하지 않음. `ReferenceBlockHeader`와 각 `ExampleId`는 유지.
 - **결정성**: 동일 입력 2회 `Compose` → 문자열 동일(입력 순서 보존).
-- **audit 해시 전용**: 주입 시 `TaskLogWriter` 출력의 `RequestHash`가 SHA-256 hex(`LogHash`)이고 참고 본문 평문 미포함. 무참고 경로 `RequestHash`가 **FEEDBACK-WP-02 이전과 동일**(effectiveContext==Context 회귀).
+- **audit 해시 전용**: 주입 시 `TaskLogWriter` 출력의 `RequestHash`가 SHA-256 hex(`LogHash`)이고 참고 본문 평문 미포함. 무참고 경로 `RequestHash`가 **FEEDBACK-WP-02 이전과 동일**(effectiveContext==Context 회귀). 선택된 `ExampleId` payload도 hash-only로 남아 "어떤 reviewed reference가 반영됐는지"를 raw context 없이 감사 가능.
 - **기존 보존**: 기존 `GenerationTests`(`DraftPipeline`/`NoModelDraftService` 무참고 경로)·`AuditTests` **전부 보존**(단언 수·해시 스키마·6-positional 로그 호출 무변경). 기존 3·4-인자 `DraftPipelineRequest` 호출부 무변경 컴파일.
 - 종료부 **`Total=807 → 807+N PASS / 0 FAIL`**, `Unclassified=0`.
 
@@ -87,4 +91,4 @@ public sealed record DraftPipelineRequest(
 - Branch `feature/feedback-wp-02-prompt-reflection` · Commit: `feat: review-gated read-only example reflection into draft prompt (FEEDBACK-WP-02)`
 
 ## 6. Claude Review Checklist
-RETRIEVAL 주입(학습/모델파일 쓰기 0) / **review 게이트 = `ReferencesReviewed`, 승인 없으면 결합 0(자동주입 0)** / 원 Context 보존(부분문자열 + 블록 구분) / `DraftReferenceComposer` 결정적(입력 순서 보존·null/공백 필터·유효 0건 항등) / **effectiveContext를 DraftRequest와 audit 해시(line 114) 양쪽에 사용 → 주입 해시 audit·무참고 회귀 불변** / `DraftPipeline`이 `PromotedExampleRetriever` 미호출(검색↔주입 분리) / 해시 전용 audit(참고 본문 평문 미저장) / non-log DTO(로그 직렬화 밖) / capture fake로 관측 / 도메인 Audit(Kb·Assist 키워드 회피)·Unclassified 0 / 기존 GenerationTests·AuditTests·3·4-인자 호출부 보존 / NuGet 0·Vector STOP / `Total` 807 보존+신규 / Gate A.
+RETRIEVAL 주입(학습/모델파일 쓰기 0) / **review 게이트 = `ReferencesReviewed`, 승인 없으면 결합 0(자동주입 0)** / 원 Context 보존(부분문자열 + 블록 구분) / `DraftReferenceComposer` 결정적(입력 순서 보존·null/공백 필터·유효 0건 항등·개수/문자수 상한) / reference body fencing·indentation으로 read-only data 보존 / **effectiveContext를 DraftRequest와 audit 해시(line 114) 양쪽에 사용 → 주입 해시 audit·무참고 회귀 불변** / 선택된 `ExampleId` 목록 hash-only audit / `DraftPipeline`이 `PromotedExampleRetriever` 미호출(검색↔주입 분리) / 해시 전용 audit(참고 본문 평문 미저장) / non-log DTO(로그 직렬화 밖) / capture fake로 관측 / 도메인 Audit(Kb·Assist 키워드 회피)·Unclassified 0 / 기존 GenerationTests·AuditTests·3·4-인자 호출부 보존 / NuGet 0·Vector STOP / `Total` 807 보존+신규 / Gate A.
