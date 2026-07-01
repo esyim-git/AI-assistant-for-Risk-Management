@@ -45,6 +45,13 @@ public sealed class CompletionEngine
             {
                 mergedItems.Add(NormalizeItem(item, provider.ProviderId));
             }
+
+            if (provider is ICompletionProviderWarningSource warningSource)
+            {
+                warnings.AddRange(warningSource
+                    .GetWarnings(context)
+                    .Where(warning => !string.IsNullOrWhiteSpace(warning)));
+            }
         }
 
         var deduped = DedupeAndSort(mergedItems);
@@ -98,7 +105,7 @@ public sealed class CompletionEngine
         var deduped = new List<CompletionItem>();
         foreach (var item in sortedItems)
         {
-            var key = item.Source + "\u001f" + item.Label;
+            var key = item.Source + "\u001f" + item.Label + "\u001f" + item.Kind;
             if (seen.Add(key))
             {
                 deduped.Add(item);

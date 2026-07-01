@@ -123,6 +123,26 @@ internal static class AssistTests
         context.AssertTrue(safetyResult.Findings.Count == 2 && safetyResult.Findings.Any(finding => finding.Code == blockedFinding.Code) && safetyResult.Findings.Any(finding => finding.Code == reviewFinding.Code), "Assist completion result findings should survive recommendation cap");
         context.AssertTrue(safetyResult.Items.All(item => item.RequiresReview), "Assist completion safety items should always require review");
 
+        var kindDedupeFinding = new SafetyFinding("SQL_KIND_DEDUPE", SafetySeverity.Medium, "Review shared label completion.");
+        var kindDedupeRegistry = new CompletionProviderRegistry([
+            new StaticAssistProvider(
+                "kind-dedupe-provider",
+                CompletionLanguage.Sql,
+                new CompletionItem("shared-label", "raw text should be cleared", CompletionItemKind.SafetyHint, "wrong-source", false, true, kindDedupeFinding, "Review", 1),
+                new CompletionItem("shared-label", "SELECT ", CompletionItemKind.Keyword, "wrong-source", false, false, null, null, 2),
+                new CompletionItem("shared-label", "SELECT duplicate", CompletionItemKind.Keyword, "wrong-source", false, false, null, null, 3))
+        ]);
+        var kindDedupeResult = new CompletionEngine(kindDedupeRegistry, maxInsertableItems: 10).GetCompletions(sqlContext);
+        context.AssertTrue(
+            kindDedupeResult.Items.Count(item => item.Label == "shared-label" && item.Kind == CompletionItemKind.SafetyHint) == 1
+            && kindDedupeResult.Items.Count(item => item.Label == "shared-label" && item.Kind == CompletionItemKind.Keyword) == 1,
+            "Assist completion dedupe should keep safety hint and insertable item when kind differs");
+        context.AssertTrue(
+            kindDedupeResult.Items.First().Kind == CompletionItemKind.SafetyHint
+            && kindDedupeResult.Items.Count(item => item.Label == "shared-label" && item.Kind == CompletionItemKind.Keyword) == 1
+            && kindDedupeResult.Findings.Any(finding => finding.Code == kindDedupeFinding.Code),
+            "Assist completion dedupe should still collapse identical kind labels and preserve pinned findings");
+
         var ruleSet = RuleLoader.LoadDefault();
         var staticProviderRegistry = new CompletionProviderRegistry(StaticCompletionProviderFactory.CreateDefault(ruleSet));
         var staticProviderEngine = new CompletionEngine(staticProviderRegistry, maxInsertableItems: 50);
@@ -152,6 +172,16 @@ internal static class AssistTests
         var nonFunctionLabels = new[] { "PivotTable", "HelperColumn", "VBA", "SQLAggregation" };
         context.AssertTrue(nonFunctionLabels.All(label => !ruleSet.ExcelCompletionAllowFunctions.Contains(label, StringComparer.OrdinalIgnoreCase)), "Assist Excel completion allow rules should exclude non-function labels");
         context.AssertTrue(excelProvider.GetCompletions(new CompletionContext(CompletionLanguage.Excel, string.Empty, 0, string.Empty, CompletionEngine.NoModelMode)).All(item => !nonFunctionLabels.Contains(item.Label, StringComparer.OrdinalIgnoreCase)), "Assist Excel completion provider should not recommend non-function labels");
+        var syntheticExcelRuleSet = ruleSet with { ExcelCompletionAllowFunctions = ["XLOOKUP", "HelperColumn"] };
+        var syntheticExcelResult = new CompletionEngine(new CompletionProviderRegistry([new Excel2021CompletionProvider(syntheticExcelRuleSet)])).GetCompletions(
+            new CompletionContext(CompletionLanguage.Excel, string.Empty, 0, string.Empty, CompletionEngine.NoModelMode));
+        context.AssertTrue(
+            syntheticExcelResult.Items.Any(item => item.Label == "XLOOKUP" && item.Insertable)
+            && syntheticExcelResult.Items.All(item => item.Label != "HelperColumn"),
+            "Assist Excel completion provider should keep valid allow functions and skip invalid labels");
+        context.AssertTrue(
+            syntheticExcelResult.Warnings.Contains("Excel completion allow-function skipped: HelperColumn", StringComparer.Ordinal),
+            "Assist Excel completion provider should surface invalid allow-function labels through result diagnostics");
 
         var excelBlockedProvider = new Excel365BlockedHintProvider(ruleSet);
         var blockedFunctionsCovered = ruleSet.ExcelBlockedFunctions
@@ -171,6 +201,12 @@ internal static class AssistTests
         context.AssertTrue(safetyHintItems.Any(item => item.Kind == CompletionItemKind.SafetyHint && !item.Insertable && item.InsertText.Length == 0 && item.Finding == expectedSqlFinding), "Assist SafetyHint provider should preserve checker structured finding");
         var safetyHintEngineResult = new CompletionEngine(new CompletionProviderRegistry([safetyHintProvider])).GetCompletions(new CompletionContext(CompletionLanguage.Sql, "DELETE FROM <TABLE_NAME>", 24, "DELETE", CompletionEngine.NoModelMode));
         context.AssertTrue(safetyHintEngineResult.Findings.Contains(expectedSqlFinding), "Assist SafetyHint provider should preserve finding in CompletionResult");
+        context.AssertTrue(
+            safetyHintProvider.GetCompletions(new CompletionContext(CompletionLanguage.Sql, string.Empty, 0, string.Empty, CompletionEngine.NoModelMode)).Count == 0,
+            "Assist SafetyHint provider should not pin low severity empty-input findings");
+        context.AssertTrue(
+            safetyHintProvider.GetCompletions(new CompletionContext(CompletionLanguage.Sql, "FROM <TABLE_NAME>", 17, "FROM", CompletionEngine.NoModelMode)).Any(item => item.Kind == CompletionItemKind.SafetyHint && item.Finding?.Code == "SQL_NO_SELECT"),
+            "Assist SafetyHint provider should keep medium severity review findings pinned");
 
         foreach (var languageContext in new[]
         {
