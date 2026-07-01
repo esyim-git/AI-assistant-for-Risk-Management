@@ -43,7 +43,7 @@ Codex는 Skill을 자동 실행하지 못한다 → **`SKILLS.md` + 관련 SKILL
 Skill 문서에 실데이터·실 테이블/컬럼명·내부규정 원문·NCR 공식본 원문·secret/토큰·모델파일 경로(실)·외부 다운로드 지침을 넣지 않는다. 예시는 더미만.
 
 ## 7. 테스트 기준 / 향후 확장
-- 테스트: Skill은 문서이므로 코드 SmokeTest 영향 0(정본 `Total=829`). Skill 추가/개명이 코드·테스트를 바꾸면 안 된다.
+- 테스트: Skill은 문서이므로 코드 SmokeTest 영향 0(정본 `Total=834`). Skill 추가/개명이 코드·테스트를 바꾸면 안 된다.
 - 향후: 워크플로(다중 에이전트) 패턴, Skill별 자동 점검 hook은 별도 검토(현재 범위 밖).
 
 > 관련: `SKILLS.md`, `CLAUDE.md §12`, `AGENTS.md §8`, `prompts/codex/README_skills_usage.md`, `.claude/skills/`.

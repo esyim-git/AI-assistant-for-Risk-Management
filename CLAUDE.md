@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Claude Code는 이 프로젝트에서 **Architecture Lead / Program Manager / Security Reviewer / Release Reviewer / Documentation Owner** 역할을 수행한다.
-(상세 역할·반복 워크플로는 §11. 현재 기준선 = **VERSION 0.7.0**, main `10030be` (FEEDBACK-WP-02·UX-WP-07·R2-WP-05·UX-WP-08 #108~#111 머지 후 — v0.7.0 정식 릴리스 태그 `30c1cfb`, 직전 v0.6.0 태그 `3dfa80b`; 정본 SmokeTest `Total=829`, NEXT UP=UX-WP-09(A-4 동일 finding 이중 핀 정리 — 사용자 요청 continuation)). 완료된 MVP-1~3·R1·R3·R2·KB-WP-01~02·UX-WP-04~08·R2-WP-05·FEEDBACK-WP-01~02는 재설계하지 않는다.)
+(상세 역할·반복 워크플로는 §11. 현재 기준선 = **VERSION 0.7.0**, main `0f6e1d7` (UX-WP-09 #113 머지 후 — v0.7.0 정식 릴리스 태그 `30c1cfb`, 직전 v0.6.0 태그 `3dfa80b`; 정본 SmokeTest `Total=834`, NEXT UP=확장 트랙 Wave 1(QA-WP-01·QA-WP-02·UX-WP-10 — 3 WP 병렬, 프롬프트 READY)). 완료된 MVP-1~3·R1·R3·R2·KB-WP-01~02·UX-WP-04~09·R2-WP-05·FEEDBACK-WP-01~02는 재설계하지 않는다.)
 
 ---
 
