@@ -25,7 +25,7 @@ v0.7.0 portable ZIP을 **실 오프라인 Test PC(Gate B)** 및 **운영 반입 
 |---|---|---|---|
 | B0 | **Test PC로 반입한 ZIP 자체를 `Get-FileHash`로 재대조** — SHA256 = published Release 값 `42C835983127B127438AB97747B99FD0C3FA2E4363D4CB85641E45FE62E09DD5` | 🟢 user-reported (B′ B-1) — 증거 첨부 시 봉인 | Test PC `Get-FileHash` 출력 + Release URL |
 | B1 | ZIP 내부 필수: `RiskManagementAI.exe`·`run.bat`·`config/ rules/ kb/ templates/ samples/ deploy/ logs/ reports/`·`approved_manifest.json`(version `0.7.0`) | ⬜ | 트리 |
-| B2 | ZIP 내부 금지 **0**: 모델(`*.gguf/*.bin/*.safetensors/*.onnx/*.pt`)·`real_data/`·`internal_*`·`secrets/`·`credentials/`·`exports/`·`*.pem/*.key/*.pfx/*.p12/*.cer/*.crt/*.der/*.env`·**내부규정/NCR 원문** | ⬜ | 트리/스캔 + build/03 출력 |
+| B2 | ZIP 내부 금지 **0**: 모델(`*.gguf/*.bin/*.safetensors/*.onnx/*.pt`)·`real_data/`·`internal_*`·민감정보 디렉터리·`credentials/`·`exports/`·`*.pem/*.key/*.pfx/*.p12/*.cer/*.crt/*.der/*.env`·**내부규정/NCR 원문** | ⬜ | 트리/스캔 + build/03 출력 |
 | B3 | **인터넷 차단** 실행 → **NoModelMode 기동**(무결성 검증 PASS, manifest version `0.7.0`) · 자동업데이트/telemetry/외부 API **0** | 🟢 user-reported (B′ B-3·B-4) — 증거 첨부 시 봉인 | 차단 캡처 + 기동 로그 |
 | B4 | R1: **CP949·UTF-8·XLSX** 입력 → 한도분석 **7상태**(incl `DUPLICATE_LIMIT`) | 🟡 user-reported(한도분석 실행, B′ B-7); 입력 다양성·7상태 상세·증거 = B-6 PENDING | 화면 |
 | B5 | R1: **대사 9종**(원천합계=분석합계 PASS) | ⬜ | 화면/로그 |
@@ -78,7 +78,7 @@ Get-ChildItem -Recurse .\rmai | Select-Object FullName | Out-File evidence\gateB
 # 네트워크 차단 확인 후:
 .\rmai\run.bat                                                 # NoModelMode 기동·manifest version 0.7.0 검증
 ```
-증거: 해시 출력 · `tree.txt`(모델/원문/secret 0) · 차단 캡처 · 기동 로그. → §B B0/B1/B2/B3 봉인.
+증거: 해시 출력 · `tree.txt`(모델/원문/민감정보 0) · 차단 캡처 · 기동 로그. → §B B0/B1/B2/B3 봉인.
 
 ### 2. B-6 CSV/XLSX 샘플 분석 (PENDING → 봉인 대상)
 - `samples/`의 CSV(CP949·UTF-8)·XLSX를 로드 → DataProfile·한도분석 실행.

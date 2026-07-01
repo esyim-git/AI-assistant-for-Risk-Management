@@ -123,14 +123,14 @@
 > 기록된 nit을 저위험 WP로 승격. 전부 **독립 브랜치 off main·개별 PR**(파일 겹침 0 → 병렬 안전), 일요일 일괄 리뷰. 각 변경은 명확한 테스트 뒤에 두어 Claude가 승인/기각(의도된 동작 시) 가능. 프롬프트 READY.
 
 ## UX-WP-07. Smart Assist Completion 표면화 하이진 (dedupe Kind 인지·Info 힌트 필터·allow-function 표면화) — **DONE (#110, VERIFIED — local-gate)** (Cap C-22/C-23 하이진)
-> **상태**: **DONE (#110 머지 `246e577`, VERIFIED — local-gate; Claude adversarial review APPROVE·0 confirmed)**. dedupe 키 `Source+Label+Kind`(SafetyHint+삽입 공존·완전중복 1건·pinned/cap/findings 절단 안전 보존)·`SafetyHintProvider` ≥Medium 필터(유일 Low=SQL_EMPTY/VBA_EMPTY→정당 힌트 미손실·BlockedHint 경로 무영향)·신규 additive `ICompletionProviderWarningSource`로 Excel allow-function 탈락 라벨 `CompletionResult.Warnings` 표면화(결정적). 정적·NoModel·자동삽입 0·accept audit 불변. **`Total 807→813 (+6)`**(Assist), Unclassified 0, NuGet 0.
+> **상태**: **DONE (#110 머지 `246e577`, VERIFIED — local-gate; Claude adversarial review APPROVE·0 confirmed)**. dedupe 키 `Source+Label+Kind`(SafetyHint+삽입 공존·완전중복 1건·pinned/cap/findings 절단 안전 보존)·`SafetyHintProvider` ≥Medium 필터(유일 Low=SQL_EMPTY/VBA_EMPTY→정당 힌트 미손실·BlockedHint 경로 무영향)·신규 additive `ICompletionProviderWarningSource`로 Excel allow-function 탈락 라벨 `CompletionResult.Warnings` 표면화(결정적). 정적·NoModel·자동삽입 0·accept audit 불변. **`Total 820→826 (+6)`**(Assist), Unclassified 0, NuGet 0.
 - **목표**: ① `CompletionEngine.DedupeAndSort` 키에 `Kind` 포함(SafetyHint+삽입가능 항목 공존) ② `SafetyHintProvider`가 Info 심각도 finding 미핀(Warning 이상만) ③ `Excel2021CompletionProvider` allow-function 탈락 라벨 warning 표면화. 삽입/트리거/accept·audit·NoModel·정적성 불변. **A-4(2줄) 범위 밖**.
 - **수정예상파일**: `Core/Assist/CompletionEngine.cs`·`Core/Assist/Providers/StaticCompletionProviders.cs`, `AssistTests.cs`.
 - **테스트**(도메인 `Assist`): dedupe Kind 공존·완전중복 1건·pinned/cap/findings 절단 안전 / Info 핀 제외 / allow-function warning(합성 ruleset) / 기존 `AssistTests` 보존. `Total`+N·Unclassified 0.
 - **Branch**: `feature/ux-wp-07-assist-surfacing-hygiene` · **프롬프트**: `prompts/codex/UX-WP-07_smart_assist_surfacing_hygiene.md`.
 
 ## UX-WP-08. Completion Popup Esc/Close 포커스 복원 (C-7) — **DONE (#111, VERIFIED — local-gate; 실 포커스 렌더=Gate B)** (Cap C-24 하이진)
-> **상태**: **DONE (#111 머지 `10030be`, VERIFIED — local-gate; Claude adversarial review APPROVE·0 confirmed)**. `Show`가 placement `TextBox` 보관·`Close(bool restoreFocus=true)`(6개 기존 호출부 하위호환)·`RestorePlacementTargetFocus`가 target이 keyboard focus 미보유 시에만 복원(as-you-type 커서 미교란)·accept 경로 `Close(restoreFocus:false)`(MainWindow 포커스와 이중경쟁 0). Core 계약 불변·자동삽입/audit 불변. **`Total 807→810 (+3)`** UiContract/Assist contract 단언(실 포커스 렌더는 **Gate B**·과대표기 0), NuGet 0.
+> **상태**: **DONE (#111 머지 `10030be`, VERIFIED — local-gate; Claude adversarial review APPROVE·0 confirmed)**. `Show`가 placement `TextBox` 보관·`Close(bool restoreFocus=true)`(6개 기존 호출부 하위호환)·`RestorePlacementTargetFocus`가 target이 keyboard focus 미보유 시에만 복원(as-you-type 커서 미교란)·accept 경로 `Close(restoreFocus:false)`(MainWindow 포커스와 이중경쟁 0). Core 계약 불변·자동삽입/audit 불변. **`Total 826→829 (+3)`** UiContract/Assist contract 단언(실 포커스 렌더는 **Gate B**·과대표기 0), NuGet 0.
 - **목표**: 팝업 Esc/Close 시 원본 편집 TextBox로 포커스 복원(이미 원본이면 no-op, accept 경로 중복복원 0, `grabFocus:false` 커서 미교란). Core 계약 불변(App WPF 한정).
 - **수정예상파일**: `App/Controls/CompletionPopup.xaml.cs`, (가능 시) `UiContractTests.cs`.
 - **테스트**: ⚠️ **실 포커스 렌더=Gate B**(과대표기 금지). 콘솔 관측 가능한 seam만 최소 단언, 억지 UI 테스트 0. 기존 보존·`Total` 불변 또는 +N.
