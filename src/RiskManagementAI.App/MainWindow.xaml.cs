@@ -210,7 +210,6 @@ public partial class MainWindow : Window
         if (CompletionPopupControl.IsCompletionOpen && e.Key == Key.Escape)
         {
             CompletionPopupControl.Close();
-            textBox.Focus();
             e.Handled = true;
             return;
         }
@@ -386,7 +385,7 @@ public partial class MainWindow : Window
             SafetySeverity.Info,
             $"추천 항목을 삽입했습니다. Source={item.Source}, Kind={item.Kind}, RequiresReview={item.RequiresReview}."));
         ShowFindings("Smart Assist", findings);
-        CompletionPopupControl.Close();
+        CompletionPopupControl.Close(restoreFocus: false);
         _completionTargetBox.Focus();
     }
 
