@@ -44,8 +44,8 @@ var bodyPromotionResult = new ExamplePromotion().PromoteApproved(
     new DateTime(2026, 06, 19, 0, 0, 0, DateTimeKind.Utc));
 var bodyPromotedExample = bodyPromotionResult.PromotedExamples.Single();
 context.AssertTrue(bodyPromotedExample.ExampleBody == safeExampleBody, "PromotedExample should persist approved safe Feedback body");
-context.AssertTrue(bodyPromotedExample.ExampleBodyKind == FeedbackDraftBodyInput.KindSql && bodyPromotedExample.ExampleBodyLength == safeExampleBody.Length, "PromotedExample should persist body kind and length metadata");
-context.AssertTrue(bodyPromotedExample.ExampleBodyHash == LogHash.Sha256Hex(safeExampleBody), "PromotedExample should persist body hash metadata");
+context.AssertTrue(bodyPromotedExample.ExampleBodyKind == FeedbackDraftBodyInput.KindSql && bodyPromotedExample.ExampleBodyLength == safeExampleBody.Length, "PromotedExample persists body kind and length (Feedback ingest)");
+context.AssertTrue(bodyPromotedExample.ExampleBodyHash == LogHash.Sha256Hex(safeExampleBody), "PromotedExample persists body hash (Feedback ingest)");
 
 var sqlBlockedFeedback = approvedFeedback with { FeedbackId = "feedback-sql-blocked-001", TaskId = "task-sql-blocked-001" };
 var sqlBlockedResult = new ExamplePromotion().PromoteApproved(
