@@ -143,6 +143,49 @@ internal static class AssistTests
             && kindDedupeResult.Findings.Any(finding => finding.Code == kindDedupeFinding.Code),
             "Assist completion dedupe should still collapse identical kind labels and preserve pinned findings");
 
+        var samePinFinding = new SafetyFinding("SQL_SAME_PIN", SafetySeverity.Blocker, "Same finding should not render twice.", "DROP", 0);
+        var safetyOnlyFinding = new SafetyFinding("SQL_SAFETY_ONLY", SafetySeverity.Medium, "Safety-only finding should remain pinned.", null, 4);
+        var sameFindingPinRegistry = new CompletionProviderRegistry([
+            new StaticAssistProvider(
+                "same-finding-pin-provider",
+                CompletionLanguage.Sql,
+                new CompletionItem("blocked same finding", string.Empty, CompletionItemKind.BlockedHint, "wrong-source", false, true, samePinFinding, "Blocked", 1),
+                new CompletionItem("safety same finding", "raw text should be cleared", CompletionItemKind.SafetyHint, "wrong-source", false, true, samePinFinding, "Review", 2),
+                new CompletionItem("safety only finding", "raw text should be cleared", CompletionItemKind.SafetyHint, "wrong-source", false, true, safetyOnlyFinding, "Review", 3),
+                new CompletionItem("insert-a", "A", CompletionItemKind.Keyword, "wrong-source", false, false, null, null, 10),
+                new CompletionItem("insert-b", "B", CompletionItemKind.Keyword, "wrong-source", false, false, null, null, 20))
+        ]);
+        var sameFindingPinResult = new CompletionEngine(sameFindingPinRegistry, maxInsertableItems: 1).GetCompletions(sqlContext);
+        context.AssertTrue(
+            sameFindingPinResult.Items.Count(item => item.Finding == samePinFinding) == 1
+            && sameFindingPinResult.Items.Any(item => item.Kind == CompletionItemKind.BlockedHint && item.Finding == samePinFinding)
+            && sameFindingPinResult.Items.All(item => item.Finding != samePinFinding || item.Kind != CompletionItemKind.SafetyHint),
+            "Assist completion should collapse duplicate SafetyHint when BlockedHint has the same finding");
+        context.AssertTrue(
+            sameFindingPinResult.Items.Any(item => item.Kind == CompletionItemKind.SafetyHint && item.Finding == safetyOnlyFinding)
+            && sameFindingPinResult.Findings.Contains(samePinFinding)
+            && sameFindingPinResult.Findings.Contains(safetyOnlyFinding),
+            "Assist completion duplicate pin collapse should preserve safety-only pins and structured findings");
+        context.AssertTrue(
+            sameFindingPinResult.Items.Count == 3
+            && sameFindingPinResult.Items.Count(item => item.Insertable) == 1
+            && sameFindingPinResult.Items.Last().Label == "insert-a",
+            "Assist completion duplicate pin collapse should preserve pinned priority and insertable cap");
+
+        var nullFindingPinRegistry = new CompletionProviderRegistry([
+            new StaticAssistProvider(
+                "null-finding-pin-provider",
+                CompletionLanguage.Sql,
+                new CompletionItem("blocked fallback finding", string.Empty, CompletionItemKind.BlockedHint, "wrong-source", false, true, null, "Blocked", 1),
+                new CompletionItem("safety fallback finding", string.Empty, CompletionItemKind.SafetyHint, "wrong-source", false, true, null, "Review", 2))
+        ]);
+        var nullFindingPinResult = new CompletionEngine(nullFindingPinRegistry, maxInsertableItems: 10).GetCompletions(sqlContext);
+        context.AssertTrue(
+            nullFindingPinResult.Items.Count(item => item.Kind == CompletionItemKind.BlockedHint) == 1
+            && nullFindingPinResult.Items.Count(item => item.Kind == CompletionItemKind.SafetyHint) == 1
+            && nullFindingPinResult.Findings.Count(finding => finding.Code == "COMPLETION_FINDING_REQUIRED") == 1,
+            "Assist completion should keep null-finding guard fallback pins separate while deduping result findings");
+
         var ruleSet = RuleLoader.LoadDefault();
         var staticProviderRegistry = new CompletionProviderRegistry(StaticCompletionProviderFactory.CreateDefault(ruleSet));
         var staticProviderEngine = new CompletionEngine(staticProviderRegistry, maxInsertableItems: 50);
@@ -154,6 +197,7 @@ internal static class AssistTests
             "DEL",
             CompletionEngine.NoModelMode));
         context.AssertTrue(sqlProviderResult.Items.Any(item => item.Kind == CompletionItemKind.BlockedHint && item.Finding?.Code == "SQL_DML_DELETE"), "Assist SQL completion provider should return BlockedHint for DML");
+        context.AssertTrue(sqlProviderResult.Items.Count(item => item.Finding?.Code == "SQL_DML_DELETE") == 1, "Assist SQL completion provider should collapse duplicate pinned finding rows for DML");
         context.AssertTrue(sqlProviderResult.Items.Where(item => item.Insertable).All(item => !ContainsAny(item.InsertText, "INSERT", "UPDATE", "DELETE", "MERGE", "CREATE", "ALTER", "DROP", "TRUNCATE", "GRANT", "REVOKE", "EXEC", "CALL", "COMMIT", "ROLLBACK")), "Assist SQL completion provider should not recommend DML or DDL text");
         context.AssertTrue(staticProviderEngine.GetCompletions(new CompletionContext(CompletionLanguage.Sql, "SEL", 3, "SEL", CompletionEngine.NoModelMode)).Items.Any(item => item.Label == "SELECT" && item.Insertable), "Assist SQL completion provider should recommend read-only SELECT keyword");
 
