@@ -60,6 +60,43 @@ v0.7.0 portable ZIP을 **실 오프라인 Test PC(Gate B)** 및 **운영 반입 
 **분류 결정**: ① Smart Assist 부재 = **UX Enhancement**(Gate B blocker 아님) → **UX-WP-05/06 DONE**(#103/#104, local-gate). ② Excel 함수 상세설명/예시/대체식 = **UX-WP-04 Excel Function Helper DONE**(#102, local-gate). **3건 모두 구현 완료(local-gate)** — 실 Release UI 표면화 재확인 = Gate B(Test PC) 대기이므로 B-5는 재검증 전까지 PARTIAL 유지(과대표기 금지).
 **다음 사용자 액션**: **B-6 CSV/XLSX 샘플 분석**, **B-8 Excel Report 생성**(→ granular B4·B9 증거 보강). 완료 시 본 §B′ 표 + granular 행 갱신 후 Gate B 봉인 재판정.
 
+## B″. Gate B 실행 런북 (사용자 Test PC — 턴키 실행 순서)
+> 목적: 미결 B 항목(B-6·B-8 PENDING, B-5 재검증)을 실 오프라인 Test PC에서 실행해 **증거**를 확보한다. 각 단계는 스크린샷/로그/해시 텍스트를 남겨 `evidence/gateB/`에 저장하고, 아래 §B/§B′ 표의 해당 행을 갱신한다. **실 증거 없이는 PASS로 적지 않는다(§11.4).**
+>
+> ⚠️ **어느 ZIP으로 하나 (중요)**:
+> - **현 published v0.7.0 ZIP(`30c1cfb`)로 지금 가능** → **B-6 CSV/XLSX·B-8 Excel Report/RISK_VISUAL** + 이미 user-reported인 B-1/B-3/B-4/B-7/B-9/B-10 **증거 봉인**. (R1 입력·한도·대사 + R2 RISK_VISUAL은 `30c1cfb`에 포함.)
+> - **신규 빌드 필요 → B-5 재검증**: Excel Function Helper(UX-WP-04)·Smart Assist as-you-type/팝업/포커스(UX-WP-05~08)는 `30c1cfb` **이후** 머지라 현 v0.7.0 ZIP에 **미포함**. 실 UI 재확인은 main `10030be`(또는 v0.7.1 컷)에서 `build/00~03` 재패키징한 **신규 ZIP**에서만 가능. (신규 컷을 원하면 별도 REL WP로 진행 — 승인/버전 범프 필요.)
+
+### 0. 준비
+- Test PC = Windows 11 · **인터넷 차단** · Excel 2021(Gate C). ZIP 반입 후 `evidence/gateB/` 폴더 생성.
+
+### 1. 무결성·기동 봉인 (B0/B1/B2/B3 — 현 v0.7.0 ZIP)
+```powershell
+Get-FileHash .\RiskManagementAI_v0.7.0.zip -Algorithm SHA256   # = 42C835983127...E09DD5 대조 → 출력 저장
+Expand-Archive .\RiskManagementAI_v0.7.0.zip -DestinationPath .\rmai
+Get-ChildItem -Recurse .\rmai | Select-Object FullName | Out-File evidence\gateB\tree.txt   # 필수 트리 + 금지파일 0 확인
+# 네트워크 차단 확인 후:
+.\rmai\run.bat                                                 # NoModelMode 기동·manifest version 0.7.0 검증
+```
+증거: 해시 출력 · `tree.txt`(모델/원문/secret 0) · 차단 캡처 · 기동 로그. → §B B0/B1/B2/B3 봉인.
+
+### 2. B-6 CSV/XLSX 샘플 분석 (PENDING → 봉인 대상)
+- `samples/`의 CSV(CP949·UTF-8)·XLSX를 로드 → DataProfile·한도분석 실행.
+- 캡처: 입력별 로드 성공 · 프로파일 결과 · 7상태(incl `DUPLICATE_LIMIT`). → §B B4 봉인.
+
+### 3. B-8 Excel Report / RISK_VISUAL (PENDING → 봉인 대상)
+- 리포트 생성 → `RISK_VISUAL` 시트(7상태 분포·TopN·집중도 HHI·Heatmap·`MIXED_CURRENCY`) · **Exception Count = 정확 숫자**(COUNTA 아님).
+- **화면=리포트 동일 수치** 캡처 2장(대시보드 ↔ LIMIT_MONITORING). → §B B6/B9 봉인.
+
+### 4. Gate C — Excel 2021 열기 (C1/C2)
+- 생성 리포트를 Excel 2021로 열기(**`RISK_VISUAL` 수동열기 포함**) → **Formula Error 0 · External Link 0 · Macro 0**. → §C C1/C2 봉인.
+
+### 5. B-5 재검증 (⚠️ 신규 빌드 후에만)
+- 신규 ZIP(main `10030be`)에서: **Excel Function Helper view**(검색·상세·인수·리스크예시·대체식) · **Smart Assist as-you-type 팝업**·**Esc/Close 포커스 복원** 실 UI 확인. → §B B13(B-5) PARTIAL 해소.
+
+### 6. 회신
+- 각 단계 완료 시 §B/§B′ 표의 상태 + 증거 파일명 기입 후 회신 → 항목 단위 재판정 → Gate B 봉인 여부 갱신. (Test PC 대상 PASS + 명시 예외(B7/B8/C5) 수용 시 봉인.)
+
 ## C. Gate C — 운영 반입 / Excel 2021 (`docs/41 §4`·`docs/28`)
 | # | 항목 | 상태 | 증거 |
 |---|---|---|---|
