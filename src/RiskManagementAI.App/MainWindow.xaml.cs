@@ -758,7 +758,14 @@ public partial class MainWindow : Window
                 LogHash.Sha256Hex(Environment.UserName),
                 FeedbackCodeBox.Text.Trim(),
                 FeedbackReviewStatusBox.Text.Trim());
-            var result = _examplePromotion.PromoteApproved([entry]);
+            var bodyInputs = string.IsNullOrWhiteSpace(FeedbackDraftBodyBox.Text)
+                ? Array.Empty<FeedbackDraftBodyInput>()
+                : [new FeedbackDraftBodyInput(
+                    entry.FeedbackId,
+                    entry.TaskId,
+                    FeedbackDraftBodyBox.Text,
+                    FeedbackBodyKindBox.Text.Trim())];
+            var result = _examplePromotion.PromoteApproved([entry], bodyInputs, _ruleSet);
             _promotedExampleStore.Append(result.PromotedExamples);
             var storedExamples = _promotedExampleStore.ReadAll();
             FeedbackPromotionGrid.ItemsSource = storedExamples
@@ -1188,7 +1195,7 @@ public partial class MainWindow : Window
         sb.AppendLine("Store: config/promoted_examples.jsonl");
         foreach (var example in result.PromotedExamples)
         {
-            sb.AppendLine($"- {example.ExampleId} / {example.PromotionMode} / {example.ReviewStatus}");
+            sb.AppendLine($"- {example.ExampleId} / {example.PromotionMode} / {example.ReviewStatus} / {example.ExampleBodyKind}:{example.ExampleBodyLength}");
         }
 
         foreach (var warning in result.Warnings)
@@ -1561,6 +1568,8 @@ public partial class MainWindow : Window
         string TaskId,
         string ReviewStatus,
         string PromotionMode,
+        string BodyKind,
+        string BodyLength,
         string PromotedAtText)
     {
         public static PromotedExampleDisplay FromExample(PromotedExample example)
@@ -1571,6 +1580,8 @@ public partial class MainWindow : Window
                 example.TaskId,
                 example.ReviewStatus,
                 example.PromotionMode,
+                example.ExampleBodyKind,
+                example.ExampleBodyLength.ToString("N0"),
                 example.PromotedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"));
         }
     }

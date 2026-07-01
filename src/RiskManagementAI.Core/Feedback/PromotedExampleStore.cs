@@ -78,6 +78,27 @@ public sealed class PromotedExampleStore
         {
             throw new ArgumentException("UserIdHash는 SHA-256 hex 해시여야 합니다.", nameof(example));
         }
+
+        if (example.ExampleBody is null)
+        {
+            if (example.ExampleBodyLength != 0 || example.ExampleBodyHash is not null)
+            {
+                throw new ArgumentException("본문이 없는 승격 예제는 길이 0과 null 해시만 허용됩니다.", nameof(example));
+            }
+
+            return;
+        }
+
+        if (example.ExampleBodyLength != example.ExampleBody.Length)
+        {
+            throw new ArgumentException("ExampleBodyLength가 본문 길이와 일치하지 않습니다.", nameof(example));
+        }
+
+        if (!LogHash.IsSha256Hex(example.ExampleBodyHash ?? string.Empty)
+            || example.ExampleBodyHash != LogHash.Sha256Hex(example.ExampleBody))
+        {
+            throw new ArgumentException("ExampleBodyHash는 ExampleBody의 SHA-256 hex 해시여야 합니다.", nameof(example));
+        }
     }
 
     private static string ResolveConfigFile(string configDirectory, string fileName)
