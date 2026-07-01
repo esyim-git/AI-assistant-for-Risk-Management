@@ -62,14 +62,23 @@ public static class CompletionDisplayFormatter
 
     private static string BuildSafetyText(CompletionItem item)
     {
+        if (item.Finding is not null)
+        {
+            var findingText = NormalizeInline($"{item.Finding.Code}: {item.Finding.Message}");
+            if (string.IsNullOrWhiteSpace(item.SafetyNote))
+            {
+                return findingText;
+            }
+
+            var safetyNote = NormalizeInline(item.SafetyNote);
+            return string.Equals(findingText, safetyNote, StringComparison.Ordinal)
+                ? findingText
+                : $"{findingText} | {safetyNote}";
+        }
+
         if (!string.IsNullOrWhiteSpace(item.SafetyNote))
         {
             return NormalizeInline(item.SafetyNote);
-        }
-
-        if (item.Finding is not null)
-        {
-            return NormalizeInline($"{item.Finding.Code}: {item.Finding.Message}");
         }
 
         return item.Insertable ? string.Empty : "Non-insertable safety hint.";

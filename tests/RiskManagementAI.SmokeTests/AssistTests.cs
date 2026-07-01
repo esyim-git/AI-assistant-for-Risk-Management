@@ -91,6 +91,21 @@ internal static class AssistTests
             && displayBlocked.InsertabilityLabel == "Info only",
             "Assist popup display formatter should keep blocked hints non-insertable and surface structured finding text");
 
+        var displayBlockedWithNote = CompletionDisplayFormatter.FromItem(new CompletionItem(
+            "blocked delete with note",
+            "DELETE FROM SAMPLE",
+            CompletionItemKind.BlockedHint,
+            "display-provider",
+            RequiresReview: true,
+            Insertable: false,
+            new SafetyFinding("SQL_DML_DELETE", SafetySeverity.Blocker, "DELETE is blocked."),
+            "조회 전용 SQL만 추천합니다.",
+            1));
+        context.AssertTrue(
+            displayBlockedWithNote.SafetyText.StartsWith("SQL_DML_DELETE: DELETE is blocked.", StringComparison.Ordinal)
+            && displayBlockedWithNote.SafetyText.Contains("조회 전용 SQL만 추천합니다.", StringComparison.Ordinal),
+            "Assist popup display formatter should surface structured finding before generic SafetyNote for blocked hints");
+
         var blockedFinding = new SafetyFinding("SQL_BLOCKED_DELETE", SafetySeverity.Blocker, "Blocked statement", "DELETE", 0);
         var reviewFinding = new SafetyFinding("SQL_REVIEW_REQUIRED", SafetySeverity.Medium, "Review statement", null, 7);
         var safetyRegistry = new CompletionProviderRegistry([
