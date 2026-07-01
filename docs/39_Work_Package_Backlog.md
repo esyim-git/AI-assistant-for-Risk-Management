@@ -162,11 +162,11 @@
 - **Branch**: `feature/qa-wp-01-safety-negative-hardening` · **프롬프트**: `prompts/codex/QA-WP-01_safety_checker_negative_hardening.md`.
 
 ## QA-WP-02. Reconciliation·Limit 7상태/RECON 경계 SmokeTest 하드닝 — **DONE (#116, VERIFIED — local-gate)** (품질)
-- **상태**: **DONE (#116 머지 `670e343`)**. LimitReconciliationTests +6(Recon +4·Limit +2): usage-ratio 경계(`>1`=Breach·`>=0.9`=Warning off-by-one 0, `Classify()` 실 로직 검증)·RECON 9코드 순서=정본·enum ordinal(DUPLICATE_LIMIT last)·BASE_DT 정규화·통화/단위 non-fail. 제품 코드 0. `Total 834→840`. adversarial 4축 0 confirmed.
+- **상태**: **DONE (#116 머지 `670e343`)**. LimitReconciliationTests +6(Recon +4·Limit +2): usage-ratio 경계(`>1`=Breach·`>=0.9`=Warning off-by-one 0, `Classify()` 실 로직 검증)·RECON 9코드 순서=정본·enum ordinal(DUPLICATE_LIMIT last)·BASE_DT 정규화·통화/단위 non-fail. 제품 코드 0. `Total 849→855`(누적 기준). adversarial 4축 0 confirmed.
 - **Branch**: `feature/qa-wp-02-recon-limit-edge-hardening` · **프롬프트**: `prompts/codex/QA-WP-02_reconciliation_limit_edge_hardening.md`.
 
 ## UX-WP-10. Smart Assist 정적 completion seed 라이브러리 확장 (SQL·VBA·RiskPhrase) — **DONE (#117, VERIFIED — local-gate)** (콘텐츠)
-- **상태**: **DONE (#117 머지 `d8cb415`)**. SQL seed 3(SELECT 전용·placeholder)·VBA seed 3(Option Explicit·에러처리·금지 API 0·시트 Add만)·RiskPhrase 4(검토용 초안) 추가. **가드 테스트가 전 insertable seed를 `SqlSafetyChecker`(Blocker 0)·`VbaSafetyChecker`(<High)로 전수 검사** — unsafe seed 유입 자동 차단. 엔진/provider 구조 불변·`Total 834→840`(+6 Assist). adversarial 4축 0 confirmed.
+- **상태**: **DONE (#117 머지 `d8cb415`)**. SQL seed 3(SELECT 전용·placeholder)·VBA seed 3(Option Explicit·에러처리·금지 API 0·시트 Add만)·RiskPhrase 4(검토용 초안) 추가. **가드 테스트가 전 insertable seed를 `SqlSafetyChecker`(Blocker 0)·`VbaSafetyChecker`(<High)로 전수 검사** — unsafe seed 유입 자동 차단. 엔진/provider 구조 불변·`Total 855→861`(+6 Assist, 누적 기준). adversarial 4축 0 confirmed.
 - **Branch**: `feature/ux-wp-10-completion-seed-expansion` · **프롬프트**: `prompts/codex/UX-WP-10_completion_seed_library_expansion.md`.
 
 ### Wave 2 — READY (NEXT UP, 4 WP 병렬)
@@ -187,7 +187,7 @@
 
 ## ★ UX-WP-11. Excel 2021 Function Helper 카탈로그 확장 (embedded resource) — **READY** (콘텐츠)
 - **목표**: UX-WP-04 Excel Function Helper의 **함수 카탈로그(embedded resource)를 큐레이션 확장** — 함수별 목적·인수·리스크예시·Excel 2021 대체식(365 차단 함수는 대체식 필수). **차단 함수(§6 VSTACK 등) 추천 0·2021 호환만.** embedded resource(critical glob 미사용)·자동삽입 0·검색어 미로그. 엔진/UI 배선 구조 불변.
-- **수정예상파일**: Excel 함수 카탈로그 embedded resource(`Data/Resources/*` UX-WP-04 소스)·(필요 시) `AssistTests`/Excel helper 테스트. **도메인 `Assist`/`Safety`**(2021 호환 단언).
+- **수정예상파일**: Excel 함수 카탈로그 embedded resource(`src/RiskManagementAI.Core/Excel/Resources/excel_function_help.json` — UX-WP-04 소스)·(필요 시) `AssistTests`/Excel helper 테스트. **도메인 `Assist`/`Safety`**(2021 호환 단언).
 - **Branch**: `feature/ux-wp-11-excel-function-catalog` · **프롬프트**: `prompts/codex/UX-WP-11_excel_function_catalog_expansion.md`.
 
 ---

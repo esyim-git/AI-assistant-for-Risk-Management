@@ -17,10 +17,10 @@
 ## B. Codex 작업 큐 (전부 **프롬프트 READY**·저위험·독립 브랜치 off main·일괄 리뷰 가능)
 > 파일 겹침 0 → **병렬 진행 안전**. 권장 착수 순서 = 1 → 2 → 3 → 4(가치·명확성 순). 각 WP는 `docs/39` 원장에 등재.
 
-1. **FEEDBACK-WP-02** (NEXT UP) — `prompts/codex/FEEDBACK-WP-02_prompt_reflection.md`. 검색 승인 Example → `DraftRequest.Context` review 경유 read-only 반영. Core+테스트. 파일: `Core/Generation/*`.
-2. **UX-WP-07** (Smart Assist 표면화 하이진) — `prompts/codex/UX-WP-07_smart_assist_surfacing_hygiene.md`. dedupe Kind 인지·Info 힌트 필터·allow-function 표면화. 파일: `Core/Assist/CompletionEngine.cs`·`Core/Assist/Providers/StaticCompletionProviders.cs`.
-3. **R2-WP-05** (R2 데드코드 하이진, 자기검증형·동작 불변) — `prompts/codex/R2-WP-05_residual_code_hygiene.md`. dead Welford 필드 제거(사용 중이면 no-change). 파일: `Core/Data/DataProfiler.cs`.
-4. **UX-WP-08** (Popup Esc/Close 포커스 복원 C-7) — `prompts/codex/UX-WP-08_completion_popup_focus_restore.md`. ⚠️ 실 포커스 렌더=**Gate B**(로컬 검증 제한적). 파일: `App/Controls/CompletionPopup.xaml.cs`.
+1. **QA-WP-03** (Kb/Citation 하드닝) — `prompts/codex/QA-WP-03_kb_citation_hardening.md`. 검색·인용·원문 가드 경계 회귀. 파일: `tests/RiskManagementAI.SmokeTests/KbTests.cs`.
+2. **QA-WP-04** (Report/RISK_VISUAL 하드닝) — `prompts/codex/QA-WP-04_report_hardening.md`. 정확 Exception Count·HHI 0분모·시트 배선 회귀. 파일: `tests/RiskManagementAI.SmokeTests/ReportTests.cs`.
+3. **QA-WP-05** (Csv/Xlsx/DataProfile 하드닝) — `prompts/codex/QA-WP-05_csv_xlsx_profile_hardening.md`. CP949·streaming 상한·profile parity 회귀. 파일: `tests/RiskManagementAI.SmokeTests/{CsvTests,XlsxTests,DataProfileTests}.cs`.
+4. **UX-WP-11** (Excel 2021 Function Helper 카탈로그 확장) — `prompts/codex/UX-WP-11_excel_function_catalog_expansion.md`. embedded 카탈로그 큐레이션 확장·차단 함수 추천 0 가드. 파일: `src/RiskManagementAI.Core/Excel/Resources/excel_function_help.json` + helper/Assist 테스트.
 
 > STOP 게이트(R4 LLM·NCR 실 Pack·STAB-WP-05 서명·Gate B/C)는 여전히 **승인 선행** — 위 큐에 없음. 큐 소진 시 추가 WP는 일요일 Claude 프롬프트 작성.
 
@@ -38,4 +38,4 @@
 - PR #107: truth-sync FEEDBACK-WP-01 DONE + FEEDBACK-WP-02 프롬프트 + 본 계획 + **cleanup WP 3종(UX-WP-07·UX-WP-08·R2-WP-05) 프롬프트 + `docs/39` 원장 등재**.
 - **결과**: Codex 주간 큐 = **4 WP(전부 프롬프트 READY)**. 사용자는 #107 머지 후 Codex를 병렬(독립 브랜치)로 돌리고, 일요일 리셋 시 Claude가 §C대로 열린 PR 일괄 리뷰. Claude PR 워치 미설정(예산 보존).
 
-> 관련: `CLAUDE.md §11`, `AGENTS.md §0·§9`, `docs/38`·`docs/39`, `SKILLS.md`, `prompts/codex/FEEDBACK-WP-02_prompt_reflection.md`.
+> 관련: `CLAUDE.md §11`, `AGENTS.md §0·§9`, `docs/38`·`docs/39`, `SKILLS.md`, `prompts/codex/QA-WP-03_kb_citation_hardening.md`, `prompts/codex/QA-WP-04_report_hardening.md`, `prompts/codex/QA-WP-05_csv_xlsx_profile_hardening.md`, `prompts/codex/UX-WP-11_excel_function_catalog_expansion.md`.
