@@ -2,7 +2,7 @@
 
 > **맥락**: Claude 사용 한도 소진 임박 → Codex가 **일요일(07-05) 리셋 전까지 저위험 WP 진행** → 리셋 시 Claude가 **한 주치 결과를 일괄 점검(4축 리뷰 + truth-sync)**. 리셋 전 unspent 한도는 소멸하므로, 지금 남은 한도로 **Codex 작업 큐 + Sunday 리뷰 하네스**를 준비한다. 본 문서는 운영 계획이며 코드 동작을 바꾸지 않는다(절대원칙 §3·STOP §11.5·과대표기 금지 §11.4 전제).
 > **✅ 실행 완료(2026-07-01)**: Codex가 큐 4 WP를 예상보다 빠르게 구현 → PR #108(FEEDBACK-WP-02)·#109(R2-WP-05)·#110(UX-WP-07)·#111(UX-WP-08). Claude가 **§C 계획대로 adversarial 4축 workflow(각 finding 독립 검증)** 로 점검 → 4건 전부 APPROVE·**0 confirmed findings** → squash 머지 → truth-sync 완료. 일요일까지 기다릴 필요 없이 사이클 1회 완주. 큐 소진, 다음 방향은 사용자 지정 대기.
-> **기준선(갱신)**: main `d8cb415`(VERSION 0.7.0, 확장 트랙 Wave 1 #115~#117 머지 후), 정본 SmokeTest `Total=861 PASS=861 FAIL=0`, NEXT UP=확장 트랙 Wave 2(QA-WP-03·QA-WP-04·QA-WP-05·UX-WP-11 병렬 — Codex 실행 대기). Gate B/C 실 Test = user-driven(`docs/48 §B″` 실행 런북 참조).
+> **기준선(갱신)**: main `d8cb415`(VERSION 0.7.0, 확장 트랙 Wave 1 #115~#117 머지 후), 정본 SmokeTest `Total=861 PASS=861 FAIL=0`, NEXT UP=확장 트랙 Wave 2(QA-WP-03·QA-WP-04·QA-WP-05·UX-WP-11 병렬 — Codex 실행 대기; 아래 §B 작업 큐도 Wave 2로 정합). Gate B/C 실 Test = user-driven(`docs/48 §B″` 실행 런북 참조).
 
 ---
 
