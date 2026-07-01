@@ -406,6 +406,24 @@ sealed class StubDraftService : ILocalDraftService
     }
 }
 
+sealed class CapturingDraftService : ILocalDraftService
+{
+    private readonly DraftResponse response;
+
+    public CapturingDraftService(DraftResponse response)
+    {
+        this.response = response;
+    }
+
+    public DraftRequest? LastRequest { get; private set; }
+
+    public DraftResponse GenerateDraft(DraftRequest? request)
+    {
+        LastRequest = request;
+        return response;
+    }
+}
+
 sealed class FixedClock : IClock
 {
     public FixedClock(DateOnly today)
