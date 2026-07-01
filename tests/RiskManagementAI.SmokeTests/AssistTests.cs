@@ -36,6 +36,27 @@ internal static class AssistTests
             new CompletionContext(CompletionLanguage.RiskComment, string.Empty, 0, string.Empty, CompletionEngine.NoModelMode));
         context.AssertTrue(emptyResult.Mode == CompletionEngine.NoModelMode && emptyResult.Items.Count == 0, "Assist completion engine should work without model or providers");
 
+        context.AssertTrue(
+            CompletionTriggerPolicy.EvaluateAsYouType(CompletionLanguage.Sql, "SE", "SE", matchCount: 1, suppressed: false).ShouldShow,
+            "Assist as-you-type completion trigger should show when prefix threshold and matches are satisfied");
+        context.AssertTrue(
+            !CompletionTriggerPolicy.EvaluateAsYouType(CompletionLanguage.Sql, "S", "S", matchCount: 1, suppressed: false).ShouldShow,
+            "Assist as-you-type completion trigger should close when prefix is below threshold");
+        context.AssertTrue(
+            !CompletionTriggerPolicy.EvaluateAsYouType(CompletionLanguage.Sql, "SE", "SE", matchCount: 0, suppressed: false).ShouldShow,
+            "Assist as-you-type completion trigger should close when no matches remain");
+        context.AssertTrue(
+            !CompletionTriggerPolicy.EvaluateAsYouType(CompletionLanguage.Sql, "SE", "SE", matchCount: 1, suppressed: true).ShouldShow,
+            "Assist as-you-type completion trigger should stay closed during programmatic edit suppression");
+        context.AssertTrue(
+            !CompletionTriggerPolicy.EvaluateAsYouType((CompletionLanguage)999, "SE", "SE", matchCount: 1, suppressed: false).ShouldShow
+            && !CompletionTriggerPolicy.EvaluateAsYouType(CompletionLanguage.Excel, string.Empty, string.Empty, matchCount: 1, suppressed: false).ShouldShow,
+            "Assist as-you-type completion trigger should reject unsupported language and empty text");
+        context.AssertTrue(
+            CompletionTriggerPolicy.ShouldShowExplicitInvocation(matchCount: 1)
+            && !CompletionTriggerPolicy.ShouldShowExplicitInvocation(matchCount: 0),
+            "Assist explicit Ctrl+Space completion trigger should ignore prefix threshold and depend only on matches");
+
         var blockedFinding = new SafetyFinding("SQL_BLOCKED_DELETE", SafetySeverity.Blocker, "Blocked statement", "DELETE", 0);
         var reviewFinding = new SafetyFinding("SQL_REVIEW_REQUIRED", SafetySeverity.Medium, "Review statement", null, 7);
         var safetyRegistry = new CompletionProviderRegistry([

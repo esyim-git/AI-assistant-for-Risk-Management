@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using RiskManagementAI.Core.Assist;
 using RiskManagementAI.Core.Assist.Providers;
 using RiskManagementAI.Core.Config;
@@ -53,6 +54,10 @@ public partial class MainWindow : Window
     private CompletionLanguage _completionTargetLanguage;
     private CompletionResult? _completionResult;
     private IReadOnlyList<ExcelFunctionInfo> _excelFunctionHelperResults = Array.Empty<ExcelFunctionInfo>();
+    private readonly DispatcherTimer _completionDebounceTimer;
+    private TextBox? _pendingCompletionTextBox;
+    private CompletionLanguage _pendingCompletionLanguage;
+    private bool _suppressCompletionTextChanged;
 
     public MainWindow()
     {
@@ -63,6 +68,8 @@ public partial class MainWindow : Window
         _excelFunctionHelper = new ExcelFunctionHelper(_ruleSet);
         _excelReportBuilder = new ExcelReportBuilder(_ruleSet, _taskLogWriter);
         _completionEngine = new CompletionEngine(new CompletionProviderRegistry(StaticCompletionProviderFactory.CreateDefault(_ruleSet)));
+        _completionDebounceTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
+        _completionDebounceTimer.Tick += OnCompletionDebounceTimerTick;
         _draftService = new NoModelDraftService(_policyLoadResult.Policy);
         _draftPipeline = new DraftPipeline(_draftService, _ruleSet, _taskLogWriter);
         try
@@ -178,6 +185,7 @@ public partial class MainWindow : Window
     {
         _completionLanguages[textBox] = language;
         textBox.PreviewKeyDown += OnCompletionTextBoxPreviewKeyDown;
+        textBox.TextChanged += OnCompletionTextBoxTextChanged;
     }
 
     private void OnCompletionTextBoxPreviewKeyDown(object sender, KeyEventArgs e)
@@ -187,9 +195,15 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (CompletionPopupControl.IsCompletionOpen && e.Key is Key.Enter or Key.Tab)
+        if (CompletionPopupControl.IsCompletionOpen && (e.Key is Key.Enter or Key.Tab))
         {
             e.Handled = CompletionPopupControl.TryAcceptSelected();
+            return;
+        }
+
+        if (CompletionPopupControl.IsCompletionOpen && (e.Key is Key.Down or Key.Up))
+        {
+            e.Handled = CompletionPopupControl.MoveSelection(e.Key == Key.Down ? 1 : -1);
             return;
         }
 
@@ -203,14 +217,79 @@ public partial class MainWindow : Window
 
         if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.Space)
         {
-            ShowCompletionPopup(textBox, language);
+            ShowCompletionPopup(textBox, language, grabFocus: true, enforceAsYouTypePolicy: false);
             e.Handled = true;
         }
     }
 
-    private void ShowCompletionPopup(TextBox textBox, CompletionLanguage language)
+    private void OnCompletionTextBoxTextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (sender is not TextBox textBox || !_completionLanguages.TryGetValue(textBox, out var language))
+        {
+            return;
+        }
+
+        var prefix = ExtractCompletionPrefix(textBox.Text, textBox.CaretIndex);
+        var queryDecision = CompletionTriggerPolicy.EvaluateAsYouType(
+            language,
+            textBox.Text,
+            prefix,
+            matchCount: 1,
+            _suppressCompletionTextChanged);
+        if (!queryDecision.ShouldShow)
+        {
+            _completionDebounceTimer.Stop();
+            if (_completionTargetBox == textBox)
+            {
+                CompletionPopupControl.Close();
+            }
+
+            return;
+        }
+
+        _pendingCompletionTextBox = textBox;
+        _pendingCompletionLanguage = language;
+        _completionDebounceTimer.Stop();
+        _completionDebounceTimer.Start();
+    }
+
+    private void OnCompletionDebounceTimerTick(object? sender, EventArgs e)
+    {
+        _completionDebounceTimer.Stop();
+        if (_pendingCompletionTextBox is null)
+        {
+            return;
+        }
+
+        ShowCompletionPopup(
+            _pendingCompletionTextBox,
+            _pendingCompletionLanguage,
+            grabFocus: false,
+            enforceAsYouTypePolicy: true);
+    }
+
+    private void ShowCompletionPopup(TextBox textBox, CompletionLanguage language, bool grabFocus = true, bool enforceAsYouTypePolicy = false)
     {
         var prefix = ExtractCompletionPrefix(textBox.Text, textBox.CaretIndex);
+        if (enforceAsYouTypePolicy)
+        {
+            var queryDecision = CompletionTriggerPolicy.EvaluateAsYouType(
+                language,
+                textBox.Text,
+                prefix,
+                matchCount: 1,
+                _suppressCompletionTextChanged);
+            if (!queryDecision.ShouldShow)
+            {
+                if (_completionTargetBox == textBox)
+                {
+                    CompletionPopupControl.Close();
+                }
+
+                return;
+            }
+        }
+
         var context = new CompletionContext(
             language,
             textBox.Text,
@@ -229,13 +308,32 @@ public partial class MainWindow : Window
         if (_completionResult.Items.Count == 0)
         {
             CompletionPopupControl.Close();
-            ShowFindings("Smart Assist", [
-                new SafetyFinding("COMPLETION_NO_ITEMS", SafetySeverity.Info, "현재 입력 위치에 표시할 추천이 없습니다.")
-            ]);
+            if (!enforceAsYouTypePolicy)
+            {
+                ShowFindings("Smart Assist", [
+                    new SafetyFinding("COMPLETION_NO_ITEMS", SafetySeverity.Info, "현재 입력 위치에 표시할 추천이 없습니다.")
+                ]);
+            }
+
             return;
         }
 
-        CompletionPopupControl.Show(textBox, _completionResult.Items);
+        if (enforceAsYouTypePolicy)
+        {
+            var showDecision = CompletionTriggerPolicy.EvaluateAsYouType(
+                language,
+                textBox.Text,
+                prefix,
+                _completionResult.Items.Count,
+                _suppressCompletionTextChanged);
+            if (!showDecision.ShouldShow)
+            {
+                CompletionPopupControl.Close();
+                return;
+            }
+        }
+
+        CompletionPopupControl.Show(textBox, _completionResult.Items, grabFocus);
     }
 
     private void OnCompletionPopupItemAccepted(object? sender, CompletionItem item)
@@ -266,7 +364,17 @@ public partial class MainWindow : Window
             return;
         }
 
-        InsertCompletionText(_completionTargetBox, item.InsertText);
+        _completionDebounceTimer.Stop();
+        _suppressCompletionTextChanged = true;
+        try
+        {
+            InsertCompletionText(_completionTargetBox, item.InsertText);
+        }
+        finally
+        {
+            _suppressCompletionTextChanged = false;
+        }
+
         var auditFinding = AppendSuggestionAudit(item);
         if (auditFinding is not null)
         {
@@ -565,7 +673,17 @@ public partial class MainWindow : Window
             return;
         }
 
-        InsertExcelFunctionExample(ExcelRequestBox, _excelFunctionHelper.BuildFormulaInsertion(selected));
+        _completionDebounceTimer.Stop();
+        _suppressCompletionTextChanged = true;
+        try
+        {
+            InsertExcelFunctionExample(ExcelRequestBox, _excelFunctionHelper.BuildFormulaInsertion(selected));
+        }
+        finally
+        {
+            _suppressCompletionTextChanged = false;
+        }
+
         ExcelRequestBox.Focus();
         ShowFindings("Excel Function Helper", [
             new SafetyFinding(

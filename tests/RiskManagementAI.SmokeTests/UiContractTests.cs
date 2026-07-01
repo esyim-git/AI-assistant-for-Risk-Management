@@ -321,12 +321,35 @@ context.AssertTrue(
     && mainWindowCode.Contains("Key.Escape", StringComparison.Ordinal),
     "Assist completion UI should wire Ctrl+Space Enter Tab Esc keys");
 context.AssertTrue(
+    mainWindowCode.Contains("TextChanged += OnCompletionTextBoxTextChanged", StringComparison.Ordinal)
+    && mainWindowCode.Contains("DispatcherTimer", StringComparison.Ordinal)
+    && mainWindowCode.Contains("CompletionTriggerPolicy.EvaluateAsYouType", StringComparison.Ordinal),
+    "Assist as-you-type UI should use debounced TextChanged and Core trigger policy");
+context.AssertTrue(
+    completionPopupCode.Contains("Show(TextBox placementTarget, IReadOnlyList<CompletionItem> items, bool grabFocus = true)", StringComparison.Ordinal)
+    && completionPopupCode.Contains("if (RootPopup.IsOpen && grabFocus)", StringComparison.Ordinal)
+    && mainWindowCode.Contains("grabFocus: false", StringComparison.Ordinal),
+    "Assist as-you-type popup should preserve TextBox focus while Ctrl+Space can still grab focus");
+context.AssertTrue(
+    completionPopupCode.Contains("MoveSelection(int delta)", StringComparison.Ordinal)
+    && mainWindowCode.Contains("CompletionPopupControl.MoveSelection", StringComparison.Ordinal)
+    && mainWindowCode.Contains("Key.Down", StringComparison.Ordinal)
+    && mainWindowCode.Contains("Key.Up", StringComparison.Ordinal),
+    "Assist as-you-type UI should support TextBox-owned Up and Down popup selection");
+context.AssertTrue(
+    mainWindowCode.Contains("_suppressCompletionTextChanged = true", StringComparison.Ordinal)
+    && mainWindowCode.Contains("InsertCompletionText(_completionTargetBox, item.InsertText)", StringComparison.Ordinal)
+    && mainWindowCode.Contains("CompletionPopupControl.Close()", StringComparison.Ordinal),
+    "Assist as-you-type UI should suppress programmatic edits and close stale popup states");
+context.AssertTrue(
     mainWindowCode.Contains("if (!item.Insertable)", StringComparison.Ordinal)
     && mainWindowCode.Contains("안전 힌트는 정보 표시 전용", StringComparison.Ordinal),
     "Assist completion UI should not insert SafetyHint or BlockedHint items");
 context.AssertTrue(
     mainWindowCode.Contains("InsertCompletionText(_completionTargetBox, item.InsertText)", StringComparison.Ordinal)
-    && !mainWindowCode.Contains("TextChanged += OnCompletion", StringComparison.Ordinal),
+    && mainWindowCode.Contains("TryAcceptSelected", StringComparison.Ordinal)
+    && mainWindowCode.Contains("OnCompletionPopupItemAccepted", StringComparison.Ordinal)
+    && mainWindowCode.Contains("_suppressCompletionTextChanged = true", StringComparison.Ordinal),
     "Assist completion UI should insert only on explicit selected completion accept");
 context.AssertTrue(
     mainWindowCode.Contains("SuggestionLogEntry.FromAcceptedItem", StringComparison.Ordinal)
