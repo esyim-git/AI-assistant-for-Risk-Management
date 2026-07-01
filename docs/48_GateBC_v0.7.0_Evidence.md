@@ -50,14 +50,14 @@ v0.7.0 portable ZIP을 **실 오프라인 Test PC(Gate B)** 및 **운영 반입 
 | B-2 ZIP 압축 해제 | ✅ PASS | (필수 트리 enumerate는 후속) | B1 |
 | B-3 오프라인 실행 | ✅ PASS | 인터넷 차단 기동 | B3 |
 | B-4 NoModelMode 기동 | ✅ PASS | — | B3 |
-| B-5 SQL/VBA/Excel 검사 | 🟡 **PARTIAL PASS** | 정상입력=문제없음 표시·비정상입력=변수누락 등 검사결과 표시 **정상**. **잔여** ① Smart Assist/입력중 추천문구/snippet 자동완성 **없음** → **UX Enhancement**(Gate B blocker 아님). **코드 조사(2026-06-30) 결과 = Ctrl+Space-only by-design**(`RegisterCompletionTextBox`가 `TextChanged` 미연결) → **B-5는 회귀 아님**. 정적 범위 입력중 추천은 **UX-WP-05 신규 추가**(as-you-type 트리거)·**UX-WP-06 팝업 표시 확장**, 실시간 LLM 랭킹 = R4 미구현 ② Excel 검사가 단순 함수 차단 수준 — **함수 상세설명·사용예시·Excel 2021 대체식** 안내 필요 → 신규 **UX-WP-04 Excel Function Helper** | B13 |
+| B-5 SQL/VBA/Excel 검사 | 🟡 **PARTIAL PASS** | 정상입력=문제없음 표시·비정상입력=변수누락 등 검사결과 표시 **정상**. **잔여** ① Smart Assist/입력중 추천문구/snippet 자동완성 **없음** → **UX Enhancement**(Gate B blocker 아님). **코드 조사(2026-06-30) 결과 = Ctrl+Space-only by-design**(`RegisterCompletionTextBox`가 `TextChanged` 미연결) → **B-5는 회귀 아님**. 정적 범위 입력중 추천은 **UX-WP-05 as-you-type 트리거(#103 DONE, local-gate)**·**UX-WP-06 팝업 표시 확장(#104 DONE, local-gate)**, 실시간 LLM 랭킹 = R4 미구현 ② Excel 검사가 단순 함수 차단 수준 — 함수 상세설명·사용예시·Excel 2021 대체식 → **UX-WP-04 Excel Function Helper(#102 DONE, local-gate)**. **후속 개선 3건 구현 완료(local-gate)** — 단 실행 Release UI에서 실제 표면화(as-you-type 팝업·Excel Helper view) 재확인은 **Gate B(Test PC)** 대기 → B-5 재검증 필요(현 PARTIAL 유지). | B13 |
 | B-6 CSV/XLSX 샘플 분석 | ⬜ **PENDING** | **다음 사용자 액션** | B4 입력/DataProfile |
 | B-7 한도분석 실행 | ✅ PASS | 7상태/`DUPLICATE_LIMIT` 상세 캡처는 후속 | B4 |
 | B-8 Excel Report 생성 | ⬜ **PENDING** | **다음 사용자 액션** | B9 (`RISK_VISUAL`) |
 | B-9 History/Audit Log | ✅ PASS | 해시 Audit | B14 |
 | B-10 종료 후 재실행 | ✅ PASS | — | B15 |
 
-**분류 결정**: ① Smart Assist 부재 = **UX Enhancement**(Gate B blocker 아님) → `docs/39` UX Enhancement 트랙 **UX-WP-05/06**. ② Excel 함수 상세설명/예시/대체식 = 신규 **UX-WP-04 Excel Function Helper**(`docs/39`). 둘 다 **기능 코드 미변경**, WP 등록만.
+**분류 결정**: ① Smart Assist 부재 = **UX Enhancement**(Gate B blocker 아님) → **UX-WP-05/06 DONE**(#103/#104, local-gate). ② Excel 함수 상세설명/예시/대체식 = **UX-WP-04 Excel Function Helper DONE**(#102, local-gate). **3건 모두 구현 완료(local-gate)** — 실 Release UI 표면화 재확인 = Gate B(Test PC) 대기이므로 B-5는 재검증 전까지 PARTIAL 유지(과대표기 금지).
 **다음 사용자 액션**: **B-6 CSV/XLSX 샘플 분석**, **B-8 Excel Report 생성**(→ granular B4·B9 증거 보강). 완료 시 본 §B′ 표 + granular 행 갱신 후 Gate B 봉인 재판정.
 
 ## C. Gate C — 운영 반입 / Excel 2021 (`docs/41 §4`·`docs/28`)
