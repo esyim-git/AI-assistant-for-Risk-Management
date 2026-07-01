@@ -200,6 +200,18 @@ internal static class AssistTests
         context.AssertTrue(sqlProviderResult.Items.Count(item => item.Finding?.Code == "SQL_DML_DELETE") == 1, "Assist SQL completion provider should collapse duplicate pinned finding rows for DML");
         context.AssertTrue(sqlProviderResult.Items.Where(item => item.Insertable).All(item => !ContainsAny(item.InsertText, "INSERT", "UPDATE", "DELETE", "MERGE", "CREATE", "ALTER", "DROP", "TRUNCATE", "GRANT", "REVOKE", "EXEC", "CALL", "COMMIT", "ROLLBACK")), "Assist SQL completion provider should not recommend DML or DDL text");
         context.AssertTrue(staticProviderEngine.GetCompletions(new CompletionContext(CompletionLanguage.Sql, "SEL", 3, "SEL", CompletionEngine.NoModelMode)).Items.Any(item => item.Label == "SELECT" && item.Insertable), "Assist SQL completion provider should recommend read-only SELECT keyword");
+        var sqlSeedItems = new SqlCompletionProvider(ruleSet)
+            .GetCompletions(new CompletionContext(CompletionLanguage.Sql, "SELECT BASE_DT FROM <TABLE_NAME>", 0, string.Empty, CompletionEngine.NoModelMode))
+            .Where(item => item.Insertable)
+            .ToArray();
+        context.AssertTrue(
+            sqlSeedItems.Any(item => item.Label == "SELECT limit usage ratio")
+                && sqlSeedItems.Any(item => item.Label == "SELECT prior-day exposure delta")
+                && sqlSeedItems.Any(item => item.Label == "SELECT duplicate join keys"),
+            "Assist SQL completion provider should include curated usage and join-key SELECT seeds");
+        context.AssertTrue(
+            sqlSeedItems.All(item => new SqlSafetyChecker(ruleSet).Check(item.InsertText).All(finding => finding.Severity != SafetySeverity.Blocker)),
+            "Assist SQL completion seeds should remain read-only under SqlSafetyChecker");
 
         var vbaProviderResult = staticProviderEngine.GetCompletions(new CompletionContext(
             CompletionLanguage.Vba,
@@ -209,6 +221,18 @@ internal static class AssistTests
             CompletionEngine.NoModelMode));
         context.AssertTrue(vbaProviderResult.Items.Any(item => item.Kind == CompletionItemKind.BlockedHint && item.Finding?.Code == "VBA_SHELL"), "Assist VBA completion provider should return BlockedHint for forbidden Shell API");
         context.AssertTrue(vbaProviderResult.Items.Where(item => item.Insertable).All(item => !ContainsAny(item.InsertText, "Shell", "WScript.Shell", "Kill", "FileSystemObject", "Declare PtrSafe", "Outlook.Application", "WinHttp", "MSXML2.XMLHTTP", "FollowHyperlink")), "Assist VBA completion provider should not recommend forbidden API text");
+        var vbaSeedItems = new VbaCompletionProvider(ruleSet)
+            .GetCompletions(new CompletionContext(CompletionLanguage.Vba, "Option Explicit\nSub Test()\nEnd Sub", 0, string.Empty, CompletionEngine.NoModelMode))
+            .Where(item => item.Insertable)
+            .ToArray();
+        context.AssertTrue(
+            vbaSeedItems.Any(item => item.Label == "Safe range to array")
+                && vbaSeedItems.Any(item => item.Label == "Create review sheet")
+                && vbaSeedItems.Any(item => item.Label == "Safe calculation state restore"),
+            "Assist VBA completion provider should include curated safe Excel automation seeds");
+        context.AssertTrue(
+            vbaSeedItems.All(item => new VbaSafetyChecker(ruleSet).Check(item.InsertText).All(finding => finding.Severity < SafetySeverity.High)),
+            "Assist VBA completion seeds should avoid High and Blocker findings under VbaSafetyChecker");
 
         var excelProvider = new Excel2021CompletionProvider(ruleSet);
         var excelItems = excelProvider.GetCompletions(new CompletionContext(CompletionLanguage.Excel, "=X", 2, "X", CompletionEngine.NoModelMode));
@@ -265,6 +289,17 @@ internal static class AssistTests
 
         var riskPhraseItems = staticProviderEngine.GetCompletions(new CompletionContext(CompletionLanguage.RiskComment, string.Empty, 0, string.Empty, CompletionEngine.NoModelMode)).Items;
         context.AssertTrue(riskPhraseItems.Any(item => item.Kind == CompletionItemKind.Phrase && item.Insertable), "Assist RiskPhrase provider should recommend review-only risk phrases");
+        context.AssertTrue(
+            riskPhraseItems.Any(item => item.Label == "집중도 상승 검토용 초안")
+                && riskPhraseItems.Any(item => item.Label == "데이터 품질 검토용 초안")
+                && riskPhraseItems.Any(item => item.Label == "준법 확인 검토용 초안")
+                && riskPhraseItems.Any(item => item.Label == "대사 예외 검토용 초안"),
+            "Assist RiskPhrase provider should include curated review-draft risk phrases");
+        context.AssertTrue(
+            riskPhraseItems
+                .Where(item => item.Label.Contains("검토용 초안", StringComparison.Ordinal))
+                .All(item => item.InsertText.Contains("검토용 초안", StringComparison.Ordinal)),
+            "Assist RiskPhrase review-draft seeds should preserve review-only wording");
         var forbiddenRiskPhraseTerms = new[]
         {
             "pass" + "word",
