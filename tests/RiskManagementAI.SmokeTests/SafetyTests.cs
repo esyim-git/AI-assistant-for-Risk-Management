@@ -41,6 +41,30 @@ foreach (var (keyword, sql) in sqlDenySamples)
     context.AssertTrue(findings.Any(f => f.Severity == SafetySeverity.Blocker && string.Equals(f.MatchedText, keyword, StringComparison.OrdinalIgnoreCase)), $"SQL {keyword} should be blocker");
 }
 
+var sqlBoundarySamples = new Dictionary<string, (string Sql, string MatchedText)>
+{
+    ["mixed case leading whitespace"] = ("\r\n\tdeLeTe FROM TRADE_SAMPLE WHERE BASE_DT = :BASE_DT", "deLeTe"),
+    ["line comment hidden keyword"] = ("SELECT TRADE_ID FROM TRADE_SAMPLE -- DELETE hidden\nWHERE BASE_DT = :BASE_DT", "DELETE"),
+    ["block comment hidden keyword"] = ("SELECT TRADE_ID FROM TRADE_SAMPLE /* DROP hidden */ WHERE BASE_DT = :BASE_DT", "DROP"),
+    ["multi statement second keyword"] = ("SELECT TRADE_ID FROM TRADE_SAMPLE; UPDATE TRADE_SAMPLE SET AMT = 0", "UPDATE")
+};
+
+foreach (var (label, sample) in sqlBoundarySamples)
+{
+    var findings = sqlChecker.Check(sample.Sql).ToList();
+    context.AssertTrue(
+        findings.Any(f => f.Severity == SafetySeverity.Blocker && string.Equals(f.MatchedText, sample.MatchedText, StringComparison.OrdinalIgnoreCase)),
+        $"SQL checker boundary {label} should detect hidden blocker");
+}
+
+context.AssertTrue(sqlChecker.Check("   \r\n\t").Any(f => f.Code == "SQL_EMPTY" && f.Severity == SafetySeverity.Low), "SQL checker empty whitespace should return graceful finding");
+context.AssertTrue(
+    sqlChecker.Check("SELECT UPDATED_AT, CALL_AMOUNT FROM TRADE_SAMPLE WHERE BASE_DT = :BASE_DT").All(f => f.Severity != SafetySeverity.Blocker),
+    "SQL checker should not block keywords embedded inside safe SELECT identifiers");
+context.AssertTrue(
+    sqlChecker.Check("SELECT " + new string(' ', 4096) + "TRADE_ID FROM TRADE_SAMPLE WHERE BASE_DT = :BASE_DT").All(f => f.Severity != SafetySeverity.Blocker),
+    "SQL checker long safe SELECT should remain graceful");
+
 context.AssertTrue(sqlChecker.Check("SELECT * FROM TRADE_SAMPLE").Any(f => f.Code == "SQL_SELECT_STAR" && f.Severity == SafetySeverity.Medium), "SQL SELECT * should warn");
 context.AssertTrue(sqlChecker.Check("SELECT TRADE_ID FROM TRADE_SAMPLE WHERE 1=1").Any(f => f.Code == "SQL_WHERE_ALWAYS_TRUE"), "SQL WHERE 1=1 should warn");
 context.AssertTrue(sqlChecker.Check("SELECT A.ID FROM A CROSS JOIN B").Any(f => f.Code == "SQL_CROSS_JOIN"), "SQL CROSS JOIN should warn");
@@ -71,6 +95,13 @@ foreach (var (label, sample) in vbaDenySamples)
     context.AssertTrue(findings.All(f => f.Code != "VBA_OPTION_EXPLICIT_MISSING"), $"VBA {label} with Option Explicit should not warn missing Option Explicit");
 }
 
+context.AssertTrue(vbaChecker.Check("Option Explicit\nSub Test()\n    sHeLl \"cmd.exe\"\nEnd Sub").Any(f => f.Code == "VBA_SHELL" && f.Severity == SafetySeverity.Blocker), "VBA checker mixed case Shell should be blocked");
+context.AssertTrue(vbaChecker.Check("Option Explicit\nSub Test()\n    ' WScript.Shell hidden\nEnd Sub").Any(f => f.Code == "VBA_WSCRIPT"), "VBA checker comment-hidden WScript.Shell should be detected");
+context.AssertTrue(vbaChecker.Check("   \r\n\t").Any(f => f.Code == "VBA_EMPTY" && f.Severity == SafetySeverity.Low), "VBA checker empty whitespace should return graceful finding");
+context.AssertTrue(
+    vbaChecker.Check("Option Explicit\nSub Test()\n    Dim shellValue As String\n    shellValue = \"review only\"\nEnd Sub").All(f => f.Severity != SafetySeverity.Blocker),
+    "VBA checker should not block safe identifiers that contain denied words");
+
 context.AssertTrue(vbaChecker.Check("Option Explicit\nSub Test()\nApplication.DisplayAlerts = False\nEnd Sub").Any(f => f.Code == "VBA_DISPLAY_ALERTS_DISABLED"), "VBA DisplayAlerts false should warn");
 context.AssertTrue(vbaChecker.Check("Option Explicit\nSub Test()\nApplication.EnableEvents = False\nEnd Sub").Any(f => f.Code == "VBA_ENABLE_EVENTS_DISABLED"), "VBA EnableEvents false should warn");
 
@@ -87,6 +118,10 @@ foreach (var functionName in loadedRuleSet.ExcelBlockedFunctions)
 
 var allowedExcelFindings = excelChecker.CheckFormula("=XLOOKUP(A1,B:B,C:C)").ToList();
 context.AssertTrue(allowedExcelFindings.All(f => f.Code != "EXCEL_365_FUNCTION"), "Excel 2021 preferred function XLOOKUP should be allowed");
+context.AssertTrue(excelChecker.CheckFormula("=textsplit(A1,\",\")").Any(f => f.Code == "EXCEL_365_FUNCTION" && f.Severity == SafetySeverity.High), "Excel 2021 checker lowercase TEXTSPLIT should be blocked");
+context.AssertTrue(excelChecker.CheckFormula("=IF(TRUE,TEXTAFTER(A1,\"-\"),\"\")").Any(f => f.Code == "EXCEL_365_FUNCTION"), "Excel 2021 checker nested TEXTAFTER should be blocked");
+context.AssertTrue(!excelChecker.CheckFormula("TEXTSPLIT").Any(f => f.Code == "EXCEL_365_FUNCTION"), "Excel 2021 checker should not block function name without call syntax");
+context.AssertTrue(!excelChecker.CheckFormula("   ").Any(), "Excel 2021 checker empty whitespace should return no finding");
 
 var excelFunctionHelper = new ExcelFunctionHelper(loadedRuleSet);
 var xlookupInfo = excelFunctionHelper.Lookup("=xlookup(");
