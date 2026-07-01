@@ -287,8 +287,6 @@ public sealed class DataProfiler
         private decimal sum;
         private decimal min;
         private decimal max;
-        private double mean;
-        private double m2;
         private double legacyDoubleSum;
         private bool sumOverflowed;
         private bool sawTextValue;
@@ -330,8 +328,6 @@ public sealed class DataProfiler
                 {
                     min = parsed;
                     max = parsed;
-                    mean = (double)parsed;
-                    m2 = 0;
                     return;
                 }
 
@@ -344,12 +340,6 @@ public sealed class DataProfiler
                 {
                     max = parsed;
                 }
-
-                var sample = (double)parsed;
-                var delta = sample - mean;
-                mean += delta / count;
-                var deltaAfterMean = sample - mean;
-                m2 += delta * deltaAfterMean;
             }
             else
             {
