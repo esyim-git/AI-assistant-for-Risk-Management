@@ -1,6 +1,6 @@
 # 38. v1.0 Master Roadmap & Release Train (v0.6.0 → v1.0.0)
 
-> **현재 기준선 = v0.7.0 (R2 정식 릴리스) + STAB-WP-01~04 + STAB-UX-01/02 + UX-WP-01~03 + R2-WP-01~04 + REL-v0.7.0** (main `e69a1ae`, KB-WP-02·UX-WP-04~06 #101~#104 머지 후; **R2 분석 트랙 v0.7.0 정식 릴리스** 태그 `30c1cfb`·ZIP SHA256 `42C835…`·미서명; 직전 v0.6.0 태그 `3dfa80b`). **KB-WP-01/02 DONE**(#94/#101, 공개 규정 Clause Pack 계약·로더·가드 + clause keyword 검색·ClauseSnippetAllowed 게이트, local-gate). **UX-WP-04/05/06 DONE**(#102~#104, Excel Function Helper + Smart Assist as-you-type/팝업 표시, local-gate). **NEXT UP = FEEDBACK-WP-01**(ADR-014, 승인 Example RETRIEVAL — 학습 아님). WP 시퀀스 = KB-WP-01/02(DONE)→UX-WP-04/05/06(DONE)→FEEDBACK-WP-01(NEXT UP)→FEEDBACK-WP-02. **STAB-WP-05 인증서 경로 = A(사내 Enterprise CA) 확정**(나머지 §6.2·서명도구는 구현 WP, 실 증거 전 APPROVAL_REQUIRED 유지). 본 문서는 v0.6.0 다음 단계부터 v1.0 Team Pilot까지의 통합 실행 로드맵이다.
+> **현재 기준선 = v0.7.0 (R2 정식 릴리스) + STAB-WP-01~04 + STAB-UX-01/02 + UX-WP-01~03 + R2-WP-01~04 + REL-v0.7.0 + KB-WP-01/02 + UX-WP-04~06 + FEEDBACK-WP-01** (main `f8b330a`, FEEDBACK-WP-01 #106 머지 후; **R2 분석 트랙 v0.7.0 정식 릴리스** 태그 `30c1cfb`·ZIP SHA256 `42C835…`·미서명; 직전 v0.6.0 태그 `3dfa80b`). **KB-WP-01/02 DONE**(#94/#101, 공개 규정 Clause Pack 계약·로더·가드 + clause keyword 검색·ClauseSnippetAllowed 게이트, local-gate). **UX-WP-04/05/06 DONE**(#102~#104, Excel Function Helper + Smart Assist as-you-type/팝업 표시, local-gate). **FEEDBACK-WP-01 DONE**(#106, 승인 Example ingest 게이트·본문 non-log DTO 분리·결정적 검색·hash audit — RETRIEVAL·학습 아님, local-gate). **NEXT UP = FEEDBACK-WP-02**(ADR-014 §결정5, 검색 Example의 review 경유 Draft Prompt 반영 — 자동주입 0·학습 아님). WP 시퀀스 = KB-WP-01/02(DONE)→UX-WP-04/05/06(DONE)→FEEDBACK-WP-01(DONE)→FEEDBACK-WP-02(NEXT UP). **STAB-WP-05 인증서 경로 = A(사내 Enterprise CA) 확정**(나머지 §6.2·서명도구는 구현 WP, 실 증거 전 APPROVAL_REQUIRED 유지). 본 문서는 v0.6.0 다음 단계부터 v1.0 Team Pilot까지의 통합 실행 로드맵이다.
 > 개념 로드맵은 `docs/10`, WP 상세는 `docs/39`, 아키텍처 결정은 `docs/40`, 게이트는 `docs/41`, Gate 증거는 `docs/44`(v0.5)·`docs/45`(v0.6).
 
 ## 0. 기준선 (재설계 금지)
@@ -8,7 +8,7 @@
 - **v0.5.0 = R1 Data & Limit Foundation — DONE** (CP949/UTF-8/XLSX 입력, Column Mapping, 실 Exposure-Limit Join + 공통 `LimitAnalysisResult`, 6상태, 대사 9종, Dashboard=Report 일원화).
 - **v0.6.0 = R3 Regulation/NCR 구조 — DONE** (공개 규정 KB Metadata, Keyword/Inverted Index, 인용형 답변, `KbAccessPolicy`+`KbRepositoryGuard`(+build/03 패키징 스캔), NCR Rule Set 8요소 **구조**).
 - **완료 기능(MVP-1~3, R1, R3)은 재설계하지 않는다.**
-- **SmokeTest**: **Total=792 PASS=792 FAIL=0** (정본 합계 — local-gate; `dotnet build` 0/0 + SmokeTest). 이력: … → 714(R2-WP-04 +16) → 747(KB-WP-01 +33) → 768(KB-WP-02 #101 +21) → 778(UX-WP-04 #102 +10) → 788(UX-WP-05 #103 +10) → 792(UX-WP-06 #104 +4). 과거 484/502는 하니스가 합계를 안 찍던 시절의 미집계 추정치였고, STAB-WP-02가 **합계·도메인별 PASS/FAIL·실행시간**을 출력한다.
+- **SmokeTest**: **Total=807 PASS=807 FAIL=0** (정본 합계 — local-gate; `dotnet build` 0/0 + SmokeTest). 이력: … → 714(R2-WP-04 +16) → 747(KB-WP-01 +33) → 768(KB-WP-02 #101 +21) → 778(UX-WP-04 #102 +10) → 788(UX-WP-05 #103 +10) → 792(UX-WP-06 #104 +4) → 807(FEEDBACK-WP-01 #106 +15). 과거 484/502는 하니스가 합계를 안 찍던 시절의 미집계 추정치였고, STAB-WP-02가 **합계·도메인별 PASS/FAIL·실행시간**을 출력한다.
 - ⚠️ R2(Risk Analytics)는 R3보다 뒤로 밀렸다(R3 먼저 출시). R2는 v0.6.1 STAB 이후.
 
 ## 1. 절대 원칙 (전 릴리스 유지)
@@ -28,7 +28,7 @@ Offline · 외부 NuGet 0 · 외부 API/Telemetry/AutoUpdate 0 · SQL/VBA/Golden
 | KB | v0.8.0 | Public Knowledge Pack (조항 원문 Chunk, keyword only) | RAG Approval Gate | **KB-WP-01/02 DONE**(#94/#101, local-gate; Clause Pack 계약·로더·가드 + clause keyword 검색·ClauseSnippetAllowed 게이트·`SourceTextAllowed` false 불변·합성 더미) · 인박스 keyword-only·원문 repo 미포함·Vector/Embedding STOP |
 | NCR | v0.8.x | Approved NCR Rule Pack 계약 | NCR Approval Gate | 설계(계수 미포함) |
 | R4 | v0.9.0 | Local LLM **Adapter (설계 전용)** | Model Approval Gate | 설계만 + STOP |
-| R5 | v0.9.x | Feedback Learning (승인 Example 검색) | — | **PARTIAL**(`Core/Feedback` 승격 구조 존재 · 영속/검색/재사용 확장 필요) |
+| R5 | v0.9.x | Feedback Learning (승인 Example 검색·반영) | — | **FEEDBACK-WP-01 DONE**(#106, local-gate; 승인 Example ingest 게이트·본문 non-log DTO 분리·결정적 검색·hash audit — RETRIEVAL·학습 아님) · **FEEDBACK-WP-02**(review 경유 Prompt 반영) NEXT UP |
 | R6 | v1.0.0 | Team Pilot | Pilot Gate B/C | 설계 |
 
 > **데이터 정확성·Release 무결성을 LLM보다 먼저** 확보한다. STAB(재현성/무결성) → PILOT(증거, 병행·user-driven) → R2(분석) → KB/NCR(승인형 적재 계약) → R4(LLM 설계만) → R5 → R6.
@@ -57,7 +57,7 @@ Offline · 외부 NuGet 0 · 외부 API/Telemetry/AutoUpdate 0 · SQL/VBA/Golden
 | 공개 규정 **원문 Clause/Chunk 검색** | KB | **KB-WP-01/02 VERIFIED**(계약·로더·가드 + clause keyword 검색·인용·`ClauseSnippetAllowed` 게이트, local-gate #94/#101) (인박스 keyword-only·원문 Pack repo 미포함·합성 더미만·`SourceTextAllowed` false 불변) |
 | 승인 NCR Rule Pack · 내부 Knowledge Pack | NCR/KB | APPROVAL_REQUIRED (Prod 적재, repo 미포함) |
 | Local LLM Adapter 계약/Manifest/ProcessBoundary | R4 | 설계만, Runtime APPROVAL_REQUIRED |
-| 승인 Feedback Example 검색·Prompt 반영 | R5 | **PARTIAL · 설계(ADR-014) · FEEDBACK-WP-01/02 계획**(`Core/Feedback` 승격+영속까지; 검색/주입 RETRIEVAL=학습 아님·인박스·Vector STOP) |
+| 승인 Feedback Example 검색·Prompt 반영 | R5 | **FEEDBACK-WP-01 VERIFIED**(local-gate #106; ingest 게이트·본문 non-log DTO·`PromotedExampleRetriever` 결정적 검색·hash audit — RETRIEVAL·학습 아님) · **FEEDBACK-WP-02**(review 경유 Prompt 반영) NEXT UP; 인박스·Vector STOP |
 | Test PC Gate B/C · Team Pilot | PILOT/R6 | **BLOCKED**(2026-06-30 사용자 수동 부분검증: B-1~4·B-7·B-9·B-10 **user-reported PASS(증거 미첨부)**·B-5 PARTIAL·B-6/B-8 PENDING, `docs/48 §B′`; 전체 BLOCKED 유지) |
 
 ## 4. 의존성 그래프
@@ -92,7 +92,7 @@ R1(DONE) ─► R3(DONE) ─► STAB(v0.6.1) ─► R2(v0.7) ─► KB(v0.8) ─
 | C-17 | Knowledge Pack Contract/Ingestion | KB-WP-01~02 | Manifest·Chunk·인용검증 | RAG | 설계 |
 | C-18 | Approved NCR Rule Pack | NCR-WP-01 | Pack 없으면 계산 차단·APPROVAL_REQUIRED | NCR | 설계 |
 | C-19 | Local LLM Adapter 계약 | LLM-WP-01 | NoModel 유지·ProcessBoundary | Model | 설계만 |
-| C-20 | 승인 Example 검색·Prompt 반영 (RETRIEVAL, 학습 아님) | FEEDBACK-WP-01/02 | 승인 Example만·가중치 불변·ingest 게이트·결정적 검색·해시 audit·review 경유 주입 | — | PARTIAL · **설계(ADR-014) · FEEDBACK-WP-01/02 계획** (승격+영속까지; 검색/주입=인박스·Vector STOP·모델파일 0) |
+| C-20 | 승인 Example 검색·Prompt 반영 (RETRIEVAL, 학습 아님) | FEEDBACK-WP-01/02 | 승인 Example만·가중치 불변·ingest 게이트(SQL/VBA Blocker 0 AND ForbiddenTermScanner 0)·본문 non-log DTO 분리·결정적 검색(Score desc·ExampleId Ordinal)·해시 audit·review 경유 주입 | — | **FEEDBACK-WP-01 VERIFIED**(local-gate #106 `f8b330a`; `PromotedExampleRetriever` 결정적 검색·`ExamplePromotion` ingest 게이트·`ForbiddenTermScanner`·hash-only audit·본문 non-log `FeedbackDraftBodyInput`·가중치 불변·모델파일 0) · **FEEDBACK-WP-02**(검색 Example의 `DraftRequest.Context` review 경유 반영·자동주입 0·`DraftPipeline` hash audit 재사용) NEXT UP; 인박스·Vector STOP |
 | C-21 | Gate B/C 증거 | PILOT-WP-01 | docs/45 12+항목 | Pilot | BLOCKED (2026-06-30 부분검증 `docs/48 §B′`) |
 | C-29 | Excel Function Helper (검색·상세·인수·리스크예시·수식예시·365여부·Excel2021 대체식·추천, 정적) | UX-WP-04 | 함수 메타 단일원천(기존 `Excel2021FunctionChecker` 재사용)·상세 완비·차단함수→대체식·사용자선택 삽입(자동삽입 0)·입력 원문 로그 미저장·NuGet 0 | A·Local-Gate | **VERIFIED**(local-gate #102 `73ca99e`; embedded resource(critical glob 미사용)·ruleset 단일원천·UI 배선·자동삽입 0·검색어 미로그; 실 UI 렌더 Gate B BLOCKED) |
 | C-30 | Smart Assist 입력중 추천 표면화 / Popup 표시 확장 (정적·NoModel) | UX-WP-05/06 | UX-WP-05: debounced TextChanged 트리거(Core 변경 0·최소 prefix 게이트·재진입 가드·결정 헬퍼)·UX-WP-06: 팝업 Snippet/SafetyNote/Kind 표시·자동삽입 0·입력 원문 미저장 | A·Local-Gate | **VERIFIED**(local-gate #103/#104; Core `CompletionTriggerPolicy`·focus-preserving show(`grabFocus:false`)·TextBox Up/Down·stale close·display formatter·Insertable 게이트/audit 불변; 실시간 LLM=R4; 실 UI 렌더 Gate B BLOCKED) |
