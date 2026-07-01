@@ -1,7 +1,7 @@
 # SKILLS.md — Project Skills Index (Claude · Codex 공용)
 
 ## 1. 목적
-Claude Code와 Codex가 **반복 작업을 일관되게 수행**하도록, 프로젝트 전용 Skill을 한곳에서 색인한다. 긴 절차/체크리스트를 매번 CLAUDE.md/AGENTS.md에 누적하지 않고 **Skill 문서로 분리**해 재사용한다. (기준선: main `10030be`, VERSION `0.7.0`, 정본 SmokeTest `Total=829`.)
+Claude Code와 Codex가 **반복 작업을 일관되게 수행**하도록, 프로젝트 전용 Skill을 한곳에서 색인한다. 긴 절차/체크리스트를 매번 CLAUDE.md/AGENTS.md에 누적하지 않고 **Skill 문서로 분리**해 재사용한다. (기준선: main `0f6e1d7`, VERSION `0.7.0`, 정본 SmokeTest `Total=834`.)
 
 ## 2. Claude Code Project Skills 경로
 - 각 Skill = `.claude/skills/<skill-name>/SKILL.md` + (긴 체크리스트는) 같은 폴더의 support `.md`.

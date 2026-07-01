@@ -65,7 +65,7 @@ v0.7.0 portable ZIP을 **실 오프라인 Test PC(Gate B)** 및 **운영 반입 
 >
 > ⚠️ **어느 ZIP으로 하나 (중요)**:
 > - **현 published v0.7.0 ZIP(`30c1cfb`)로 지금 가능** → **B-6 CSV/XLSX·B-8 Excel Report/RISK_VISUAL** + 이미 user-reported인 B-1/B-3/B-4/B-7/B-9/B-10 **증거 봉인**. (R1 입력·한도·대사 + R2 RISK_VISUAL은 `30c1cfb`에 포함.)
-> - **신규 빌드 필요 → B-5 재검증**: Excel Function Helper(UX-WP-04)·Smart Assist as-you-type/팝업/포커스(UX-WP-05~08)는 `30c1cfb` **이후** 머지라 현 v0.7.0 ZIP에 **미포함**. 실 UI 재확인은 main `10030be`(또는 v0.7.1 컷)에서 `build/00~03` 재패키징한 **신규 ZIP**에서만 가능. (신규 컷을 원하면 별도 REL WP로 진행 — 승인/버전 범프 필요.)
+> - **신규 빌드 필요 → B-5 재검증**: Excel Function Helper(UX-WP-04)·Smart Assist as-you-type/팝업/포커스(UX-WP-05~09)는 `30c1cfb` **이후** 머지라 현 v0.7.0 ZIP에 **미포함**. 실 UI 재확인은 main `0f6e1d7`(또는 v0.7.1 컷)에서 `build/00~03` 재패키징한 **신규 ZIP**에서만 가능. (신규 컷을 원하면 별도 REL WP로 진행 — 승인/버전 범프 필요.)
 
 ### 0. 준비
 - Test PC = Windows 11 · **인터넷 차단** · Excel 2021(Gate C). ZIP 반입 후 `evidence/gateB/` 폴더 생성.
@@ -92,7 +92,7 @@ Get-ChildItem -Recurse .\rmai | Select-Object FullName | Out-File evidence\gateB
 - 생성 리포트를 Excel 2021로 열기(**`RISK_VISUAL` 수동열기 포함**) → **Formula Error 0 · External Link 0 · Macro 0**. → §C C1/C2 봉인.
 
 ### 5. B-5 재검증 (⚠️ 신규 빌드 후에만)
-- 신규 ZIP(main `10030be`)에서: **Excel Function Helper view**(검색·상세·인수·리스크예시·대체식) · **Smart Assist as-you-type 팝업**·**Esc/Close 포커스 복원** 실 UI 확인. → §B B13(B-5) PARTIAL 해소.
+- 신규 ZIP(main `0f6e1d7`)에서: **Excel Function Helper view**(검색·상세·인수·리스크예시·대체식) · **Smart Assist as-you-type 팝업**·**Esc/Close 포커스 복원** 실 UI 확인. → §B B13(B-5) PARTIAL 해소.
 
 ### 6. 회신
 - 각 단계 완료 시 §B/§B′ 표의 상태 + 증거 파일명 기입 후 회신 → 항목 단위 재판정 → Gate B 봉인 여부 갱신. (Test PC 대상 PASS + 명시 예외(B7/B8/C5) 수용 시 봉인.)
