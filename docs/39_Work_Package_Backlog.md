@@ -152,6 +152,26 @@
 
 ---
 
+# 확장 트랙 (Expansion — 비게이트 병렬 큐, Codex 대량 실행)
+> 로드맵 대형 항목은 대부분 STOP/승인 게이트(R4 LLM·NCR 실 Pack·STAB-WP-05 서명·Gate B/C·Vector). 그 밖의 **비게이트·저위험·고가치** 작업을 도메인별 병렬 WP로 분해한 큐. **전부 독립 브랜치 off main·파일 겹침 0 → Codex 병렬 실행**, Claude 배치 adversarial 리뷰. 각 WP는 절대원칙·과대표기 금지 전제. (Wave 1 = 아래 3건; 소진 시 Recon/Kb/Report 테스트 하드닝·추가 콘텐츠로 Wave 2.)
+
+## ★ QA-WP-01. Safety Checker 음성/경계 SmokeTest 하드닝 (SQL·VBA·Excel2021) — **READY** (품질)
+- **목표**: 기존 SQL/VBA/Excel2021 checker의 미커버 차단 패턴·경계를 회귀로 고정. **제품 코드 0·테스트만 additive.**
+- **수정예상파일**: `tests/RiskManagementAI.SmokeTests/SafetyTests.cs`. **도메인 `Safety`**.
+- **Branch**: `feature/qa-wp-01-safety-negative-hardening` · **프롬프트**: `prompts/codex/QA-WP-01_safety_checker_negative_hardening.md`.
+
+## ★ QA-WP-02. Reconciliation·Limit 7상태/RECON 경계 SmokeTest 하드닝 — **READY** (품질)
+- **목표**: 7상태(incl `DUPLICATE_LIMIT`)·대사 9코드 경계/전이 커버리지 확대. **제품 코드 0·테스트만 additive**(합성 더미).
+- **수정예상파일**: `tests/RiskManagementAI.SmokeTests/LimitReconciliationTests.cs`. **도메인 `Reconciliation`/`Limit`**.
+- **Branch**: `feature/qa-wp-02-recon-limit-edge-hardening` · **프롬프트**: `prompts/codex/QA-WP-02_reconciliation_limit_edge_hardening.md`.
+
+## ★ UX-WP-10. Smart Assist 정적 completion seed 라이브러리 확장 (SQL·VBA·RiskPhrase) — **READY** (콘텐츠)
+- **목표**: 정적 seed 큐레이션 확장(리스크 실무 패턴). **엔진/provider 구조 0·`Seeds` 추가만.** 핵심: **SQL seed 조회 전용·VBA seed 안전 패턴을 checker 단언으로 강제**.
+- **수정예상파일**: `src/RiskManagementAI.Core/Assist/Providers/StaticCompletionProviders.cs`, `AssistTests.cs`. **도메인 `Assist`**.
+- **Branch**: `feature/ux-wp-10-completion-seed-expansion` · **프롬프트**: `prompts/codex/UX-WP-10_completion_seed_library_expansion.md`.
+
+---
+
 # UX Enhancement 트랙 (Gate B 2026-06-30 사용자 검증 후속)
 
 > ⚠️ **ID 충돌 주의**: 사용자 제안 "UX-WP-01/02/03"은 **이미 완료·머지된** UX-WP-01(Smart Assist Core #70)·UX-WP-02(정적 Provider #72)·UX-WP-03(WPF Completion Popup #73)과 충돌한다(§0 재구현 금지·traceability). 충돌 방지를 위해 본 신규 트랙은 **UX-WP-04부터** 부여하고 사용자 제안명을 매핑한다: **UX-WP-04 = Excel Function Helper**(제안 "UX-WP-01"), **UX-WP-05 = Smart Assist 입력중 추천 표면화**(제안 "UX-WP-02 Smart Assist Core"), **UX-WP-06 = Smart Assist Popup 확장**(제안 "UX-WP-03 Smart Assist Popup"). **번호 체계 = UX-WP-04~06 확정**(사용자 2026-06-30). **시퀀스 = KB-WP-02(NEXT UP) → UX-WP-04 → UX-WP-05 → UX-WP-06**(전부 프롬프트 READY). UX-WP-05/06 스코프는 2026-06-30 코드 조사로 확정(Smart Assist=Ctrl+Space-only by-design, Core 변경 0·WPF 레이어만).
