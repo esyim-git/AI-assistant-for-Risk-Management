@@ -32,11 +32,27 @@ context.AssertTrue(!limitMonitorResult.Metadata.ColumnMappingUsedFallback && lim
 context.AssertTrue(limitMonitorResult.Findings.Any(f => f.Code == "LIMIT_BREACH_DETECTED" && f.Severity == SafetySeverity.High), "LimitMonitor should emit a high finding when breaches exist");
 context.AssertTrue(limitMonitorResult.Reconciliation.Passed, "LimitMonitor sample reconciliation should pass without fail-code exceptions");
 context.AssertTrue(limitMonitorResult.Reconciliation.CheckCount == 9, "LimitMonitor should expose nine WP-06 reconciliation checks");
+context.AssertTrue(
+    limitMonitorResult.Reconciliation.Checks.Select(check => check.Code).SequenceEqual([
+        "RECON_EXPOSURE_NO_LIMIT",
+        "RECON_LIMIT_NO_EXPOSURE",
+        "RECON_DUPLICATE_LIMIT",
+        "RECON_BASEDATE_MISMATCH",
+        "RECON_CURRENCY_MISMATCH",
+        "RECON_UNIT_MISMATCH",
+        "RECON_NONPOSITIVE_LIMIT",
+        "RECON_ROW_AMPLIFICATION",
+        "RECON_SUM_BALANCE"
+    ]),
+    "RECON nine-code order should remain stable for dashboard and report consumers");
 context.AssertTrue(ReconciliationExceptionCount(limitMonitorResult, "RECON_BASEDATE_MISMATCH") == 0, "LimitMonitor should not flag normal multi-date exports when requested BASE_DT exists");
 context.AssertTrue(
     !ReconciliationCheckFor(limitMonitorResult, "RECON_CURRENCY_MISMATCH").Applicable
         && !ReconciliationCheckFor(limitMonitorResult, "RECON_UNIT_MISMATCH").Applicable,
     "LimitMonitor should mark currency and unit reconciliation as N/A for R1 default inputs");
+context.AssertTrue(
+    Enum.GetValues<LimitMonitorStatus>().Select(status => (int)status).SequenceEqual([0, 1, 2, 3, 4, 5, 6]),
+    "LimitMonitor seven-state enum ordinal should remain additive and stable");
 
 var limitSmokeDirectory = Path.Combine("artifacts", "smoke-limit-wp05");
 Directory.CreateDirectory(limitSmokeDirectory);
@@ -81,6 +97,36 @@ context.AssertTrue(ReconciliationSignature(repeatedSixStateResult) == Reconcilia
 var coreTableResult = limitMonitor.Analyze(CsvReader.Read(wp05ExposureCsv), CsvReader.Read(wp05LimitCsv), "20260617");
 context.AssertTrue(coreTableResult.Kpis == sixStateResult.Kpis, "LimitMonitor CsvTable core interface should match path overload results");
 
+var boundaryExposureCsv = Path.Combine(limitSmokeDirectory, "qa_wp02_usage_boundary_exposure.csv");
+var boundaryLimitCsv = Path.Combine(limitSmokeDirectory, "qa_wp02_usage_boundary_limit.csv");
+WriteCsvRows(
+    boundaryExposureCsv,
+    [
+        new[] { "BASE_DT", "DESK_CD", "PORTFOLIO_ID", "PRODUCT_TYPE", "RISK_FACTOR", "CCY_CD", "EXPOSURE_AMT" },
+        new[] { "20260617", "EQD", "PF_EDGE_NORMAL", "ELS", "RF_EDGE", "KRW", "89.99" },
+        new[] { "20260617", "EQD", "PF_EDGE_WARN_LOW", "ELS", "RF_EDGE", "KRW", "90" },
+        new[] { "20260617", "EQD", "PF_EDGE_WARN_HIGH", "ELS", "RF_EDGE", "KRW", "100" },
+        new[] { "20260617", "EQD", "PF_EDGE_BREACH", "ELS", "RF_EDGE", "KRW", "101" }
+    ]);
+WriteCsvRows(
+    boundaryLimitCsv,
+    [
+        new[] { "BASE_DT", "PORTFOLIO_ID", "RISK_FACTOR", "LIMIT_AMT", "USE_YN" },
+        new[] { "20260617", "PF_EDGE_NORMAL", "RF_EDGE", "100", "Y" },
+        new[] { "20260617", "PF_EDGE_WARN_LOW", "RF_EDGE", "100", "Y" },
+        new[] { "20260617", "PF_EDGE_WARN_HIGH", "RF_EDGE", "100", "Y" },
+        new[] { "20260617", "PF_EDGE_BREACH", "RF_EDGE", "100", "Y" }
+    ]);
+var boundaryResult = limitMonitor.Analyze(boundaryExposureCsv, boundaryLimitCsv, "20260617");
+context.AssertTrue(
+    boundaryResult.Kpis is { NormalCount: 1, WarningCount: 2, BreachCount: 1 }
+        && boundaryResult.Rows.Single(row => row.PortfolioId == "PF_EDGE_NORMAL").Status == LimitMonitorStatus.Normal
+        && boundaryResult.Rows.Single(row => row.PortfolioId == "PF_EDGE_WARN_LOW").Status == LimitMonitorStatus.Warning
+        && boundaryResult.Rows.Single(row => row.PortfolioId == "PF_EDGE_WARN_HIGH").Status == LimitMonitorStatus.Warning
+        && boundaryResult.Rows.Single(row => row.PortfolioId == "PF_EDGE_BREACH").Status == LimitMonitorStatus.Breach,
+    "LimitMonitor usage ratio boundary should classify NORMAL below 0.9, WARNING at 0.9 and 1.0, BREACH above 1.0");
+context.AssertTrue(boundaryResult.Reconciliation.Passed, "RECON clean usage ratio boundary inputs should pass reconciliation");
+
 var wp06CleanExposureRows = new[]
 {
     new[] { "BASE_DT", "DESK_CD", "PORTFOLIO_ID", "PRODUCT_TYPE", "RISK_FACTOR", "CCY_CD", "EXPOSURE_AMT" },
@@ -103,6 +149,7 @@ context.AssertTrue(cleanReconciliationResult.DuplicateLimitCount == 0, "LimitMon
 var normalizedDashBaseDateResult = limitMonitor.Analyze(wp06CleanExposureCsv, wp06CleanLimitCsv, "2026-06-17");
 context.AssertTrue(normalizedDashBaseDateResult.Rows.Single().Status == LimitMonitorStatus.Normal && normalizedDashBaseDateResult.BaseDate == "20260617", "LimitMonitor should normalize yyyy-MM-dd BASE_DT input before exact row matching");
 context.AssertTrue(normalizedDashBaseDateResult.Metadata.JoinAudit.Any(audit => audit.Contains("valid=True", StringComparison.Ordinal) && audit.Contains("normalized=20260617", StringComparison.Ordinal)), "LimitMonitor JoinAudit should record valid BASE_DT normalization");
+context.AssertTrue(normalizedDashBaseDateResult.Kpis == cleanReconciliationResult.Kpis && ReconciliationSignature(normalizedDashBaseDateResult) == ReconciliationSignature(cleanReconciliationResult), "LimitMonitor BASE_DT yyyy-MM-dd normalization should preserve limit KPIs and RECON signature");
 
 var wp06OrphanLimitCsv = Path.Combine(limitSmokeDirectory, "wp06_orphan_limit.csv");
 WriteCsvRows(
@@ -244,6 +291,7 @@ var mappedMismatchResult = new LimitMonitor(r2Mapping).Analyze(r2MappedExposureC
 context.AssertTrue(mappedMismatchResult.Rows.Single().CurrencyCode == "KRW", "LimitMonitor should read mapped CurrencyCode from custom physical column");
 context.AssertTrue(ReconciliationCheckFor(mappedMismatchResult, "RECON_CURRENCY_MISMATCH").Applicable && ReconciliationExceptionCount(mappedMismatchResult, "RECON_CURRENCY_MISMATCH") == 1, "LimitMonitor should use ColumnMapping for currency reconciliation");
 context.AssertTrue(ReconciliationCheckFor(mappedMismatchResult, "RECON_UNIT_MISMATCH").Applicable && ReconciliationExceptionCount(mappedMismatchResult, "RECON_UNIT_MISMATCH") == 1, "LimitMonitor should activate RECON_UNIT_MISMATCH when mapped unit columns differ");
+context.AssertTrue(mappedMismatchResult.Reconciliation.Passed, "RECON currency and unit mismatch should remain non-fail when no fail-code exceptions exist");
 var mappedCleanResult = new LimitMonitor(r2Mapping).Analyze(r2MappedExposureCsv, r2MappedLimitCleanCsv, "20260617");
 context.AssertTrue(ReconciliationCheckFor(mappedCleanResult, "RECON_UNIT_MISMATCH").Applicable && ReconciliationExceptionCount(mappedCleanResult, "RECON_UNIT_MISMATCH") == 0, "LimitMonitor should not emit RECON_UNIT_MISMATCH when mapped unit values match");
 var sixOnlyMapping = new ColumnMapping(new Dictionary<LogicalColumn, string>
