@@ -7,7 +7,9 @@ public sealed record DraftPipelineRequest(
     DraftRequestKind Kind,
     string Prompt,
     string UserId,
-    string? Context = null);
+    string? Context = null,
+    IReadOnlyList<DraftReferenceExample>? ReferenceExamples = null,
+    bool ReferencesReviewed = false);
 
 public sealed record DraftPipelineResult(
     bool IsAcceptedForReview,
@@ -40,10 +42,17 @@ public sealed class DraftPipeline
 
     public DraftPipelineResult Generate(DraftPipelineRequest request)
     {
+        var effectiveReferenceIds = request.ReferencesReviewed
+            ? DraftReferenceComposer.SelectEffectiveExampleIds(request.ReferenceExamples)
+            : Array.Empty<string>();
+        var effectiveContext = request.ReferencesReviewed && request.ReferenceExamples is { Count: > 0 }
+            ? DraftReferenceComposer.Compose(request.Context, request.ReferenceExamples)
+            : request.Context;
+
         var draftResponse = draftService.GenerateDraft(new DraftRequest(
             request.Kind,
             request.Prompt,
-            request.Context));
+            effectiveContext));
         var findings = draftResponse.Findings.ToList();
 
         if (!string.IsNullOrWhiteSpace(draftResponse.DraftText))
@@ -61,7 +70,14 @@ public sealed class DraftPipeline
         var safetyResult = DetermineSafetyResult(draftResponse, findings);
         var isAcceptedForReview = safetyResult == "PASS" && !string.IsNullOrWhiteSpace(draftResponse.DraftText);
         var taskId = $"task-{Guid.NewGuid():N}";
-        var auditLogWritten = TryAppendAuditLog(taskId, request, draftResponse, safetyResult, findings);
+        var auditLogWritten = TryAppendAuditLog(
+            taskId,
+            request,
+            effectiveContext,
+            effectiveReferenceIds,
+            draftResponse,
+            safetyResult,
+            findings);
 
         if (!auditLogWritten)
         {
@@ -98,6 +114,8 @@ public sealed class DraftPipeline
     private bool TryAppendAuditLog(
         string taskId,
         DraftPipelineRequest request,
+        string? effectiveContext,
+        IReadOnlyList<string> effectiveReferenceIds,
         DraftResponse draftResponse,
         string safetyResult,
         List<SafetyFinding> findings)
@@ -111,10 +129,24 @@ public sealed class DraftPipeline
                 LogHash.Sha256Hex(string.IsNullOrWhiteSpace(request.UserId) ? "anonymous" : request.UserId),
                 TaskTypeFor(request.Kind),
                 nameof(DraftPipeline),
-                LogHash.Sha256Hex($"{request.Kind}|{request.Prompt}|{request.Context ?? string.Empty}"),
+                LogHash.Sha256Hex($"{request.Kind}|{request.Prompt}|{effectiveContext ?? string.Empty}"),
                 LogHash.Sha256Hex(outputMaterial),
                 safetyResult,
                 ruleVersion));
+            if (effectiveReferenceIds.Count > 0)
+            {
+                taskLogWriter.Append(new TaskLogEntry(
+                    $"{taskId}-refs",
+                    DateTime.UtcNow,
+                    LogHash.Sha256Hex(string.IsNullOrWhiteSpace(request.UserId) ? "anonymous" : request.UserId),
+                    "PromotedExampleReflection",
+                    nameof(DraftPipeline),
+                    LogHash.Sha256Hex(effectiveContext ?? string.Empty),
+                    LogHash.Sha256Hex(string.Join('\n', effectiveReferenceIds)),
+                    safetyResult,
+                    ruleVersion));
+            }
+
             return true;
         }
         catch (Exception ex) when (ex is ArgumentException or IOException or UnauthorizedAccessException)
