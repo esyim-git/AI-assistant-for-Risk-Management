@@ -8,3 +8,8 @@ public interface ICompletionProvider
 
     IReadOnlyList<CompletionItem> GetCompletions(CompletionContext context);
 }
+
+public interface ICompletionProviderWarningSource
+{
+    IReadOnlyList<string> GetWarnings(CompletionContext context);
+}

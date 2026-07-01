@@ -99,11 +99,12 @@ public sealed class VbaCompletionProvider : ICompletionProvider
     }
 }
 
-public sealed class Excel2021CompletionProvider : ICompletionProvider
+public sealed class Excel2021CompletionProvider : ICompletionProvider, ICompletionProviderWarningSource
 {
     public const string Id = "static-excel-2021";
 
     private readonly IReadOnlyList<string> allowFunctions;
+    private readonly IReadOnlyList<string> skippedAllowFunctionLabels;
 
     public Excel2021CompletionProvider()
         : this(RuleLoader.LoadDefault())
@@ -112,10 +113,27 @@ public sealed class Excel2021CompletionProvider : ICompletionProvider
 
     public Excel2021CompletionProvider(SafetyRuleSet ruleSet)
     {
-        allowFunctions = ruleSet.ExcelCompletionAllowFunctions
-            .Where(IsWorksheetFunctionName)
+        var validFunctions = new List<string>();
+        var skippedLabels = new List<string>();
+        foreach (var functionName in ruleSet.ExcelCompletionAllowFunctions)
+        {
+            if (IsWorksheetFunctionName(functionName))
+            {
+                validFunctions.Add(functionName);
+            }
+            else if (!string.IsNullOrWhiteSpace(functionName))
+            {
+                skippedLabels.Add(functionName.Trim());
+            }
+        }
+
+        allowFunctions = validFunctions
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(functionName => functionName, StringComparer.Ordinal)
+            .ToArray();
+        skippedAllowFunctionLabels = skippedLabels
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(label => label, StringComparer.Ordinal)
             .ToArray();
     }
 
@@ -138,6 +156,13 @@ public sealed class Excel2021CompletionProvider : ICompletionProvider
                 Finding: null,
                 SafetyNote: "Excel 2021 호환 함수입니다.",
                 SortKey: 100 + index))
+            .ToArray();
+    }
+
+    public IReadOnlyList<string> GetWarnings(CompletionContext context)
+    {
+        return skippedAllowFunctionLabels
+            .Select(label => $"Excel completion allow-function skipped: {label}")
             .ToArray();
     }
 
@@ -218,6 +243,7 @@ public sealed class SafetyHintProvider : ICompletionProvider
         };
 
         return findings
+            .Where(finding => finding.Severity >= SafetySeverity.Medium)
             .Select((finding, index) => new CompletionItem(
                 $"Safety hint: {finding.Code}",
                 string.Empty,
