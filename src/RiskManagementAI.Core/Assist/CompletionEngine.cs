@@ -7,6 +7,8 @@ public sealed class CompletionEngine
     public const string NoModelMode = "NoModel";
     public const int DefaultMaxInsertableItems = 50;
 
+    private const string CompletionFindingRequiredCode = "COMPLETION_FINDING_REQUIRED";
+
     private readonly CompletionProviderRegistry registry;
     private readonly int maxInsertableItems;
 
@@ -62,7 +64,7 @@ public sealed class CompletionEngine
             .Distinct()
             .ToArray();
 
-        var pinnedItems = deduped.Where(IsSafetyPinned).ToArray();
+        var pinnedItems = CollapseDuplicateFindingPins(deduped.Where(IsSafetyPinned).ToArray());
         var insertableItems = deduped
             .Where(item => !IsSafetyPinned(item))
             .Take(maxInsertableItems)
@@ -85,7 +87,7 @@ public sealed class CompletionEngine
             Insertable = !isPinned,
             InsertText = isPinned ? string.Empty : item.InsertText,
             Finding = isPinned
-                ? item.Finding ?? new SafetyFinding("COMPLETION_FINDING_REQUIRED", SafetySeverity.Medium, "Completion safety hint requires a structured finding.")
+                ? item.Finding ?? new SafetyFinding(CompletionFindingRequiredCode, SafetySeverity.Medium, "Completion safety hint requires a structured finding.")
                 : item.Finding,
             SafetyNote = string.IsNullOrWhiteSpace(item.SafetyNote) ? null : item.SafetyNote
         };
@@ -115,8 +117,43 @@ public sealed class CompletionEngine
         return deduped;
     }
 
+    private static IReadOnlyList<CompletionItem> CollapseDuplicateFindingPins(IReadOnlyList<CompletionItem> pinnedItems)
+    {
+        var blockedFindings = new HashSet<SafetyFinding>();
+        foreach (var item in pinnedItems)
+        {
+            if (item.Kind == CompletionItemKind.BlockedHint
+                && item.Finding is { } finding
+                && IsExplicitFinding(finding))
+            {
+                blockedFindings.Add(finding);
+            }
+        }
+
+        var collapsed = new List<CompletionItem>(pinnedItems.Count);
+        foreach (var item in pinnedItems)
+        {
+            if (item.Kind == CompletionItemKind.SafetyHint
+                && item.Finding is { } finding
+                && IsExplicitFinding(finding)
+                && blockedFindings.Contains(finding))
+            {
+                continue;
+            }
+
+            collapsed.Add(item);
+        }
+
+        return collapsed;
+    }
+
     private static bool IsSafetyPinned(CompletionItem item)
     {
         return item.Kind is CompletionItemKind.SafetyHint or CompletionItemKind.BlockedHint;
+    }
+
+    private static bool IsExplicitFinding(SafetyFinding? finding)
+    {
+        return finding is not null && !string.Equals(finding.Code, CompletionFindingRequiredCode, StringComparison.Ordinal);
     }
 }
