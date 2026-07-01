@@ -8,6 +8,8 @@ namespace RiskManagementAI.App.Controls;
 
 public partial class CompletionPopup : UserControl
 {
+    private TextBox? lastPlacementTarget;
+
     public CompletionPopup()
     {
         InitializeComponent();
@@ -22,6 +24,7 @@ public partial class CompletionPopup : UserControl
     public void Show(TextBox placementTarget, IReadOnlyList<CompletionItem> items, bool grabFocus = true)
     {
         ArgumentNullException.ThrowIfNull(placementTarget);
+        lastPlacementTarget = placementTarget;
         RootPopup.PlacementTarget = placementTarget;
         RootPopup.Placement = PlacementMode.Bottom;
         CompletionList.ItemsSource = CompletionDisplayFormatter.FromItems(items);
@@ -33,9 +36,13 @@ public partial class CompletionPopup : UserControl
         }
     }
 
-    public void Close()
+    public void Close(bool restoreFocus = true)
     {
         RootPopup.IsOpen = false;
+        if (restoreFocus)
+        {
+            RestorePlacementTargetFocus();
+        }
     }
 
     public bool TryAcceptSelected()
@@ -81,5 +88,16 @@ public partial class CompletionPopup : UserControl
             Close();
             e.Handled = true;
         }
+    }
+
+    private void RestorePlacementTargetFocus()
+    {
+        if (lastPlacementTarget is null || lastPlacementTarget.IsKeyboardFocusWithin)
+        {
+            return;
+        }
+
+        lastPlacementTarget.Focus();
+        Keyboard.Focus(lastPlacementTarget);
     }
 }

@@ -338,6 +338,19 @@ context.AssertTrue(
     && mainWindowCode.Contains("grabFocus: false", StringComparison.Ordinal),
     "Assist as-you-type popup should preserve TextBox focus while Ctrl+Space can still grab focus");
 context.AssertTrue(
+    completionPopupCode.Contains("private TextBox? lastPlacementTarget", StringComparison.Ordinal)
+    && completionPopupCode.Contains("lastPlacementTarget = placementTarget", StringComparison.Ordinal),
+    "Assist completion popup should remember origin TextBox for close focus restore");
+context.AssertTrue(
+    completionPopupCode.Contains("Close(bool restoreFocus = true)", StringComparison.Ordinal)
+    && completionPopupCode.Contains("RestorePlacementTargetFocus()", StringComparison.Ordinal)
+    && completionPopupCode.Contains("Keyboard.Focus(lastPlacementTarget)", StringComparison.Ordinal),
+    "Assist completion popup should restore origin TextBox focus on close");
+context.AssertTrue(
+    completionPopupCode.Contains("lastPlacementTarget.IsKeyboardFocusWithin", StringComparison.Ordinal)
+    && mainWindowCode.Contains("CompletionPopupControl.Close(restoreFocus: false)", StringComparison.Ordinal),
+    "Assist completion accept path should avoid duplicate close focus restore");
+context.AssertTrue(
     completionPopupCode.Contains("MoveSelection(int delta)", StringComparison.Ordinal)
     && mainWindowCode.Contains("CompletionPopupControl.MoveSelection", StringComparison.Ordinal)
     && mainWindowCode.Contains("Key.Down", StringComparison.Ordinal)
