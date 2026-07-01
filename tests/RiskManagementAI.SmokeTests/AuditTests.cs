@@ -36,6 +36,50 @@ context.AssertTrue(promotionResult.SkippedEntries.Any(entry => entry.FeedbackId 
 context.AssertTrue(promotionResult.SkippedEntries.Any(entry => entry.FeedbackId == pendingFeedback.FeedbackId), "ExamplePromotion should skip pending feedback");
 context.AssertTrue(promotionResult.Warnings.Any(warning => warning.Contains("Duplicate", StringComparison.OrdinalIgnoreCase)), "ExamplePromotion should warn on duplicate approved feedback");
 
+var safeExampleBody = "SELECT TRADE_ID, EXPOSURE_AMT FROM LIMIT_REVIEW WHERE BASE_DT = :BASE_DT";
+var bodyPromotionResult = new ExamplePromotion().PromoteApproved(
+    [approvedFeedback],
+    [new FeedbackDraftBodyInput(approvedFeedback.FeedbackId, approvedFeedback.TaskId, safeExampleBody, FeedbackDraftBodyInput.KindSql)],
+    loadedRuleSet,
+    new DateTime(2026, 06, 19, 0, 0, 0, DateTimeKind.Utc));
+var bodyPromotedExample = bodyPromotionResult.PromotedExamples.Single();
+context.AssertTrue(bodyPromotedExample.ExampleBody == safeExampleBody, "PromotedExample should persist approved safe Feedback body");
+context.AssertTrue(bodyPromotedExample.ExampleBodyKind == FeedbackDraftBodyInput.KindSql && bodyPromotedExample.ExampleBodyLength == safeExampleBody.Length, "PromotedExample persists body kind and length (Feedback ingest)");
+context.AssertTrue(bodyPromotedExample.ExampleBodyHash == LogHash.Sha256Hex(safeExampleBody), "PromotedExample persists body hash (Feedback ingest)");
+
+var sqlBlockedFeedback = approvedFeedback with { FeedbackId = "feedback-sql-blocked-001", TaskId = "task-sql-blocked-001" };
+var sqlBlockedResult = new ExamplePromotion().PromoteApproved(
+    [sqlBlockedFeedback],
+    [new FeedbackDraftBodyInput(sqlBlockedFeedback.FeedbackId, sqlBlockedFeedback.TaskId, "DROP TABLE LIMIT_REVIEW", FeedbackDraftBodyInput.KindSql)],
+    loadedRuleSet,
+    new DateTime(2026, 06, 19, 0, 0, 0, DateTimeKind.Utc));
+context.AssertTrue(sqlBlockedResult.PromotedExamples.Single().ExampleBody is null && sqlBlockedResult.Warnings.Any(warning => warning.Contains("SQL_DDL_DROP", StringComparison.Ordinal)), "PromotedExample should null blocked SQL Feedback body and warn");
+
+var forbiddenTermFeedback = approvedFeedback with { FeedbackId = "feedback-term-blocked-001", TaskId = "task-term-blocked-001" };
+var forbiddenTermResult = new ExamplePromotion().PromoteApproved(
+    [forbiddenTermFeedback],
+    [new FeedbackDraftBodyInput(forbiddenTermFeedback.FeedbackId, forbiddenTermFeedback.TaskId, "INTERNAL_REGULATION_ORIGINAL sample", FeedbackDraftBodyInput.KindGeneral)],
+    loadedRuleSet,
+    new DateTime(2026, 06, 19, 0, 0, 0, DateTimeKind.Utc));
+context.AssertTrue(forbiddenTermResult.PromotedExamples.Single().ExampleBody is null && forbiddenTermResult.Warnings.Any(warning => warning.Contains("FEEDBACK_FORBIDDEN_TERM", StringComparison.Ordinal)), "PromotedExample should null forbidden-term Feedback body and warn");
+
+var piiFeedback = approvedFeedback with { FeedbackId = "feedback-pii-blocked-001", TaskId = "task-pii-blocked-001" };
+var piiLikeBody = "review sample " + "900101-" + "1234567";
+var piiResult = new ExamplePromotion().PromoteApproved(
+    [piiFeedback],
+    [new FeedbackDraftBodyInput(piiFeedback.FeedbackId, piiFeedback.TaskId, piiLikeBody, FeedbackDraftBodyInput.KindGeneral)],
+    loadedRuleSet,
+    new DateTime(2026, 06, 19, 0, 0, 0, DateTimeKind.Utc));
+context.AssertTrue(piiResult.PromotedExamples.Single().ExampleBody is null && piiResult.Warnings.Any(warning => warning.Contains("FEEDBACK_PII_PATTERN", StringComparison.Ordinal)), "PromotedExample should null PII-like Feedback body and warn");
+
+var uncertainFeedback = approvedFeedback with { FeedbackId = "feedback-uncertain-body-001", TaskId = "task-uncertain-body-001" };
+var uncertainResult = new ExamplePromotion().PromoteApproved(
+    [uncertainFeedback],
+    [new FeedbackDraftBodyInput(uncertainFeedback.FeedbackId, uncertainFeedback.TaskId, "manual note without explicit kind", string.Empty)],
+    loadedRuleSet,
+    new DateTime(2026, 06, 19, 0, 0, 0, DateTimeKind.Utc));
+context.AssertTrue(uncertainResult.PromotedExamples.Single().ExampleBody is null && uncertainResult.Warnings.Any(warning => warning.Contains("uncertain", StringComparison.OrdinalIgnoreCase)), "PromotedExample should null uncertain Feedback body and warn");
+
 var promotedExampleStorePath = Path.Combine("config", "smoke_promoted_examples.jsonl");
 if (File.Exists(promotedExampleStorePath))
 {
@@ -51,8 +95,43 @@ context.AssertTrue(storedPromotedExamples.Count == 2, "PromotedExampleStore shou
 context.AssertTrue(storedPromotedExamples.All(example => example.UserIdHash == approvedFeedback.UserId), "PromotedExampleStore should persist hashed user ids");
 context.AssertTrue(!promotedExampleStoreText.Contains("user-smoke", StringComparison.Ordinal), "PromotedExampleStore should not store raw user id");
 context.AssertTrue(context.Throws<ArgumentException>(() => promotedExampleStore.Append([promotionResult.PromotedExamples[0] with { UserIdHash = "plain-user" }])), "PromotedExampleStore should reject non-hash UserIdHash");
+context.AssertTrue(context.Throws<ArgumentException>(() => promotedExampleStore.Append([bodyPromotedExample with { ExampleBodyHash = LogHash.Sha256Hex("mismatch") }])), "PromotedExampleStore should reject mismatched body hash");
 context.AssertTrue(context.Throws<ArgumentException>(() => new PromotedExampleStore("config/../logs", "bad.jsonl")), "PromotedExampleStore should reject paths outside config");
 File.Delete(promotedExampleStore.FilePath);
+
+var retrievalStorePath = Path.Combine("config", "smoke_promoted_examples_retrieval.jsonl");
+var retrievalLogPath = Path.Combine("logs", "smoke_promoted_example_retrieval_log.jsonl");
+if (File.Exists(retrievalStorePath))
+{
+    File.Delete(retrievalStorePath);
+}
+
+if (File.Exists(retrievalLogPath))
+{
+    File.Delete(retrievalLogPath);
+}
+
+var retrievalStore = new PromotedExampleStore("config", "smoke_promoted_examples_retrieval.jsonl");
+var tieFirstExample = bodyPromotedExample with { ExampleId = "example-aaaaaaaaaaaa", FeedbackId = "feedback-body-tie-a", TaskId = "task-body-tie-a" };
+var tieSecondExample = bodyPromotedExample with { ExampleId = "example-zzzzzzzzzzzz", FeedbackId = "feedback-body-tie-z", TaskId = "task-body-tie-z" };
+retrievalStore.Append([tieSecondExample, tieFirstExample]);
+var promotedExampleRetriever = new PromotedExampleRetriever(
+    retrievalStore,
+    new TaskLogWriter("logs", "smoke_promoted_example_retrieval_log.jsonl"),
+    loadedRuleSet.RuleVersion);
+var retrievalResult = promotedExampleRetriever.Search("exposure base_dt", "raw-retrieval-user", maxResults: 2);
+var retrievalRepeat = new PromotedExampleRetriever(retrievalStore).Search("exposure base_dt", "raw-retrieval-user", maxResults: 2);
+context.AssertTrue(retrievalResult.Results.Count == 2 && retrievalResult.Results[0].Example.ExampleId == tieFirstExample.ExampleId, "PromotedExample retrieval should use deterministic Ordinal tie-break");
+context.AssertTrue(retrievalResult.Results.Select(result => result.Example.ExampleId).SequenceEqual(retrievalRepeat.Results.Select(result => result.Example.ExampleId)), "PromotedExample retrieval should return deterministic Feedback results");
+context.AssertTrue(retrievalResult.AuditLogWritten, "PromotedExample retrieval should write hashed Audit log");
+var promotedExampleRetrievalLogText = File.ReadAllText(retrievalLogPath);
+context.AssertTrue(!promotedExampleRetrievalLogText.Contains("exposure base_dt", StringComparison.OrdinalIgnoreCase) && !promotedExampleRetrievalLogText.Contains("raw-retrieval-user", StringComparison.Ordinal), "PromotedExample retrieval Audit should not store raw query or user id");
+context.AssertTrue(!promotedExampleRetrievalLogText.Contains(safeExampleBody, StringComparison.Ordinal), "PromotedExample retrieval Audit should not store raw Feedback body");
+File.Delete(retrievalStore.FilePath);
+File.Delete(retrievalLogPath);
+
+var gitIgnoreText = File.ReadAllText(".gitignore");
+context.AssertTrue(gitIgnoreText.Contains("config/promoted_examples*.jsonl", StringComparison.Ordinal) && gitIgnoreText.Contains("config/smoke_promoted_examples*.jsonl", StringComparison.Ordinal), "PromotedExample gitignore should exclude promoted example JSONL files");
 
 var uiIntegrationLogPath = Path.Combine("logs", "smoke_ui_integration_log.jsonl");
 if (File.Exists(uiIntegrationLogPath))
@@ -122,6 +201,7 @@ var feedbackLogText = File.ReadAllText(feedbackLogWriter.LogFilePath);
 context.AssertTrue(File.Exists(feedbackLogWriter.LogFilePath), "FeedbackLogWriter should create JSONL file");
 context.AssertTrue(feedbackLogText.Contains(feedbackEntry.FeedbackId, StringComparison.Ordinal), "FeedbackLogWriter should store feedback id");
 context.AssertTrue(!feedbackLogText.Contains(rawRequest, StringComparison.Ordinal), "FeedbackLogWriter should not store raw request text");
+context.AssertTrue(!feedbackLogText.Contains("DraftBody", StringComparison.Ordinal) && !feedbackLogText.Contains(safeExampleBody, StringComparison.Ordinal), "FeedbackLogWriter should not serialize DraftBody or raw Feedback body");
 context.AssertTrue(context.Throws<ArgumentException>(() => feedbackLogWriter.Append(feedbackEntry with { UserId = "plain-user" })), "FeedbackLogWriter should reject non-hash UserId");
 
 var historyLogDirectory = Path.Combine("logs", "smoke_history_reader");
