@@ -37,7 +37,7 @@ paths:
 
 ## 산출물/보고
 - 점검 결과를 `학습금지(가중치/모델파일 쓰기 0)` / `승인게이트` / `영속·untracked` / `검색결정성` / `review주입` / `해시audit` 범주로 분류, 각 항목 파일·라인 근거 + 상태 어휘(`VERIFIED`/`PARTIAL`/`SCAFFOLD_ONLY`/`PLACEHOLDER`/`BLOCKED`/`NOT_IMPLEMENTED`/`APPROVAL_REQUIRED`)만 사용.
-- 현 R5 = PARTIAL(승격+영속+UI까지). 실 Test PC Gate 전 VERIFIED 금지. 위반 0건이면 "Feedback Learning 점검: 위반 0건(코드리뷰 레벨)".
+- 현 R5 = **FEEDBACK-WP-01 VERIFIED**(local-gate #106; ingest 게이트·`PromotedExampleRetriever` 결정적 검색·hash audit·본문 non-log DTO) + **FEEDBACK-WP-02 NEXT UP**(Prompt 반영, 미구현). 실 Test PC Gate B/C=BLOCKED. 위반 0건이면 "Feedback Learning 점검: 위반 0건(코드리뷰 레벨)".
 
 ## 참조
 - `docs/40_ADR_Architecture_Evolution.md` ADR-014(승인 Example RETRIEVAL·Prompt 반영, 학습 아님)
