@@ -118,6 +118,29 @@
 
 ---
 
+# Cleanup 트랙 (저위험 하이진 — 주간 병렬 큐, `docs/50` 참조)
+> 기록된 nit을 저위험 WP로 승격. 전부 **독립 브랜치 off main·개별 PR**(파일 겹침 0 → 병렬 안전), 일요일 일괄 리뷰. 각 변경은 명확한 테스트 뒤에 두어 Claude가 승인/기각(의도된 동작 시) 가능. 프롬프트 READY.
+
+## UX-WP-07. Smart Assist Completion 표면화 하이진 (dedupe Kind 인지·Info 힌트 필터·allow-function 표면화) — **READY** (Cap C-22/C-23 하이진)
+- **목표**: ① `CompletionEngine.DedupeAndSort` 키에 `Kind` 포함(SafetyHint+삽입가능 항목 공존) ② `SafetyHintProvider`가 Info 심각도 finding 미핀(Warning 이상만) ③ `Excel2021CompletionProvider` allow-function 탈락 라벨 warning 표면화. 삽입/트리거/accept·audit·NoModel·정적성 불변. **A-4(2줄) 범위 밖**.
+- **수정예상파일**: `Core/Assist/CompletionEngine.cs`·`Core/Assist/Providers/StaticCompletionProviders.cs`, `AssistTests.cs`.
+- **테스트**(도메인 `Assist`): dedupe Kind 공존·완전중복 1건·pinned/cap/findings 절단 안전 / Info 핀 제외 / allow-function warning(합성 ruleset) / 기존 `AssistTests` 보존. `Total`+N·Unclassified 0.
+- **Branch**: `feature/ux-wp-07-assist-surfacing-hygiene` · **프롬프트**: `prompts/codex/UX-WP-07_smart_assist_surfacing_hygiene.md`.
+
+## UX-WP-08. Completion Popup Esc/Close 포커스 복원 (C-7) — **READY** (Cap C-24 하이진)
+- **목표**: 팝업 Esc/Close 시 원본 편집 TextBox로 포커스 복원(이미 원본이면 no-op, accept 경로 중복복원 0, `grabFocus:false` 커서 미교란). Core 계약 불변(App WPF 한정).
+- **수정예상파일**: `App/Controls/CompletionPopup.xaml.cs`, (가능 시) `UiContractTests.cs`.
+- **테스트**: ⚠️ **실 포커스 렌더=Gate B**(과대표기 금지). 콘솔 관측 가능한 seam만 최소 단언, 억지 UI 테스트 0. 기존 보존·`Total` 불변 또는 +N.
+- **Branch**: `feature/ux-wp-08-popup-focus-restore` · **프롬프트**: `prompts/codex/UX-WP-08_completion_popup_focus_restore.md`.
+
+## R2-WP-05. R2 잔여 데드코드 하이진 (Welford 미사용 필드 제거, 자기검증형·동작 불변) — **READY** (Cap C-14 하이진)
+- **목표**: R2-WP-02(#81)에서 OutlierCount가 legacy 2-pass로 회귀되며 dead로 남은 Welford `mean`/`m2`(또는 동등) 제거. **관측 동작·수치·결정성 변경 0**(프로파일 결과 바이트 동일). **사용 중이면 no-change 보고**(억지 리팩터 금지). record-only/by-design nit(RECON 다중가산·movers Unchanged 등) 미접촉.
+- **수정예상파일**: `Core/Data/DataProfiler.cs`(및 `NumericAccumulator`).
+- **테스트**(도메인 `DataProfile`/`Csv`): 데드코드 제거이므로 기존 `DataProfileTests`/`CsvTests` 전부 통과로 동작 불변 고정. **`Total=807` 불변**(단언 가감 0)이 정상.
+- **Branch**: `feature/r2-wp-05-residual-code-hygiene` · **프롬프트**: `prompts/codex/R2-WP-05_residual_code_hygiene.md`.
+
+---
+
 # UX Enhancement 트랙 (Gate B 2026-06-30 사용자 검증 후속)
 
 > ⚠️ **ID 충돌 주의**: 사용자 제안 "UX-WP-01/02/03"은 **이미 완료·머지된** UX-WP-01(Smart Assist Core #70)·UX-WP-02(정적 Provider #72)·UX-WP-03(WPF Completion Popup #73)과 충돌한다(§0 재구현 금지·traceability). 충돌 방지를 위해 본 신규 트랙은 **UX-WP-04부터** 부여하고 사용자 제안명을 매핑한다: **UX-WP-04 = Excel Function Helper**(제안 "UX-WP-01"), **UX-WP-05 = Smart Assist 입력중 추천 표면화**(제안 "UX-WP-02 Smart Assist Core"), **UX-WP-06 = Smart Assist Popup 확장**(제안 "UX-WP-03 Smart Assist Popup"). **번호 체계 = UX-WP-04~06 확정**(사용자 2026-06-30). **시퀀스 = KB-WP-02(NEXT UP) → UX-WP-04 → UX-WP-05 → UX-WP-06**(전부 프롬프트 READY). UX-WP-05/06 스코프는 2026-06-30 코드 조사로 확정(Smart Assist=Ctrl+Space-only by-design, Core 변경 0·WPF 레이어만).

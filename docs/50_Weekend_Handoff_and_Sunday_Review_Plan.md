@@ -13,15 +13,15 @@
 5. **절대원칙 불변**: 외부 NuGet 0·외부 API/Telemetry/AutoUpdate 0·SQL/VBA/Golden6 자동실행 0·해시 전용 Audit(원문 미저장)·실데이터/원문/모델파일 repo 미포함·기존 테스트 삭제·약화 0·force push·hard reset 0.
 6. **Automatic Skill Bridge**(`AGENTS.md §9`): 매 구현 전 `AGENTS.md`→`SKILLS.md`→관련 `SKILL.md`→대상 WP 프롬프트 self-read, 완료 보고에 **"Applied Skill Checklists"** 명시.
 
-## B. Codex 작업 큐 (우선순위 — 전부 저위험·일괄 리뷰 가능)
-1. **FEEDBACK-WP-02** (NEXT UP) — `prompts/codex/FEEDBACK-WP-02_prompt_reflection.md` **READY**(#107 머지 후 main). 검색 승인 Example → `DraftRequest.Context` review 경유 read-only 반영. Core+테스트 범위.
-2. **안전 cleanup 후보**(각각 자체 완결·저위험 — **WP 승격 시 Claude 프롬프트 선행** 필요; 아래는 근거 인벤토리):
-   - **UX-WP-01 nit** — `CompletionEngine` dedupe 키(ProviderId+Label)에 `Kind` 미포함 → 동일 Label로 SafetyHint+일반항목 동시 방출 시 일반항목 소실. `Core/Assist/CompletionEngine.cs`.
-   - **UX-WP-03 nit(C-7)** — `CompletionPopup` Esc-on-ListBox 경로에서 원본 TextBox 포커스 미복원. `App/Controls/CompletionPopup.xaml.cs`.
-   - **UX-WP-02 nit(A-4/A-5/A-6)** — Blocker가 BlockedHint+SafetyHint 2줄 노출 / 정보성 finding까지 SafetyHint 핀 / `IsWorksheetFunctionName` 필터 무음 누락. `Core/Assist/Providers/StaticCompletionProviders.cs`.
-   - **R2 잔여 nit** — 기록만(대개 무해). 신중히, 회귀 없는 범위만.
+## B. Codex 작업 큐 (전부 **프롬프트 READY**·저위험·독립 브랜치 off main·일괄 리뷰 가능)
+> 파일 겹침 0 → **병렬 진행 안전**. 권장 착수 순서 = 1 → 2 → 3 → 4(가치·명확성 순). 각 WP는 `docs/39` 원장에 등재.
 
-> ⚠️ FEEDBACK-WP-02 외 추가 WP는 **1 WP 1 프롬프트** 규약상 Claude가 프롬프트를 먼저 써야 한다. 지금 남은 한도로 프롬프트화할 후보를 사용자가 지정하면 착수(아래 §D). 미지정 시 Codex는 **FEEDBACK-WP-02**로 주간 진행하고 나머지는 일요일에 큐잉.
+1. **FEEDBACK-WP-02** (NEXT UP) — `prompts/codex/FEEDBACK-WP-02_prompt_reflection.md`. 검색 승인 Example → `DraftRequest.Context` review 경유 read-only 반영. Core+테스트. 파일: `Core/Generation/*`.
+2. **UX-WP-07** (Smart Assist 표면화 하이진) — `prompts/codex/UX-WP-07_smart_assist_surfacing_hygiene.md`. dedupe Kind 인지·Info 힌트 필터·allow-function 표면화. 파일: `Core/Assist/CompletionEngine.cs`·`Core/Assist/Providers/StaticCompletionProviders.cs`.
+3. **R2-WP-05** (R2 데드코드 하이진, 자기검증형·동작 불변) — `prompts/codex/R2-WP-05_residual_code_hygiene.md`. dead Welford 필드 제거(사용 중이면 no-change). 파일: `Core/Data/DataProfiler.cs`.
+4. **UX-WP-08** (Popup Esc/Close 포커스 복원 C-7) — `prompts/codex/UX-WP-08_completion_popup_focus_restore.md`. ⚠️ 실 포커스 렌더=**Gate B**(로컬 검증 제한적). 파일: `App/Controls/CompletionPopup.xaml.cs`.
+
+> STOP 게이트(R4 LLM·NCR 실 Pack·STAB-WP-05 서명·Gate B/C)는 여전히 **승인 선행** — 위 큐에 없음. 큐 소진 시 추가 WP는 일요일 Claude 프롬프트 작성.
 
 ## C. 일요일 일괄 점검 계획 (Sunday Comprehensive Review — Claude, 리셋 후)
 0. **상태 파악**(`risk-status-sync`): `git log`·`list_pull_requests`로 main HEAD·정본 Total·**열린 PR 목록**·각 PR 대상 WP·의존 관계 재확인.
@@ -33,8 +33,8 @@
 3. **머지마다 truth-sync**(`risk-doc-truth-sync`): 기준선 SHA·`Total`·NEXT UP·**Traceability(`docs/38 §5`)**·`docs/39` Resume Brief·`CLAUDE.md`/`AGENTS.md`/`README.md`/`SKILLS.md` 정합.
 4. **마무리**: 전체 정합 재확인 → 다음 **NEXT UP 1개** 지정.
 
-## D. 지금(리셋 전) 남은 한도 사용
-- **완료**: PR #107(truth-sync FEEDBACK-WP-01 DONE + FEEDBACK-WP-02 프롬프트) + 본 문서.
-- **권장 다음**: 사용자가 §B의 cleanup 후보 중 **프롬프트화할 것을 1~2개 지정**하면 지금 착수(Codex 주간 큐 확장). 미지정이면 여기서 멈추고 한도 보존 종료 — Codex는 FEEDBACK-WP-02 진행, 나머지는 일요일.
+## D. 지금(리셋 전) 남은 한도 사용 — 완료
+- PR #107: truth-sync FEEDBACK-WP-01 DONE + FEEDBACK-WP-02 프롬프트 + 본 계획 + **cleanup WP 3종(UX-WP-07·UX-WP-08·R2-WP-05) 프롬프트 + `docs/39` 원장 등재**.
+- **결과**: Codex 주간 큐 = **4 WP(전부 프롬프트 READY)**. 사용자는 #107 머지 후 Codex를 병렬(독립 브랜치)로 돌리고, 일요일 리셋 시 Claude가 §C대로 열린 PR 일괄 리뷰. Claude PR 워치 미설정(예산 보존).
 
 > 관련: `CLAUDE.md §11`, `AGENTS.md §0·§9`, `docs/38`·`docs/39`, `SKILLS.md`, `prompts/codex/FEEDBACK-WP-02_prompt_reflection.md`.
