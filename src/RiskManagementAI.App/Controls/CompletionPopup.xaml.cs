@@ -17,14 +17,14 @@ public partial class CompletionPopup : UserControl
 
     public bool IsCompletionOpen => RootPopup.IsOpen;
 
-    public CompletionItem? SelectedCompletion => CompletionList.SelectedItem as CompletionItem;
+    public CompletionItem? SelectedCompletion => (CompletionList.SelectedItem as CompletionDisplayInfo)?.Item;
 
     public void Show(TextBox placementTarget, IReadOnlyList<CompletionItem> items, bool grabFocus = true)
     {
         ArgumentNullException.ThrowIfNull(placementTarget);
         RootPopup.PlacementTarget = placementTarget;
         RootPopup.Placement = PlacementMode.Bottom;
-        CompletionList.ItemsSource = items;
+        CompletionList.ItemsSource = CompletionDisplayFormatter.FromItems(items);
         CompletionList.SelectedIndex = items.Count > 0 ? 0 : -1;
         RootPopup.IsOpen = items.Count > 0;
         if (RootPopup.IsOpen && grabFocus)

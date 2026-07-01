@@ -311,9 +311,16 @@ context.AssertTrue(
     "Assist completion popup should use WPF Popup and ListBox only");
 context.AssertTrue(
     completionPopupXamlText.Contains("{Binding Source}", StringComparison.Ordinal)
-    && completionPopupXamlText.Contains("{Binding Kind}", StringComparison.Ordinal)
-    && completionPopupXamlText.Contains("{Binding RequiresReview}", StringComparison.Ordinal),
-    "Assist completion popup should display Source Kind RequiresReview fields");
+    && completionPopupXamlText.Contains("{Binding KindLabel}", StringComparison.Ordinal)
+    && completionPopupXamlText.Contains("{Binding ReviewLabel}", StringComparison.Ordinal)
+    && completionPopupXamlText.Contains("{Binding PreviewText}", StringComparison.Ordinal)
+    && completionPopupXamlText.Contains("{Binding SafetyText}", StringComparison.Ordinal)
+    && completionPopupXamlText.Contains("{Binding InsertabilityLabel}", StringComparison.Ordinal),
+    "Assist completion popup should display Source KindLabel ReviewLabel PreviewText SafetyText and insertability fields");
+context.AssertTrue(
+    completionPopupCode.Contains("CompletionDisplayFormatter.FromItems", StringComparison.Ordinal)
+    && completionPopupCode.Contains("CompletionDisplayInfo)?.Item", StringComparison.Ordinal),
+    "Assist completion popup display should wrap items for rendering while accepting the original CompletionItem");
 context.AssertTrue(
     mainWindowCode.Contains("Key.Space", StringComparison.Ordinal)
     && mainWindowCode.Contains("Key.Enter", StringComparison.Ordinal)
