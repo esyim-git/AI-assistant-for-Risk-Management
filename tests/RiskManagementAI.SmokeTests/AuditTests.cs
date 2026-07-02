@@ -244,9 +244,17 @@ var taskEntry = new TaskLogEntry(
 
 var taskLogWriter = new TaskLogWriter("logs", "smoke_task_log.jsonl");
 taskLogWriter.Append(taskEntry);
+var taskEntryWithoutOutput = taskEntry with
+{
+    TaskId = "task-smoke-null-output-001",
+    OutputHash = null,
+    TaskType = "MetadataOnlyAuditSmoke"
+};
+taskLogWriter.Append(taskEntryWithoutOutput);
 var taskLogText = File.ReadAllText(taskLogWriter.LogFilePath);
 context.AssertTrue(File.Exists(taskLogWriter.LogFilePath), "TaskLogWriter should create JSONL file");
 context.AssertTrue(taskLogText.Contains(taskEntry.RequestHash, StringComparison.Ordinal), "TaskLogWriter should store request hash");
+context.AssertTrue(taskLogText.Contains(taskEntryWithoutOutput.TaskId, StringComparison.Ordinal) && !taskLogText.Contains(rawOutput, StringComparison.Ordinal), "TaskLogWriter should accept null output hash for Audit no-output entries");
 context.AssertTrue(!taskLogText.Contains(rawRequest, StringComparison.Ordinal) && !taskLogText.Contains("ACCOUNT_NO", StringComparison.Ordinal), "TaskLogWriter should not store raw request/output text");
 context.AssertTrue(context.Throws<ArgumentException>(() => taskLogWriter.Append(taskEntry with { RequestHash = rawRequest })), "TaskLogWriter should reject non-hash RequestHash");
 context.AssertTrue(context.Throws<ArgumentException>(() => taskLogWriter.Append(taskEntry with { OutputHash = rawOutput })), "TaskLogWriter should reject non-hash OutputHash");
@@ -267,9 +275,35 @@ feedbackLogWriter.Append(feedbackEntry);
 var feedbackLogText = File.ReadAllText(feedbackLogWriter.LogFilePath);
 context.AssertTrue(File.Exists(feedbackLogWriter.LogFilePath), "FeedbackLogWriter should create JSONL file");
 context.AssertTrue(feedbackLogText.Contains(feedbackEntry.FeedbackId, StringComparison.Ordinal), "FeedbackLogWriter should store feedback id");
+context.AssertTrue(
+    typeof(FeedbackLogEntry).GetProperties(BindingFlags.Public | BindingFlags.Instance).Select(property => property.Name)
+        .SequenceEqual(new[] { "FeedbackId", "TaskId", "CreatedAt", "UserId", "FeedbackCode", "ReviewStatus" }),
+    "FeedbackLog Audit schema should remain six positional fields");
 context.AssertTrue(!feedbackLogText.Contains(rawRequest, StringComparison.Ordinal), "FeedbackLogWriter should not store raw request text");
 context.AssertTrue(!feedbackLogText.Contains("DraftBody", StringComparison.Ordinal) && !feedbackLogText.Contains(safeExampleBody, StringComparison.Ordinal), "FeedbackLogWriter should not serialize DraftBody or raw Feedback body");
 context.AssertTrue(context.Throws<ArgumentException>(() => feedbackLogWriter.Append(feedbackEntry with { UserId = "plain-user" })), "FeedbackLogWriter should reject non-hash UserId");
+
+var acceptedItemLogPath = Path.Combine("logs", "smoke_accept_audit_log.jsonl");
+if (File.Exists(acceptedItemLogPath))
+{
+    File.Delete(acceptedItemLogPath);
+}
+
+var acceptedItemWriter = new SuggestionLogWriter("logs", "smoke_accept_audit_log.jsonl");
+var acceptedItem = new CompletionItem("SELECT", "SELECT BASE_DT", CompletionItemKind.Keyword, "sql-provider", true, true, null, null, 10);
+var acceptedItemEntry = SuggestionLogEntry.FromAcceptedItem(
+    acceptedItem,
+    CompletionLanguage.Sql,
+    LogHash.Sha256Hex("accept-audit-user"),
+    new DateTime(2026, 06, 20, 0, 0, 0, DateTimeKind.Utc));
+acceptedItemWriter.Append(acceptedItemEntry);
+var acceptedItemLogText = File.ReadAllText(acceptedItemWriter.LogFilePath);
+context.AssertTrue(acceptedItemLogText.Contains(acceptedItemEntry.InsertTextHash, StringComparison.Ordinal) && !acceptedItemLogText.Contains(acceptedItem.InsertText, StringComparison.Ordinal), "Audit accepted item log should store insert hash only");
+context.AssertTrue(context.Throws<ArgumentException>(() => acceptedItemWriter.Append(acceptedItemEntry with { InsertTextHash = acceptedItem.InsertText })), "Audit accepted item log should reject non-hash insert text");
+context.AssertTrue(
+    context.Throws<ArgumentException>(() => acceptedItemWriter.Append(acceptedItemEntry with { Kind = CompletionItemKind.SafetyHint })),
+    "Audit accepted item log should reject safety hint kinds");
+File.Delete(acceptedItemWriter.LogFilePath);
 
 var historyLogDirectory = Path.Combine("logs", "smoke_history_reader");
 if (Directory.Exists(historyLogDirectory))
