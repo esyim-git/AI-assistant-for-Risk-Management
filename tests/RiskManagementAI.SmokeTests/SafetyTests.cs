@@ -167,6 +167,30 @@ context.AssertTrue(
     xlookupInfo is not null
     && excelFunctionHelper.BuildFormulaInsertion(xlookupInfo) == xlookupInfo.FormulaExample,
     "Excel 2021 Function Helper insertion text should be available only through explicit caller invocation");
+var curatedFunctionNames = new[] { "AVERAGEIFS", "MAXIFS", "MINIFS", "SUMPRODUCT", "IFERROR" };
+var curatedFunctionInfos = curatedFunctionNames.Select(name => excelFunctionHelper.Lookup(name)).ToArray();
+context.AssertTrue(
+    curatedFunctionInfos.All(info =>
+        info is not null
+        && !string.IsNullOrWhiteSpace(info.Description)
+        && !string.IsNullOrWhiteSpace(info.Args)
+        && !string.IsNullOrWhiteSpace(info.RiskMgmtExample)
+        && !string.IsNullOrWhiteSpace(info.FormulaExample)
+        && !string.IsNullOrWhiteSpace(info.Excel2021Alternative)),
+    "Excel 2021 Function Helper should load complete curated UX-WP-11 function details");
+context.AssertTrue(
+    curatedFunctionInfos.All(info =>
+        info is not null
+        && !info.Is365Only
+        && !loadedRuleSet.ExcelBlockedFunctions.Contains(info.Name, StringComparer.OrdinalIgnoreCase)
+        && excelChecker.CheckFormula(info.FormulaExample).All(finding => finding.Code != "EXCEL_365_FUNCTION")),
+    "Excel 2021 Function Helper curated UX-WP-11 functions should stay outside blocked rules and pass checker");
+var weightedSearchA = excelFunctionHelper.Search("weighted exposure").Select(info => info.Name).ToArray();
+var weightedSearchB = excelFunctionHelper.Search("weighted exposure").Select(info => info.Name).ToArray();
+context.AssertTrue(
+    weightedSearchA.SequenceEqual(weightedSearchB)
+    && weightedSearchA.FirstOrDefault() == "SUMPRODUCT",
+    "Excel 2021 Function Helper search should deterministically find curated SUMPRODUCT risk example");
 
 var customRulesDirectory = Path.Combine("artifacts", "smoke-rules-b01");
 if (Directory.Exists(customRulesDirectory))

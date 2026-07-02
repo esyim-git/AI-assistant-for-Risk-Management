@@ -80,6 +80,46 @@
     "Excel2021Alternative": "Excel 2021 supports COUNTIFS. PivotTable can also be used for reviewed counts."
   },
   {
+    "Name": "AVERAGEIFS",
+    "Description": "Averages values that satisfy one or more criteria.",
+    "Args": "average_range, criteria_range1, criteria1, [criteria_range2], [criteria2], ...",
+    "RiskMgmtExample": "Average dummy usage ratios by portfolio and risk factor before manual review.",
+    "FormulaExample": "=AVERAGEIFS($C:$C,$A:$A,A2,$B:$B,B2)",
+    "Excel2021Alternative": "Excel 2021 supports AVERAGEIFS. PivotTable can also be used for reviewed averages."
+  },
+  {
+    "Name": "MAXIFS",
+    "Description": "Returns the maximum value among rows that satisfy criteria.",
+    "Args": "max_range, criteria_range1, criteria1, [criteria_range2], [criteria2], ...",
+    "RiskMgmtExample": "Find the largest dummy usage ratio for a portfolio during review.",
+    "FormulaExample": "=MAXIFS($C:$C,$A:$A,A2)",
+    "Excel2021Alternative": "Excel 2021 supports MAXIFS. PivotTable or helper columns can also be used for reviewed maxima."
+  },
+  {
+    "Name": "MINIFS",
+    "Description": "Returns the minimum value among rows that satisfy criteria.",
+    "Args": "min_range, criteria_range1, criteria1, [criteria_range2], [criteria2], ...",
+    "RiskMgmtExample": "Find the smallest dummy remaining-limit value for a portfolio during review.",
+    "FormulaExample": "=MINIFS($C:$C,$A:$A,A2)",
+    "Excel2021Alternative": "Excel 2021 supports MINIFS. PivotTable or helper columns can also be used for reviewed minima."
+  },
+  {
+    "Name": "SUMPRODUCT",
+    "Description": "Multiplies arrays and sums the products for weighted calculations.",
+    "Args": "array1, [array2], [array3], ...",
+    "RiskMgmtExample": "Calculate a dummy weighted exposure measure without hidden array spilling.",
+    "FormulaExample": "=SUMPRODUCT($C$2:$C$20,$D$2:$D$20)",
+    "Excel2021Alternative": "Excel 2021 supports SUMPRODUCT. Keep ranges bounded and reviewable."
+  },
+  {
+    "Name": "IFERROR",
+    "Description": "Returns a fallback value when a formula evaluates to an error.",
+    "Args": "value, value_if_error",
+    "RiskMgmtExample": "Show a review marker when a dummy lookup fails instead of hiding the issue.",
+    "FormulaExample": "=IFERROR(XLOOKUP(A2,$A$2:$A$20,$B$2:$B$20),\"Review\")",
+    "Excel2021Alternative": "Excel 2021 supports IFERROR. Use review-visible fallback labels rather than blanking exceptions."
+  },
+  {
     "Name": "INDEX",
     "Description": "Returns a value at a row and column position in a range.",
     "Args": "array, row_num, [column_num]",
