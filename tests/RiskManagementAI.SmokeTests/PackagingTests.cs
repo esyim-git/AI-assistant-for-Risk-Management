@@ -15,6 +15,8 @@ var build01TextForLocalConfig = File.ReadAllText(Path.Combine("build", "01_publi
 var build03TextForLocalConfig = File.ReadAllText(Path.Combine("build", "03_verify-package.ps1"));
 context.AssertTrue(build01TextForLocalConfig.Contains("*.local.json", StringComparison.Ordinal) && build01TextForLocalConfig.Contains("Remove-Item", StringComparison.Ordinal), "build/01 packaging should exclude local layout json from publish output");
 context.AssertTrue(build03TextForLocalConfig.Contains("*.local.json", StringComparison.Ordinal) && build03TextForLocalConfig.Contains("Local runtime config present in package", StringComparison.Ordinal), "build/03 packaging should fail if local layout json is present in release package");
+var forbiddenPackagingExtensions = new[] { ".gguf", ".safetensors", ".onnx", ".pt", ".pem", ".key", ".pfx", ".env" };
+context.AssertTrue(forbiddenPackagingExtensions.All(extension => build01TextForLocalConfig.Contains(extension, StringComparison.Ordinal) && build03TextForLocalConfig.Contains(extension, StringComparison.Ordinal)), "build/0 packaging forbidden extension scan should stay in lock-step");
 context.AssertTrue(System.Text.RegularExpressions.Regex.IsMatch(File.ReadAllText("VERSION").Trim(), @"^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$"), "VERSION file should be a non-empty semver string (single source of truth; no hardcoded value in tests)");
 context.AssertTrue(File.Exists("global.json") && File.ReadAllText("global.json").Contains("8.0", StringComparison.Ordinal), "global.json should pin the .NET 8 SDK band (ADR-005/006)");
 // === STAB-WP-03b: runtime fail-closed integrity gate (manifest). Domain keyword "manifest" => Packaging. ===
@@ -166,6 +168,14 @@ context.AssertTrue(File.Exists("global.json") && File.ReadAllText("global.json")
     var traversalResult = IntegrityVerifier.VerifyPackage(pkgTraversal, strict: true);
     context.AssertTrue(traversalResult.Status == IntegrityStatus.FailClosed, "IntegrityVerifier manifest path traversal entry fails closed");
 
+    // Backslash traversal entry (Windows-style separator) must fail closed too.
+    var pkgBackslashTraversal = FreshIntegrityPackage();
+    var backslashTraversalEntries = IntegrityEntries(pkgBackslashTraversal);
+    backslashTraversalEntries.Add(new Dictionary<string, object?> { ["path"] = @"rules\..\evil.txt", ["size"] = 1L, ["sha256"] = "00", ["class"] = "Rules", ["required"] = false });
+    WriteIntegrityManifest(pkgBackslashTraversal, "0.7.0", backslashTraversalEntries);
+    var backslashTraversalResult = IntegrityVerifier.VerifyPackage(pkgBackslashTraversal, strict: true);
+    context.AssertTrue(backslashTraversalResult.Status == IntegrityStatus.FailClosed, "IntegrityVerifier manifest backslash traversal entry fails closed");
+
     // Rooted path entry (OS-appropriate).
     var pkgRooted = FreshIntegrityPackage();
     var rootedEntries = IntegrityEntries(pkgRooted);
@@ -265,6 +275,7 @@ context.AssertTrue(File.Exists("global.json") && File.ReadAllText("global.json")
     context.AssertTrue(IntegrityGate.Decide(IntegrityResult.NotVerified(), devAllow: true) == GateDecision.Allow, "IntegrityGate allows the NotVerified manifest state only under the dev switch");
     var fabricatedOk = new IntegrityResult(IntegrityStatus.Ok, false, Array.Empty<string>(), Array.Empty<SafetyFinding>(), new HashSet<string>(StringComparer.Ordinal));
     context.AssertTrue(IntegrityGate.Decide(fabricatedOk, devAllow: false) == GateDecision.Allow, "IntegrityGate allows an Ok manifest result");
+    context.AssertTrue(IntegrityResult.ShortHash("abcdef1234567890") == "ABCDEF123456" && IntegrityResult.ShortHash(null) == "(none)", "IntegrityResult manifest hash prefix should stay audit-safe");
 
     // Manifest shrink of a NON-mandatory critical asset: drop the rules/* entry but leave the file on
     // disk (and tamper it). All six mandatory paths remain, so this must be caught by the critical-glob
@@ -366,6 +377,7 @@ context.AssertTrue(File.Exists("global.json") && File.ReadAllText("global.json")
     var actualCriticalPaths = IntegrityVerifier.RequiredCriticalEntries.OrderBy(x => x, StringComparer.Ordinal).ToArray();
     var expectedCriticalPaths = repoCriticalPaths.OrderBy(x => x, StringComparer.Ordinal).ToArray();
     context.AssertTrue(actualCriticalPaths.SequenceEqual(expectedCriticalPaths), "IntegrityVerifier RequiredCriticalEntries should match the current build/01 critical asset inventory");
+    context.AssertTrue(IntegrityVerifier.RequiredCriticalEntries.Contains("config/ncr/ncr_ruleset_sample.json", StringComparer.Ordinal) && IntegrityVerifier.RequiredCriticalEntries.Contains("kb/clause_pack_sample/public_clause_pack_sample.csv", StringComparer.Ordinal) && !IntegrityVerifier.RequiredCriticalEntries.Any(path => path.EndsWith(".local.json", StringComparison.OrdinalIgnoreCase)), "IntegrityVerifier manifest required critical entries should include runtime assets and exclude local config");
 
     foreach (var dir in integrityTempDirs)
     {
