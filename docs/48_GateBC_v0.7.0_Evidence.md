@@ -65,7 +65,7 @@ v0.7.0 portable ZIP을 **실 오프라인 Test PC(Gate B)** 및 **운영 반입 
 >
 > ⚠️ **어느 ZIP으로 하나 (중요)**:
 > - **현 published v0.7.0 ZIP(`30c1cfb`)로 지금 가능** → **B-6 CSV/XLSX·B-8 Excel Report/RISK_VISUAL** + 이미 user-reported인 B-1/B-3/B-4/B-7/B-9/B-10 **증거 봉인**. (R1 입력·한도·대사 + R2 RISK_VISUAL은 `30c1cfb`에 포함.)
-> - **신규 빌드 필요 → B-5 재검증**: Excel Function Helper(UX-WP-04)·Smart Assist as-you-type/팝업/포커스(UX-WP-05~11)는 `30c1cfb` **이후** 머지라 현 v0.7.0 ZIP에 **미포함**. 실 UI 재확인은 main `7094d91`(또는 v0.7.1 컷)에서 `build/00~03` 재패키징한 **신규 ZIP**에서만 가능. (신규 컷을 원하면 별도 REL WP로 진행 — 승인/버전 범프 필요.)
+> - **신규 빌드 필요 → B-5 재검증**: Excel Function Helper(UX-WP-04)·Smart Assist as-you-type/팝업/포커스(UX-WP-05~11)는 `30c1cfb` **이후** 머지라 현 v0.7.0 ZIP에 **미포함**. 실 UI 재확인은 main `7094d91`에서 `build/00~03` 재패키징한 **신규 ZIP**에서만 가능(**Test PC 증거용 로컬 빌드 절차 = 아래 §5a, 승인 불요**; 이 빌드는 공개 게시하지 않는다. 공개 v0.7.1 릴리스 컷은 별도 REL WP + 버전 범프 + 승인 필요, §11.5).
 
 ### 0. 준비
 - Test PC = Windows 11 · **인터넷 차단** · Excel 2021(Gate C). ZIP 반입 후 `evidence/gateB/` 폴더 생성.
@@ -92,7 +92,24 @@ Get-ChildItem -Recurse .\rmai | Select-Object FullName | Out-File evidence\gateB
 - 생성 리포트를 Excel 2021로 열기(**`RISK_VISUAL` 수동열기 포함**) → **Formula Error 0 · External Link 0 · Macro 0**. → §C C1/C2 봉인.
 
 ### 5. B-5 재검증 (⚠️ 신규 빌드 후에만)
-- 신규 ZIP(main `7094d91`)에서: **Excel Function Helper view**(검색·상세·인수·리스크예시·대체식) · **Smart Assist as-you-type 팝업**·**Esc/Close 포커스 복원** 실 UI 확인. → §B B13(B-5) PARTIAL 해소.
+현 published v0.7.0 ZIP(`30c1cfb`)에는 UX-WP-04~11(Excel Helper·Smart Assist as-you-type/팝업/포커스)이 **미포함**이므로, B-5 실 UI 재확인은 **main `7094d91`에서 새로 빌드한 ZIP**에서만 가능하다.
+
+#### 5a. Dev PC에서 Gate B 검증용 ZIP 굽기 (test-only 로컬 빌드 — 승인 불요)
+> **Dev PC**(.NET 8 SDK + PowerShell, 인터넷 허용)에서 실행. 이 ZIP은 **Test PC 증거용 로컬 빌드**이지 GitHub Release가 아니다 — Dev→Test 파이프라인 정상 흐름(§2 환경분리). 새 컷을 **공개 릴리스로 게시하지 않는다**(공개 v0.7.1 릴리스는 별도 REL WP + 버전 범프 + 승인 필요, §11.5).
+```powershell
+git fetch origin main; git checkout 7094d91           # 정본 HEAD(=main). VERSION 파일 = 0.7.0
+pwsh build/00_check-prereqs.ps1                        # SDK/도구 확인
+pwsh build/01_publish-win-x64.ps1                      # self-contained win-x64 (PDB/Debug 0)
+pwsh build/02_package-release.ps1                      # → artifacts\release\RiskManagementAI-v0.7.0-win-x64-portable.zip (+ .sha256)
+pwsh build/03_verify-package.ps1                       # manifest·금지파일 0·원문 스캔 PASS 확인
+Get-Content artifacts\release\RiskManagementAI-v0.7.0-win-x64-portable.zip.sha256   # ← 이 빌드의 SHA256 (기록)
+```
+> ⚠️ **버전 충돌 주의**: 이 ZIP도 VERSION 파일 기준 `0.7.0`으로 라벨되지만 published `30c1cfb` v0.7.0과 **콘텐츠가 다르다**(UX-WP-04~11 포함). 따라서 **B-0 해시 대조는 `42C835…`가 아니라 이 빌드 자신의 `.sha256` 출력**으로 한다. 혼동을 막으려면 ZIP 파일명에 `-gateB-7094d91` 접미사를 붙여 보관(예: `RiskManagementAI-v0.7.0-gateB-7094d91-win-x64-portable.zip`)하고 published 릴리스 ZIP과 별도 폴더에 둔다.
+
+#### 5b. Test PC에서 B-5 실 UI 확인
+- 위 5a ZIP을 Test PC(인터넷 차단)로 반입 → `Get-FileHash`로 5a의 `.sha256` 값과 대조 → `run.bat` NoModelMode 기동(무결성 PASS).
+- **Excel Function Helper view**(검색·함수 상세·인수·리스크예시·Excel 2021 대체식) · **Smart Assist as-you-type 팝업**(입력중 추천, 자동삽입 0) · **Esc/Close 포커스 복원** 실 UI 확인. 캡처 → `evidence/gateB/B5-*.png`. → §B B13(B-5) PARTIAL 해소.
+> 이 빌드는 test-only이므로 §B B0(published `42C835…`) 봉인은 현 published ZIP 라운드에서 그대로 유지되고, B-5만 5a 빌드 증거로 별도 봉인한다(두 라운드 증거를 §증거 워크시트에 분리 기입).
 
 ### 6. 회신
 - 각 단계 완료 시 §B/§B′ 표의 상태 + 증거 파일명 기입 후 회신 → 항목 단위 재판정 → Gate B 봉인 여부 갱신. (Test PC 대상 PASS + 명시 예외(B7/B8/C5) 수용 시 봉인.)
@@ -113,6 +130,30 @@ Get-ChildItem -Recurse .\rmai | Select-Object FullName | Out-File evidence\gateB
 
 ## 증거 메타 (각 항목 공통 기입)
 `PASS/FAIL/BLOCKED · Screenshot · Log · File Hash · 측정값 · 검증자 · 검증시각 · Test PC 사양`.
+
+### 증거 워크시트 (복사해서 채운 뒤 회신 — 실 PC 실행분만 PASS)
+> 실행 라운드별로 분리 기입. **R1 = 현 published ZIP(`30c1cfb`, SHA `42C835…`)**, **R2 = 5a 로컬 빌드(`7094d91`, 자체 `.sha256`)**. 미실행 항목은 공란 유지(임의 PASS 금지, §11.4).
+
+| 항목 | 라운드 | 실행? | 결과(PASS/FAIL/BLOCKED) | 증거 파일(`evidence/gateB/…`) | 해시/측정값 | 검증자·시각 |
+|---|---|---|---|---|---|---|
+| B0 ZIP 해시 대조 | R1 | ☐ | | hash-R1.txt | =`42C835…`? | |
+| B1 필수 트리 | R1 | ☐ | | tree.txt | — | |
+| B2 금지파일 0 | R1 | ☐ | | tree.txt / build03.txt | 0건 | |
+| B3 오프라인 NoModel 기동 | R1 | ☐ | | boot-log.txt / net-block.png | manifest 0.7.0 | |
+| B4 CSV/XLSX 입력·7상태 (B-6) | R1 | ☐ | | b6-*.png | — | |
+| B5 대사 9종 | R1 | ☐ | | b5recon-*.png | — | |
+| B6 화면=리포트 동일수치 | R1 | ☐ | | b6-dash.png/b6-report.png | — | |
+| B9 RISK_VISUAL + Exception Count (B-8) | R1 | ☐ | | b8-riskvisual.png | 정확 숫자 | |
+| B10 WPF 화면차트 | R1 | ☐ | | b10-chart.png | — | |
+| B11 KB 검색 인용 | R1 | ☐ | | b11-*.png | — | |
+| B12 NCR 메타/구조(원문 0) | R1 | ☐ | | b12-*.png | — | |
+| B14 History + Audit(해시) | R1 | ☐ | | b14-*.png | hash-only | |
+| B15 종료/재실행 | R1 | ☐ | | b15-*.png | — | |
+| C1/C2 Excel 2021 열기(RISK_VISUAL) | R1 | ☐ | | c1-*.png | Formula/Link/Macro 0 | |
+| B13 Excel Helper·Smart Assist(B-5) | R2 | ☐ | | b13-*.png | — | |
+| B0' 5a 빌드 해시 | R2 | ☐ | | hash-R2.txt | =5a `.sha256` | |
+
+> B7/B8(대용량 streaming·Prior-Day)·C5(코드서명)은 명시 예외(local-gate / ACCEPTED_RISK) — 워크시트 대상 아님(위 §B/§C 참조).
 
 ## 회신 → 판정
 운영자가 표를 채워 회신하면 항목 단위로 PASS/BLOCKED/N/A/ACCEPTED_RISK 재판정 → 본 문서 상단 상태 갱신. Test PC 대상 항목이 PASS이고 명시 예외(B7/B8/C5)가 수용되면 `docs/47 §3` Gate B + Gate C를 봉인한다. 예외가 사내 정책상 수용되지 않으면 전체 상태는 BLOCKED 유지(`CLAUDE.md §11.4` 준수 — 실 PC 증거 전까지 PASS 금지).
