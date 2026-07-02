@@ -99,9 +99,22 @@ ADR-009가 요구하는 승인 문서 필수 항목을 **하나도 빠뜨리지 
 ① 콘텐츠 lock-step co-tamper → 서명 검증 실패로 차단 · ② 런타임 DLL 변조 → 카탈로그/게시자 검증(미적용 범위는 OPEN 명시) · ③ 폴더 동반 변조 → 서명 앵커+manifest 교차. 현 STAB-WP-03b는 이 3건을 "미탐지=양성"으로 고정 중 → 서명 도입 시 "탐지/차단" 전환 회귀 PASS 되어야 VERIFIED.
 
 ### B.4 [승인 결과]
+
+#### B.4.0 선행 — 인증서 provenance 확보 (**§6.2 정책 승인 전 필수 기입**, ADR-012 §결정1 / docs/41 §6.2 ①)
+> 아래 4개 provenance 항목이 **모두 기입/확인되기 전에는 B.4.1 §6.2 정책 승인을 진행하지 않는다**(provenance 미확보 상태의 정책 승인 금지). 값은 승인자가 실제 인증서 기준으로 채운다.
+
+| provenance 항목 | 기입값 | 확인 |
+|---|---|---|
+| 발급 주체(사내 Enterprise CA 명/인스턴스) | | ☐ |
+| 신뢰 체인(루트→중간→코드서명 인증서 thumbprint) | | ☐ |
+| 비용 / 갱신 주기(만료일·재발급 SOP) | | ☐ |
+| 사내 코드서명 정책 적합성(문서오너/보안팀 확인) | | ☐ |
+
+#### B.4.1 정책 승인 (B.4.0 provenance 확보 후에만)
 | 항목 | 값 |
 |---|---|
 | 승인자(문서오너) | |
+| **B.4.0 provenance 4항목 확보 완료?** | (예 / 아니오 — 아니오면 아래 정책 승인 진행 불가) |
 | §6.2 정책 승인(도구·검증·폐기·범위·보관·Rollback) | (대기 / 승인 / 반려) |
 | 서명 도구 | (`Set-AuthenticodeSignature` / signtool+SDK승인 / 기타) |
 | 상태 변경 | `APPROVAL_REQUIRED` → 구현 WP 착수(실 증거 전 VERIFIED 금지) |
@@ -142,7 +155,7 @@ ADR-009가 요구하는 승인 문서 필수 항목을 **하나도 빠뜨리지 
 | 게이트 | 현재 | 결정 요청 요지 | 권고 | 승인 |
 |---|---|---|---|---|
 | **A. R4 LLM** | MODEL_APPROVAL_REQUIRED (STOP) | 실 추론 도입/평가 경로 | 2단계(격리 PoC 측정 → 운영 채택) | ☐ 대기 |
-| **B. STAB-WP-05 서명** | APPROVAL_REQUIRED (경로 A 확정) | §6.2 정책·서명도구 확정 | 인박스 `Set-AuthenticodeSignature`+선행 검증 앵커 | ☐ 대기 |
+| **B. STAB-WP-05 서명** | APPROVAL_REQUIRED (경로 A 확정) | **provenance 확보(B.4.0) → §6.2 정책·서명도구 확정** | 인박스 `Set-AuthenticodeSignature`+선행 검증 앵커 | ☐ 대기 |
 | **C. NCR 실 Pack** | APPROVAL_REQUIRED (SCAFFOLD_ONLY) | 적재·승인 SOP | Prod 권한통제 KB·repo 미포함·검토용 초안 유지 | ☐ 대기 |
 
 > **승인 후**: 해당 §의 상태를 갱신하고 Claude에게 알리면, Claude가 **후속 구현 WP + Codex 프롬프트**를 작성한다(승인 전에는 작성하지 않음). 실 Test PC/Prod 증거가 필요한 항목은 그 증거 전까지 **VERIFIED/PASS 금지**(§11.4).
