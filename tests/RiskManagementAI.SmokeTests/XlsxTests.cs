@@ -19,6 +19,10 @@ context.AssertTrue(namedXlsxTable.SourceName == "risk_input_relationship_order.x
 context.AssertTrue(profiler.ProfileTable(namedXlsxTable).NumericColumns["AMT"].Sum == 10.5m, "XlsxReader CsvTable should flow through DataProfiler pipeline");
 context.AssertTrue(context.Throws<InvalidDataException>(() => XlsxReader.Read(xlsxSmokePath, "없는시트")), "XlsxReader should fail gracefully for missing sheet names");
 
+var unsafeTargetXlsxPath = Path.Combine(xlsxSmokeDirectory, "unsafe_target.xlsx");
+CreateUnsafeTargetXlsx(unsafeTargetXlsxPath);
+context.AssertTrue(context.Throws<InvalidDataException>(() => XlsxReader.Read(unsafeTargetXlsxPath)), "XlsxReader should reject unsafe worksheet relationship targets");
+
 var corruptXlsxPath = Path.Combine(xlsxSmokeDirectory, "corrupt.xlsx");
 File.WriteAllText(corruptXlsxPath, "not a zip file");
 context.AssertTrue(context.Throws<InvalidDataException>(() => XlsxReader.Read(corruptXlsxPath)), "XlsxReader should fail gracefully for corrupt xlsx files");
@@ -27,5 +31,52 @@ var tooManyRowsXlsxPath = Path.Combine(xlsxSmokeDirectory, "too_many_rows.xlsx")
 CreateSmokeXlsx(tooManyRowsXlsxPath, tooManyRows: true);
 context.AssertTrue(context.Throws<InvalidDataException>(() => XlsxReader.Read(tooManyRowsXlsxPath)), "XlsxReader should enforce worksheet row safety cap");
 context.AssertTrue(context.Throws<ArgumentException>(() => XlsxReader.Read(Path.Combine(xlsxSmokeDirectory, "not_xlsx.csv"))), "XlsxReader should reject non-xlsx extensions");
+    }
+
+    private static void CreateUnsafeTargetXlsx(string path)
+    {
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+        }
+
+        using var archive = ZipFile.Open(path, ZipArchiveMode.Create);
+        WriteZipEntry(archive, "[Content_Types].xml", """
+<?xml version="1.0" encoding="UTF-8"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+</Types>
+""");
+        WriteZipEntry(archive, "_rels/.rels", """
+<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>
+""");
+        WriteZipEntry(archive, "xl/workbook.xml", """
+<?xml version="1.0" encoding="UTF-8"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets>
+    <sheet name="Sheet1" sheetId="1" r:id="rIdUnsafe"/>
+  </sheets>
+</workbook>
+""");
+        WriteZipEntry(archive, "xl/_rels/workbook.xml.rels", """
+<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rIdUnsafe" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="../worksheets/sheet1.xml"/>
+</Relationships>
+""");
+        WriteZipEntry(archive, "xl/worksheets/sheet1.xml", """
+<?xml version="1.0" encoding="UTF-8"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <sheetData>
+    <row r="1"><c r="A1" t="inlineStr"><is><t>BASE_DT</t></is></c></row>
+  </sheetData>
+</worksheet>
+""");
     }
 }
