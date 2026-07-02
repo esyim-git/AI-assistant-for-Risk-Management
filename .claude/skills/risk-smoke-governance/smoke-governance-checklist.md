@@ -2,7 +2,7 @@
 
 > 인박스 SmokeTest suite의 회귀(삭제·약화·미분류·기준선 혼동)를 막기 위한 점검표.
 > 점검은 **읽기 전용**(`git diff`/Read/Grep/Glob)으로 수행하며, 재현은 `dotnet run --project tests/RiskManagementAI.SmokeTests`.
-> 현 정본 기준선: **`Total=861`** (`docs/39` Resume Brief 값과 대조).
+> 현 정본 기준선: **`Total=877`** (`docs/39` Resume Brief 값과 대조).
 
 ---
 
@@ -31,7 +31,7 @@ git diff <base>..<branch> -- tests/               # 추가/삭제/변경 라인 
 ## 2. 총수·기준선 대조
 
 - [ ] 보고/러너의 합계 줄 `Total=N` 확인 (`=== SmokeTest Summary ===` 다음 줄)
-- [ ] `N >= 861` (직전 기준선 이상). 감소 시 **WP·사유·매핑** 명시되어야 함
+- [ ] `N >= 877` (직전 기준선 이상). 감소 시 **WP·사유·매핑** 명시되어야 함
 - [ ] 증가분이 신규 기능의 양성/음성 회귀로 설명됨 (단순 중복 부풀리기 아님)
 - [ ] `docs/39` Resume Brief의 기준선 Total과 코드 실제값이 일치 (드리프트 시 `/risk-doc-truth-sync`)
 
@@ -93,7 +93,7 @@ dotnet run --project tests/RiskManagementAI.SmokeTests
 
 ```
 [Smoke Governance] <branch>
-- Total       : <현재 기준선 861> → <이후>  (증감 사유: <한 줄>)
+- Total       : <현재 기준선 877> → <이후>  (증감 사유: <한 줄>)
 - 삭제/약화 단언 : 0  (또는 위반 목록)
 - Unclassified  : 0  (또는 N건 목록)
 - 신규 회귀     : 양성/음성 추가됨 (또는 부족)

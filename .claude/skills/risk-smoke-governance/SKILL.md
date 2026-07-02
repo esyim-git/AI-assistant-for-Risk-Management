@@ -18,7 +18,7 @@ paths:
 
 ## 절대 원칙
 - **기존 테스트 삭제 금지 · 단언(Assert) 약화 금지.** 총수 감소·단언 제거/완화 시 **사유·매핑** 없으면 회귀로 본다(`AGENTS.md §3`).
-- **정본 Total 보존**: 직전 기준선(현 정본 `Total=861`, `docs/39` Resume Brief 값) **이상**. 줄면 WP·사유 명시.
+- **정본 Total 보존**: 직전 기준선(현 정본 `Total=877`, `docs/39` Resume Brief 값) **이상**. 줄면 WP·사유 명시.
 - **Unclassified = 실패**: `SmokeTestContext.ClassifyDomain`이 도메인을 못 잡으면 러너가 `exit 1`. 신규 테스트명은 분류 가능한 키워드를 포함해야 한다.
 - **신규 기능은 해당 suite에 테스트 추가**(additive). WP별 **양성/음성 회귀** 동반.
 - **외부 테스트 프레임워크 0**: xUnit/NUnit/MSTest 등 추가 금지. 단일 콘솔 러너 유지(`AGENTS.md §5`).
@@ -33,7 +33,7 @@ paths:
 
 ## 절차
 1. **Diff 확인**: `git diff <base>..<branch> -- tests/`로 추가/삭제/변경 테스트와 단언 변화를 본다. 삭제·약화 라인을 우선 확인.
-2. **총수 대조**: 러너 실행 또는 보고의 합계 줄 `Total=N`을 직전 기준선(`861`/`docs/39`)과 대조. 감소 시 사유·매핑 요구.
+2. **총수 대조**: 러너 실행 또는 보고의 합계 줄 `Total=N`을 직전 기준선(`877`/`docs/39`)과 대조. 감소 시 사유·매핑 요구.
 3. **단언 보존**: 변경된 `AssertTrue(...)`가 조건을 완화(예: `==`→`!= null`, 범위 확대)하지 않았는지 확인. 신규 기능에 양성/음성 회귀가 추가됐는지 확인.
 4. **도메인 분류**: 신규 테스트명이 해당 도메인 키워드를 포함해 `Unclassified`가 0인지 확인. 분류기 수정이 필요하면 키워드 추가만(기존 분류 약화 금지).
 5. **재현**: `dotnet run --project tests/RiskManagementAI.SmokeTests` → `Total=N PASS=N FAIL=0` + `Unclassified` 없음 확인.
