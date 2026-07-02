@@ -72,6 +72,44 @@ File.Delete(partialColumnMappingPath);
 context.AssertTrue(partialColumnMappingResult.UsedFallback && partialColumnMappingResult.Warnings.Count > 0, "ColumnMappingLoader should fallback for partial custom mappings");
 context.AssertTrue(partialColumnMappingResult.Mapping.Physical(LogicalColumn.BaseDate) == "BASE_DT", "ColumnMapping partial fallback should discard partial overrides");
 
+var missingColumnMappingResult = ColumnMappingLoader.LoadFromFile($"config/smoke_column_mapping_missing_{Guid.NewGuid():N}.json");
+context.AssertTrue(missingColumnMappingResult.UsedFallback && missingColumnMappingResult.Mapping.Physical(LogicalColumn.BaseDate) == "BASE_DT", "ColumnMappingLoader should safe fallback for missing mapping config");
+
+var unknownLogicalColumnMappingPath = Path.Combine("config", "smoke_column_mapping_unknown_logical.json");
+File.WriteAllText(unknownLogicalColumnMappingPath, """
+{
+  "Mappings": {
+    "BaseDate": "BASE_DATE",
+    "PortfolioId": "PORT_ID",
+    "RiskFactor": "RISK_NM",
+    "ExposureAmount": "EXPOSURE",
+    "LimitAmount": "LIMIT",
+    "UseYn": "ACTIVE_YN",
+    "UnexpectedColumn": "SHOULD_NOT_LOAD"
+  }
+}
+""");
+var unknownLogicalColumnMappingResult = ColumnMappingLoader.LoadFromFile(unknownLogicalColumnMappingPath);
+File.Delete(unknownLogicalColumnMappingPath);
+context.AssertTrue(unknownLogicalColumnMappingResult.UsedFallback && unknownLogicalColumnMappingResult.Warnings.Any(warning => warning.Contains("unknown logical column", StringComparison.OrdinalIgnoreCase)), "ColumnMappingLoader should fallback on unknown logical mapping columns");
+
+var nonStringPhysicalColumnMappingPath = Path.Combine("config", "smoke_column_mapping_non_string_physical.json");
+File.WriteAllText(nonStringPhysicalColumnMappingPath, """
+{
+  "Mappings": {
+    "BaseDate": 20260617,
+    "PortfolioId": "PORT_ID",
+    "RiskFactor": "RISK_NM",
+    "ExposureAmount": "EXPOSURE",
+    "LimitAmount": "LIMIT",
+    "UseYn": "ACTIVE_YN"
+  }
+}
+""");
+var nonStringPhysicalColumnMappingResult = ColumnMappingLoader.LoadFromFile(nonStringPhysicalColumnMappingPath);
+File.Delete(nonStringPhysicalColumnMappingPath);
+context.AssertTrue(nonStringPhysicalColumnMappingResult.UsedFallback && nonStringPhysicalColumnMappingResult.Warnings.Any(warning => warning.Contains("must be a string physical column name", StringComparison.OrdinalIgnoreCase)), "ColumnMappingLoader should fallback on non-string physical column values");
+
 var duplicatePhysicalMappingPath = Path.Combine("config", "smoke_column_mapping_wp04_duplicate.json");
 File.WriteAllText(duplicatePhysicalMappingPath, """
 {
