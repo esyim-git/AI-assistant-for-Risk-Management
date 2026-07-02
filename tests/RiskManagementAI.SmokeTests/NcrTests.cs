@@ -15,6 +15,16 @@ context.AssertTrue(!string.IsNullOrWhiteSpace(ncrRuleSetLoadResult.RuleSet.Regul
 context.AssertTrue(ncrRuleSetLoadResult.RuleSet.ApprovalHistory.Count > 0, "NcrRuleSet should include ApprovalHistory");
 context.AssertTrue(!ncrRuleSetLoadResult.Findings.Any(finding => finding.Code.StartsWith("SQL_", StringComparison.Ordinal)), "NcrRuleSet sample validation SQL should be read-only");
 context.AssertTrue(ncrRuleSetLoadResult.RuleSet.Components.All(component => component.ValuePolicy.Contains("APPROVAL_REQUIRED", StringComparison.Ordinal)), "NcrRuleSet sample should not contain real NCR coefficients");
+var ncrComponentIds = ncrRuleSetLoadResult.RuleSet.Components
+    .Select(component => component.ComponentId)
+    .ToHashSet(StringComparer.Ordinal);
+context.AssertTrue(ncrRuleSetLoadResult.RuleSet.ComponentMap.All(map => ncrComponentIds.Contains(map.ComponentId)), "NcrRuleSet ComponentMap should reference declared Rule Set components");
+context.AssertTrue(ncrRuleSetLoadResult.RuleSet.Components.All(component => string.Equals(component.ValuePolicy, "APPROVAL_REQUIRED_NO_REAL_COEFFICIENT", StringComparison.Ordinal)), "NcrRuleSet sample should keep placeholder coefficient policy only");
+context.AssertTrue(
+    ncrRuleSetLoadResult.RuleSet.ValidationSqlTemplates.All(sql =>
+        sql.TrimStart().StartsWith("SELECT", StringComparison.OrdinalIgnoreCase)
+        && !new SqlSafetyChecker().Check(sql).Any(finding => finding.Severity >= SafetySeverity.Medium)),
+    "NcrRuleSet validation SQL templates should stay read-only SELECT only");
 
 var ncrExplanation = NcrExplain.Build(ncrRuleSetLoadResult.RuleSet);
 context.AssertTrue(ncrExplanation.Contains("검토용 초안", StringComparison.Ordinal), "NcrExplain should always mark answers as review drafts");
@@ -35,6 +45,47 @@ File.WriteAllText(invalidNcrRelativePath, "{ broken json", Encoding.UTF8);
 var invalidNcrResult = NcrRuleSetLoader.LoadFromFile(invalidNcrRelativePath);
 context.AssertTrue(invalidNcrResult.UsedFallback && invalidNcrResult.Findings.Any(finding => finding.Code == "NCR_RULESET_LOAD_FAILED"), "NcrRuleSetLoader should safe-fallback on invalid JSON");
 File.Delete(invalidNcrRelativePath);
+
+var missingFieldNcrRelativePath = $"config/ncr/missing_field_{Guid.NewGuid():N}.json";
+File.WriteAllText(
+    missingFieldNcrRelativePath,
+    """
+{
+  "RuleSetId": "MISSING_FIELD_NCR_RULESET",
+  "RuleSetVersion": "missing-field-001",
+  "EffectiveDate": "2026-06-21",
+  "Components": [
+    {
+      "ComponentId": "MISSING_FIELD_COMPONENT",
+      "Name": "Placeholder component",
+      "Category": "PLACEHOLDER",
+      "ValuePolicy": "APPROVAL_REQUIRED_NO_REAL_COEFFICIENT"
+    }
+  ],
+  "ComponentMap": [
+    {
+      "ComponentId": "MISSING_FIELD_COMPONENT",
+      "SourceName": "APPROVED_SOURCE_REQUIRED",
+      "ColumnName": "APPROVED_COLUMN_REQUIRED",
+      "DataType": "DECIMAL",
+      "Required": true
+    }
+  ],
+  "FormulaDescription": "Structure-only description.",
+  "ValidationSqlTemplates": [
+    "SELECT base_dt, component_id FROM approved_ncr_validation_view WHERE base_dt = @BASE_DT"
+  ],
+  "RegulationBasis": "APPROVED_BASIS_REQUIRED"
+}
+""",
+    Encoding.UTF8);
+var missingFieldNcrResult = NcrRuleSetLoader.LoadFromFile(missingFieldNcrRelativePath);
+context.AssertTrue(
+    missingFieldNcrResult.UsedFallback
+        && missingFieldNcrResult.RuleSet.RuleSetVersion == "UNAPPROVED-PLACEHOLDER"
+        && missingFieldNcrResult.Findings.Any(finding => finding.Code == "NCR_RULESET_REQUIRED_FIELD_MISSING"),
+    "NcrRuleSetLoader should safe-fallback when Rule Set required structure is incomplete");
+File.Delete(missingFieldNcrRelativePath);
 
 var blockedSqlNcrRelativePath = $"config/ncr/blocked_sql_{Guid.NewGuid():N}.json";
 File.WriteAllText(
