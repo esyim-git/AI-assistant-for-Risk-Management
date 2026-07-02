@@ -20,6 +20,12 @@ File.WriteAllText(utf8BomCsv, "BASE_DT,DESK_CD,AMT\n20260617,EQD,10\n", new UTF8
 var utf8BomTable = CsvReader.Read(utf8BomCsv);
 context.AssertTrue(utf8BomTable.Metadata.DetectedEncoding == CsvEncoding.Utf8 && utf8BomTable.Metadata.HadUtf8Bom, "CsvReader should honor UTF-8 BOM");
 
+var quotedCsv = Path.Combine(encodingSmokeDirectory, "quoted_comma.csv");
+File.WriteAllText(quotedCsv, "BASE_DT,DESK_CD,NOTE\n20260617,\"EQ,D\",\"quoted, comma\"\n", new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+var quotedTable = CsvReader.Read(quotedCsv);
+var quotedStreamingRows = CsvReader.ReadStreaming(quotedCsv).ToList();
+context.AssertTrue(quotedTable.Rows.Single().GetValue("DESK_CD") == "EQ,D" && quotedStreamingRows.Single().GetValue("NOTE") == "quoted, comma", "CsvReader CSV parser should preserve quoted comma values in read and streaming modes");
+
 var cp949UhcCsv = Path.Combine("samples", "dummy_data", "cp949_uhc_sample_cp949.csv");
 var cp949UhcTable = CsvReader.Read(cp949UhcCsv);
 context.AssertTrue(cp949UhcTable.Metadata.DetectedEncoding == CsvEncoding.Cp949, "CsvReader should auto-detect CP949 when UTF-8 decoding fails");
@@ -27,6 +33,12 @@ context.AssertTrue(cp949UhcTable.Columns.Contains("확장힣", StringComparer.Or
 context.AssertTrue(cp949UhcTable.Rows.Single().GetValue("확장힣") == "힣값", "CsvReader CP949 should decode UHC extension syllable in value");
 context.AssertTrue(cp949UhcTable.Metadata.Cp949MappingSha256 == Cp949Decoder.ExpectedMappingSha256, "CsvReader CP949 metadata should expose mapping SHA256");
 context.AssertTrue(cp949UhcTable.Metadata.Cp949MappingEntryCount == Cp949Decoder.ExpectedMappingEntryCount, "CsvReader CP949 metadata should expose mapping entry count");
+var cp949Bytes = File.ReadAllBytes(cp949UhcCsv);
+using (var cp949Stream = new MemoryStream(cp949Bytes))
+{
+    var decodedText = Cp949Decoder.Decode(cp949Bytes).Replace("\r\n", "\n").TrimEnd('\n');
+    context.AssertTrue(string.Join('\n', Cp949Decoder.DecodeLines(cp949Stream)) == decodedText, "CsvReader CP949 DecodeLines streaming should match byte-array decoding");
+}
 context.AssertTrue(CsvReader.Read(cp949UhcCsv, CsvEncoding.Cp949).Rows.Single().GetValue("확장힣") == "힣값", "CsvReader should support explicit CP949");
 context.AssertTrue(CsvReader.ReadStreaming(cp949UhcCsv, CsvEncoding.Cp949).Single().GetValue("확장힣") == "힣값", "CsvReader CP949 streaming should reuse UHC decoder");
 context.AssertTrue(context.Throws<InvalidDataException>(() => CsvReader.Read(cp949UhcCsv, CsvEncoding.Utf8)), "CsvReader explicit UTF-8 should reject CP949 bytes");

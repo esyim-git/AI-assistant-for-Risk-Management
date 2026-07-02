@@ -18,6 +18,17 @@ context.AssertTrue(smallProfile.NumericColumns["AMT"].Sum == 40m, "DataProfiler 
 var smallProfileStreaming = profiler.ProfileCsvStreaming(profileSmokeCsv);
 AssertProfilesEqual(context, smallProfile, smallProfileStreaming, "DataProfiler streaming should match ProfileTable for BASE_DT duplicate numeric profile");
 
+var worksheetProfilePath = Path.Combine(profileSmokeDirectory, "profile_worksheet_input.xlsx");
+CreateSingleSheetXlsx(worksheetProfilePath,
+[
+    ["BASE_DT", "DESK_CD", "AMT"],
+    ["20260617", "EQD", "10"],
+    ["20260617", "EQD", "10"],
+    ["20260618", string.Empty, "20"]
+]);
+var worksheetProfile = profiler.ProfileTable(XlsxReader.Read(worksheetProfilePath));
+context.AssertTrue(worksheetProfile.RowCount == 3 && worksheetProfile.DuplicateRowCount == 1 && worksheetProfile.NumericColumns["AMT"].Sum == 40m, "DataProfiler ProfileTable should preserve duplicate rows and numeric values from worksheet input");
+
 var welfordCsv = Path.Combine(profileSmokeDirectory, "profile_welford_outlier_streaming.csv");
 using (var writer = new StreamWriter(welfordCsv, append: false, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)))
 {
