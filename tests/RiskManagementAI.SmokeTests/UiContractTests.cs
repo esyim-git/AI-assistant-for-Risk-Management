@@ -28,6 +28,16 @@ context.AssertTrue(dashboardSnapshot.Rows.Any(row => row.Metric == "RuleVersion"
 context.AssertTrue(dashboardSnapshot.Rows.Any(row => row.Metric == "Promoted Examples" && row.Value.Trim() == "2"), "DashboardSnapshot should show promoted example count");
 context.AssertTrue(dashboardSnapshot.Rows.Any(row => row.Metric == "Reports" && row.Value.Trim() == "3"), "DashboardSnapshot should show report count");
 context.AssertTrue(dashboardSnapshot.Findings.Any(f => f.Code == "DASHBOARD_READY" && f.Severity == SafetySeverity.Info), "DashboardSnapshot should emit ready finding");
+var dashboardSnapshotWithHistoryWarning = new DashboardSnapshotBuilder().Build(new DashboardSnapshotRequest(
+    policyLoadResult,
+    loadedRuleSet.RuleVersion,
+    NoModelDraftService.ModeName,
+    new AuditLogReadResult(
+        Array.Empty<AuditLogRecord>(),
+        [new SafetyFinding("AUDIT_LOG_FILE_MISSING", SafetySeverity.Low, "history source missing")]),
+    PromotedExampleCount: 0,
+    ReportCount: 0));
+context.AssertTrue(dashboardSnapshotWithHistoryWarning.Findings.Any(f => f.Code == "DASHBOARD_AUDIT_LOG_WARNING" && f.Severity == SafetySeverity.Low), "DashboardSnapshot should surface history log notices in the UI snapshot");
 XNamespace wpf = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
 XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 var mainWindowXaml = XDocument.Load(Path.Combine("src", "RiskManagementAI.App", "MainWindow.xaml"));
@@ -212,9 +222,11 @@ bool ResizableEditorOk(string editorName)
 context.AssertTrue(mainWindowXaml.Descendants(wpf + "GridSplitter").Count() >= 2, "UI layout should provide editor/result and workspace GridSplitters");
 context.AssertTrue(!mainWindowXamlText.Contains("<RowDefinition Height=\"260\"", StringComparison.Ordinal) && mainWindowXamlText.Contains("Height=\"2*\"", StringComparison.Ordinal) && mainWindowXamlText.Contains("MinHeight=\"260\"", StringComparison.Ordinal), "UI layout editor region should be resizable not a fixed 260 height");
 context.AssertTrue(mainWindowXamlText.Contains("MinWidth=\"1180\"", StringComparison.Ordinal) && mainWindowXamlText.Contains("MinHeight=\"720\"", StringComparison.Ordinal), "UI window should set MinWidth and MinHeight for the resizable shell");
+context.AssertTrue(mainWindowXamlText.Contains("ResizeMode=\"CanResize\"", StringComparison.Ordinal) && mainWindowXamlText.Contains("SizeToContent=\"Manual\"", StringComparison.Ordinal), "UI window should remain manually resizable");
 context.AssertTrue(ResizableEditorOk("SqlRequestBox"), "UI SQL editor box should stretch with Consolas font");
 context.AssertTrue(ResizableEditorOk("VbaRequestBox"), "UI VBA editor box should stretch with Consolas font");
 context.AssertTrue(ResizableEditorOk("ExcelRequestBox"), "UI Excel editor box should stretch with Consolas font");
+context.AssertTrue(ResizableEditorOk("DraftRequestBox"), "UI request editor box should stretch with Consolas font");
 context.AssertTrue(
     new[] { "ExcelFunctionHelperQueryBox", "ExcelFunctionHelperList", "ExcelFunctionHelperDetailBox", "InsertExcelFunctionExampleButton" }
         .All(name => mainWindowXamlText.Contains($"x:Name=\"{name}\"", StringComparison.Ordinal)),
@@ -236,7 +248,7 @@ context.AssertTrue(
     !mainWindowXamlText.Contains("TextChanged=\"OnSearchExcelFunctionHelper\"", StringComparison.Ordinal)
     && mainWindowCode.Contains("검색어 원문은 로그에 저장하지 않았습니다.", StringComparison.Ordinal),
     "UI UX-WP-04 Excel Function Helper should avoid as-you-type search logging and avoid plaintext query logs");
-context.AssertTrue(mainWindowXamlText.Contains("MinWidth=\"280\"", StringComparison.Ordinal) && mainWindowXamlText.Contains("MaxWidth=\"560\"", StringComparison.Ordinal), "UI Safety panel column should set MinWidth and MaxWidth bounds");
+context.AssertTrue(mainWindowXamlText.Contains("Width=\"340\"", StringComparison.Ordinal) && mainWindowXamlText.Contains("MinWidth=\"280\"", StringComparison.Ordinal) && mainWindowXamlText.Contains("MaxWidth=\"560\"", StringComparison.Ordinal), "UI Safety panel column should set default MinWidth and MaxWidth bounds");
 context.AssertTrue(mainWindowXamlText.Contains("x:Name=\"EditorRow\"", StringComparison.Ordinal) && mainWindowXamlText.Contains("x:Name=\"ResultRow\"", StringComparison.Ordinal), "UI layout should name editor/result rows for persistence");
 context.AssertTrue(mainWindowXamlText.Contains("x:Name=\"SafetyPanelColumn\"", StringComparison.Ordinal), "UI layout should name Safety column for persistence");
 context.AssertTrue(mainWindowCode.Contains("UiLayoutStore.Load()", StringComparison.Ordinal) && mainWindowCode.Contains("UiLayoutStore.Save", StringComparison.Ordinal), "UI layout should load and save persisted layout through Core store");
@@ -267,6 +279,10 @@ try
         System.Text.Json.JsonSerializer.Serialize(new UiLayout(100, 100, 0, -1, 9999, UiLayoutStore.CurrentSchemaVersion)));
     var clampedLayout = UiLayoutStore.Load();
     context.AssertTrue(clampedLayout.WindowWidth == 1180 && clampedLayout.WindowHeight == 720 && clampedLayout.EditorRowStar > 0 && clampedLayout.ResultRowStar > 0 && clampedLayout.SafetyColumnWidth == 560, "UI layout load should clamp window, star, and Safety column bounds");
+
+    UiLayoutStore.Save(new UiLayout(double.NaN, double.PositiveInfinity, double.NaN, double.NegativeInfinity, double.NaN, UiLayoutStore.CurrentSchemaVersion));
+    var finiteLayout = UiLayoutStore.Load();
+    context.AssertTrue(finiteLayout == UiLayoutStore.Default, "UI layout store should normalize non-finite values to defaults");
 
     context.AssertTrue(context.Throws<ArgumentException>(() => UiLayoutStore.Load("../ui_layout.local.json")), "UI layout store should reject traversal paths");
     context.AssertTrue(context.Throws<ArgumentException>(() => UiLayoutStore.Load(Path.Combine(Path.GetTempPath(), "ui_layout.local.json"))), "UI layout store should reject rooted paths");
