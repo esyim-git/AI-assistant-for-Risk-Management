@@ -58,10 +58,14 @@ using (var reportArchive = ZipFile.OpenRead(reportResult.ReportPath))
     context.AssertTrue(reportArchive.GetEntry("xl/styles.xml") is not null, "Excel report xlsx should include styles part");
     context.AssertTrue(reportArchive.GetEntry($"xl/worksheets/sheet{ExcelReportBuilder.ExpectedSheetNames.Count}.xml") is not null, "Excel report xlsx should include the final expected worksheet");
     context.AssertTrue(reportArchive.GetEntry($"xl/worksheets/sheet{riskVisualSheetIndex}.xml") is not null, "R2-WP-04 report xlsx should include RISK_VISUAL worksheet");
+    var workbookXml = ReadZipEntryText(reportArchive, "xl/workbook.xml");
+    var appProperties = ReadZipEntryText(reportArchive, "docProps/app.xml");
     var summarySheet = ReadZipEntryText(reportArchive, "xl/worksheets/sheet5.xml");
     var limitMonitoringSheet = ReadZipEntryText(reportArchive, "xl/worksheets/sheet6.xml");
     var exceptionSheet = ReadZipEntryText(reportArchive, "xl/worksheets/sheet7.xml");
     var riskVisualSheet = ReadZipEntryText(reportArchive, $"xl/worksheets/sheet{riskVisualSheetIndex}.xml");
+    context.AssertTrue(ExcelReportBuilder.ExpectedSheetNames.All(sheetName => workbookXml.Contains($"name=\"{sheetName}\"", StringComparison.Ordinal)), "Excel report workbook should list every expected report worksheet name");
+    context.AssertTrue(appProperties.Contains($"<vt:i4>{ExcelReportBuilder.ExpectedSheetNames.Count}</vt:i4>", StringComparison.Ordinal) && appProperties.Contains("<vt:lpstr>RISK_VISUAL</vt:lpstr>", StringComparison.Ordinal), "Excel report app properties should expose expected worksheet count and RISK_VISUAL title");
     context.AssertTrue(limitMonitoringSheet.Contains("PF_WARNING", StringComparison.Ordinal) && limitMonitoringSheet.Contains("WARNING", StringComparison.Ordinal) && limitMonitoringSheet.Contains("0.95", StringComparison.Ordinal), "WP-07 report should reuse analysis WARNING usage ratio");
     context.AssertTrue(limitMonitoringSheet.Contains("PF_BREACH", StringComparison.Ordinal) && limitMonitoringSheet.Contains("BREACH", StringComparison.Ordinal), "WP-07 report should expose analysis BREACH status");
     context.AssertTrue(limitMonitoringSheet.Contains("PF_NOLIMIT", StringComparison.Ordinal) && limitMonitoringSheet.Contains("NO_LIMIT", StringComparison.Ordinal), "WP-07 report should expose analysis NO_LIMIT status");
@@ -69,11 +73,13 @@ using (var reportArchive = ZipFile.OpenRead(reportResult.ReportPath))
     context.AssertTrue(summarySheet.Contains("ReconciliationPassed", StringComparison.Ordinal) && summarySheet.Contains("FAIL", StringComparison.Ordinal), "WP-07 report summary should expose reconciliation PASS/FAIL");
     context.AssertTrue(summarySheet.Contains("DuplicateLimitCount", StringComparison.Ordinal), "Excel report SUMMARY should expose duplicate limit count");
     context.AssertTrue(summarySheet.Contains("ExceptionCount", StringComparison.Ordinal) && !summarySheet.Contains("ExceptionListCountFormula", StringComparison.Ordinal) && !summarySheet.Contains("COUNTA(EXCEPTION_LIST", StringComparison.Ordinal), "R2-WP-04 report summary should use exact numeric ExceptionCount, not EXCEPTION_LIST COUNTA");
+    context.AssertTrue(summarySheet.Contains($"<c r=\"B20\"><v>{expectedExceptionCount}</v></c>", StringComparison.Ordinal), "R2-WP-04 report SUMMARY should store exact ExceptionCount as a static number");
     context.AssertTrue(exceptionSheet.Contains("RECON_EXPOSURE_NO_LIMIT", StringComparison.Ordinal) && exceptionSheet.Contains("RECON_NONPOSITIVE_LIMIT", StringComparison.Ordinal), "WP-07 report exception list should include analysis RECON exceptions");
     context.AssertTrue(exceptionSheet.Contains("REPORT_VALIDATION_HIGH_SMOKE", StringComparison.Ordinal), "WP-07 report exception list should merge high validation findings");
     context.AssertTrue(riskVisualSheet.Contains("STATUS_DISTRIBUTION", StringComparison.Ordinal) && riskVisualSheet.Contains("DUPLICATE_LIMIT", StringComparison.Ordinal), "R2-WP-04 report RISK_VISUAL should include all seven status distribution rows");
     context.AssertTrue(riskVisualSheet.Contains("TOP_EXPOSURE", StringComparison.Ordinal) && riskVisualSheet.Contains("CONCENTRATION", StringComparison.Ordinal) && riskVisualSheet.Contains("HHI", StringComparison.Ordinal) && riskVisualSheet.Contains("CurrencyCode", StringComparison.Ordinal), "R2-WP-04 report RISK_VISUAL should include TopN, concentration data, and currency labels");
     context.AssertTrue(riskVisualSheet.Contains("HEATMAP", StringComparison.Ordinal) && riskVisualSheet.Contains("LOW &lt;0.8 / MID 0.8~1.0 / HIGH &gt;1.0", StringComparison.Ordinal), "R2-WP-04 report RISK_VISUAL should include heatmap grade boundaries");
+    context.AssertTrue(!riskVisualSheet.Contains("<f>", StringComparison.Ordinal) && !riskVisualSheet.Contains("</f>", StringComparison.Ordinal), "R2-WP-04 report RISK_VISUAL should use static values without worksheet formulas");
 }
 
 var mappingErrorReport = reportBuilder.BuildReport(new ExcelReportRequest(
@@ -131,6 +137,8 @@ context.AssertTrue(
     visual.TopExposures.Select(row => row.PortfolioId).Take(3).SequenceEqual(["PF_HIGH", "PF_A", "PF_B"]),
     "R2-WP-04 report visual TopN should sort by Abs(ExposureAmount) desc with PortfolioId ordinal tie-break");
 context.AssertTrue(visual.Concentration.TotalAbsoluteExposure == visualRows.Sum(row => Math.Abs(row.ExposureAmount)) && visual.Concentration.TopNShare > 0m && visual.Concentration.Hhi > 0m, "R2-WP-04 report concentration should use Abs(ExposureAmount) denominator and positive HHI");
+var zeroTopNVisual = RiskVisualAggregator.Aggregate(visualAnalysis, topN: 0);
+context.AssertTrue(zeroTopNVisual.TopExposures.Count == 0 && zeroTopNVisual.Concentration.TopNCount == 0 && zeroTopNVisual.Concentration.TopNShare == 0m, "R2-WP-04 report visual aggregation should handle TopN zero without synthetic rows");
 context.AssertTrue(visual.Heatmap.Single(row => row.PortfolioId == "PF_LOW").Grade == "LOW", "R2-WP-04 report heatmap usage below 0.8 should be LOW");
 context.AssertTrue(visual.Heatmap.Single(row => row.PortfolioId == "PF_A").Grade == "MID" && visual.Heatmap.Single(row => row.PortfolioId == "PF_B").Grade == "MID", "R2-WP-04 report heatmap usage 0.8 and 1.0 should be MID");
 context.AssertTrue(visual.Heatmap.Single(row => row.PortfolioId == "PF_HIGH").Grade == "HIGH", "R2-WP-04 report heatmap usage above 1.0 should be HIGH");
