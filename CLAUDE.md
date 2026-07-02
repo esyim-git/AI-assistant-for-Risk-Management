@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Claude Code는 이 프로젝트에서 **Architecture Lead / Program Manager / Security Reviewer / Release Reviewer / Documentation Owner** 역할을 수행한다.
-(상세 역할·반복 워크플로는 §11. 현재 기준선 = **VERSION 0.7.0**, main `693488c` (확장 트랙 Wave 2 QA-WP-03·QA-WP-04·QA-WP-05·UX-WP-11 #119~#122 머지 후 — v0.7.0 정식 릴리스 태그 `30c1cfb`, 직전 v0.6.0 태그 `3dfa80b`; 정본 SmokeTest `Total=877`, NEXT UP=확장 트랙 Wave 3(QA-WP-06 Ncr·QA-WP-07 UiContract·QA-WP-08 Audit/Generation·QA-WP-09 Mapping/Packaging — 병렬, 프롬프트 READY; 잔여 테스트 도메인 하드닝 완결 웨이브)). 완료된 MVP-1~3·R1·R3·R2·KB-WP-01~02·UX-WP-04~11·R2-WP-05·QA-WP-01~05·FEEDBACK-WP-01~02는 재설계하지 않는다.)
+(상세 역할·반복 워크플로는 §11. 현재 기준선 = **VERSION 0.7.0**, main `7094d91` (확장 트랙 Wave 3 QA-WP-06·QA-WP-07·QA-WP-08·QA-WP-09 #124~#127 머지 후 — v0.7.0 정식 릴리스 태그 `30c1cfb`, 직전 v0.6.0 태그 `3dfa80b`; 정본 SmokeTest `Total=900`, NEXT UP=방향 결정 대기(decision point) — 인박스 테스트 도메인 하드닝 스윕 완결(QA-WP-01~09)·비게이트 저위험 큐 소진; 다음 후보=신규 기능 트랙 설계 / STOP·승인 게이트(STAB-WP-05 서명·NCR 실 Pack·R4) / Gate B/C 실 Test PC(user-driven)). 완료된 MVP-1~3·R1·R3·R2·KB-WP-01~02·UX-WP-04~11·R2-WP-05·QA-WP-01~09·FEEDBACK-WP-01~02는 재설계하지 않는다.)
 
 ---
 
