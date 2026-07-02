@@ -2,7 +2,7 @@
 
 > **맥락**: Claude 사용 한도 소진 임박 → Codex가 **일요일(07-05) 리셋 전까지 저위험 WP 진행** → 리셋 시 Claude가 **한 주치 결과를 일괄 점검(4축 리뷰 + truth-sync)**. 리셋 전 unspent 한도는 소멸하므로, 지금 남은 한도로 **Codex 작업 큐 + Sunday 리뷰 하네스**를 준비한다. 본 문서는 운영 계획이며 코드 동작을 바꾸지 않는다(절대원칙 §3·STOP §11.5·과대표기 금지 §11.4 전제).
 > **✅ 실행 완료(2026-07-01)**: Codex가 큐 4 WP를 예상보다 빠르게 구현 → PR #108(FEEDBACK-WP-02)·#109(R2-WP-05)·#110(UX-WP-07)·#111(UX-WP-08). Claude가 **§C 계획대로 adversarial 4축 workflow(각 finding 독립 검증)** 로 점검 → 4건 전부 APPROVE·**0 confirmed findings** → squash 머지 → truth-sync 완료. 일요일까지 기다릴 필요 없이 사이클 1회 완주. 큐 소진, 다음 방향은 사용자 지정 대기.
-> **기준선(갱신)**: main `693488c`(VERSION 0.7.0, 확장 트랙 Wave 2 #119~#122 머지 후), 정본 SmokeTest `Total=877 PASS=877 FAIL=0`, NEXT UP=확장 트랙 Wave 3(QA-WP-06 Ncr·QA-WP-07 UiContract·QA-WP-08 Audit/Generation·QA-WP-09 Mapping/Packaging 병렬 — 잔여 테스트 도메인 완결 웨이브, Codex 실행 대기). Gate B/C 실 Test = user-driven(`docs/48 §B″` 실행 런북 참조). (§B 큐는 Wave 1 기록·정본 순서는 `docs/39` 확장 트랙 참조.)
+> **기준선(갱신)**: main `7094d91`(VERSION 0.7.0, 확장 트랙 Wave 3 #124~#127 머지 후), 정본 SmokeTest `Total=900 PASS=900 FAIL=0`, NEXT UP=**방향 결정 대기(decision point)** — 확장 트랙 Wave 1~3(QA-WP-01~09 + UX-WP-10/11) 완료로 인박스 테스트 도메인 하드닝 스윕 완결·비게이트 저위험 큐 소진; 다음 후보=신규 기능 트랙 설계 / STOP·승인 게이트(STAB-WP-05 서명·NCR 실 Pack·R4) / Gate B/C 실 Test PC(user-driven). Gate B/C 실 Test = user-driven(`docs/48 §B″` 실행 런북 참조). (§B 큐는 Wave 1 기록·정본 순서는 `docs/39` 확장 트랙 참조.)
 
 ---
 
