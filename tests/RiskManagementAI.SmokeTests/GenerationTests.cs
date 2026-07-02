@@ -16,6 +16,8 @@ context.AssertTrue(noModelDraftResponse.Findings.Any(f => f.Code == "DRAFT_NO_MO
 context.AssertTrue(noModelDraftResponse.Findings.Any(f => f.Code == "DRAFT_EXTERNAL_COMM_BLOCKED"), "NoModelDraftService should confirm external communications are blocked");
 context.AssertTrue(noModelDraftResponse.Findings.Any(f => f.Code == "DRAFT_AUTO_EXECUTE_BLOCKED"), "NoModelDraftService should confirm auto execution is blocked");
 context.AssertTrue(noModelDraftService.GenerateDraft(null).Findings.Any(f => f.Code == "DRAFT_PROMPT_EMPTY"), "NoModelDraftService should not throw for an empty request");
+var noModelNullRequestResponse = noModelDraftService.GenerateDraft(null);
+context.AssertTrue(!noModelNullRequestResponse.IsAvailable && noModelNullRequestResponse.DraftText is null && noModelNullRequestResponse.Mode == NoModelDraftService.ModeName, "NoModelDraftService null request should remain unavailable with no draft text");
 
 var unsafeDraftPolicy = policyLoadResult.Policy with
 {
@@ -68,6 +70,22 @@ context.AssertTrue(!blockedSqlPipelineResult.IsAcceptedForReview, "DraftPipeline
 context.AssertTrue(blockedSqlPipelineResult.SafetyResult == "BLOCKED", "DraftPipeline blocker SQL result should be blocked");
 context.AssertTrue(blockedSqlPipelineResult.DraftText is null, "DraftPipeline should suppress blocked draft text");
 context.AssertTrue(blockedSqlPipelineResult.Findings.Any(f => f.Code == "SQL_DML_DELETE"), "DraftPipeline should include SQL checker blocker finding");
+
+var reviewRequiredPipeline = new DraftPipeline(
+    new StubDraftService(new DraftResponse(
+        true,
+        "StubMode",
+        "review required",
+        "SELECT TRADE_ID FROM TRADE_SAMPLE WHERE BASE_DT = :BASE_DT",
+        [new SafetyFinding("DRAFT_REVIEW_REQUIRED_SMOKE", SafetySeverity.High, "Synthetic review gate.")])),
+    loadedRuleSet,
+    new TaskLogWriter("logs", "smoke_draft_pipeline_log.jsonl"));
+var reviewRequiredPipelineResult = reviewRequiredPipeline.Generate(new DraftPipelineRequest(
+    DraftRequestKind.Sql,
+    "make review-required draft",
+    "user-smoke"));
+context.AssertTrue(!reviewRequiredPipelineResult.IsAcceptedForReview && reviewRequiredPipelineResult.SafetyResult == "REVIEW_REQUIRED", "DraftPipeline high finding draft should require review");
+context.AssertTrue(reviewRequiredPipelineResult.DraftText is null && reviewRequiredPipelineResult.AuditLogWritten, "DraftPipeline review-required draft should suppress text and keep logged outcome");
 
 var noModelPipeline = new DraftPipeline(noModelDraftService, loadedRuleSet, new TaskLogWriter("logs", "smoke_draft_pipeline_log.jsonl"));
 var noModelPipelineResult = noModelPipeline.Generate(new DraftPipelineRequest(
