@@ -129,6 +129,7 @@ var unknownStatusSearchResponse = new KbSearch(RegulationCatalog.LoadFromFile(un
 var unknownStatusResult = unknownStatusSearchResponse.Results.Single(result => result.SourceId == "UNKNOWN_STATUS");
 context.AssertTrue(unknownStatusResult.Disclosure == KbDisclosure.MetadataOnly, "KbSearch should conservatively mark unknown status as metadata-only");
 context.AssertTrue(unknownStatusSearchResponse.Findings.Any(finding => finding.Code == "KB_UNKNOWN_STATUS" && finding.Severity == SafetySeverity.High), "KbSearch should emit structured finding for unknown status");
+context.AssertTrue(regulationCatalog.Entries.All(entry => !KbAccessPolicy.Evaluate(entry).SourceTextAllowed), "KbSearch citation access policy should keep source text disabled for every catalog status");
 var clauseSampleLoad = ClausePackLoader.LoadDefault();
 context.AssertTrue(!clauseSampleLoad.UsedFallback, "KbSearch clause pack loader should load synthetic sample without fallback");
 context.AssertTrue(clauseSampleLoad.Clauses.Count == 2, "KbSearch clause pack loader should load synthetic sample clauses");
@@ -250,6 +251,7 @@ try
     var clauseLogText = File.ReadAllText(clauseLogPath);
     context.AssertTrue(clauseLogText.Contains("KbClauseSearch", StringComparison.Ordinal), "KbSearch clause search should write distinct audit task type");
     context.AssertTrue(!clauseLogText.Contains("beta target", StringComparison.Ordinal) && !clauseLogText.Contains("clause-user", StringComparison.Ordinal) && !clauseLogText.Contains(positiveClauseResult.Snippet, StringComparison.Ordinal), "KbSearch clause audit should not store raw query user id or snippet text");
+    context.AssertTrue(!clauseLogText.Contains("synthetic://public-rule", StringComparison.Ordinal) && !clauseLogText.Contains("alpha beta target phrase", StringComparison.Ordinal), "KbSearch clause citation audit should not store source locator or clause source text");
 
     var placeholderClauseResponse = new KbSearch(regulationCatalog, clausePackLoadResult: ClausePackLoader.LoadDefault())
         .SearchClauses("합성 테스트", "user-smoke", asOfDate: "2026-06-30");
@@ -334,6 +336,16 @@ Directory.CreateDirectory(Path.Combine(suspiciousNcrRoot, "config", "ncr"));
 File.WriteAllText(Path.Combine(suspiciousNcrRoot, "config", "ncr", "ncr_official_original.json"), "official text", Encoding.UTF8);
 var suspiciousNcrFindings = KbRepositoryGuard.Scan(suspiciousNcrRoot);
 context.AssertTrue(suspiciousNcrFindings.Any(finding => finding.Code == "KB_FORBIDDEN_SOURCE_TEXT" && finding.Severity == SafetySeverity.Blocker), "KbRepositoryGuard should scan config/ncr and block suspicious NCR originals");
+var suspiciousSampleRoot = Path.Combine(Path.GetTempPath(), $"sample_guard_{Guid.NewGuid():N}");
+Directory.CreateDirectory(Path.Combine(suspiciousSampleRoot, "samples"));
+File.WriteAllText(Path.Combine(suspiciousSampleRoot, "samples", "candidate_full_text.txt"), "full text", Encoding.UTF8);
+var suspiciousSampleFindings = KbRepositoryGuard.Scan(suspiciousSampleRoot);
+context.AssertTrue(suspiciousSampleFindings.Any(finding => finding.Code == "KB_FORBIDDEN_SOURCE_TEXT" && finding.Severity == SafetySeverity.Blocker), "KbSearch source text guard should block suspicious sample files");
+var suspiciousDataSourceRoot = Path.Combine(Path.GetTempPath(), $"data_source_guard_{Guid.NewGuid():N}");
+Directory.CreateDirectory(Path.Combine(suspiciousDataSourceRoot, "data_sources"));
+File.WriteAllText(Path.Combine(suspiciousDataSourceRoot, "data_sources", "candidate_full_text.txt"), "full text", Encoding.UTF8);
+var suspiciousDataSourceFindings = KbRepositoryGuard.Scan(suspiciousDataSourceRoot);
+context.AssertTrue(suspiciousDataSourceFindings.Any(finding => finding.Code == "KB_FORBIDDEN_SOURCE_TEXT" && finding.Severity == SafetySeverity.Blocker), "KbSearch source text guard should block suspicious data source files");
 var build03ScriptText = File.ReadAllText(Path.Combine("build", "03_verify-package.ps1"));
 foreach (var token in PrivateGuardStrings("SuspiciousContentTokens"))
 {
