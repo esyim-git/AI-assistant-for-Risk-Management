@@ -132,7 +132,7 @@ ADR-009가 요구하는 승인 문서 필수 항목을 **하나도 빠뜨리지 
 ### C.1 권고 — 적재·승인 SOP
 1. **위치**: 실 Rule Pack = Prod 권한통제 KB(오프라인, 역할권한·조회로그·보안등급). repo·release ZIP **미포함**.
 2. **원문 미포함 = 다층 방어(단일 스캔 과대의존 금지)**: 어느 한 스캔도 단독으로 유입 0을 "보장"하지 않는다 — 계층으로 막는다. **① 1차 = 프로세스**: NCR 공식본/실 계수는 Dev repo에 애초에 반입하지 않는다(문서오너 관할, Prod 권한통제 KB 전용). **② 커밋 게이트 A**(`docs/28`): secret/원문/실데이터 스캔. **③ `KbRepositoryGuard`**(SmokeTest/CI 런타임 — `kb/`·`data_sources/`·`samples/`·`config/ncr` 파일명/내용 Blocker). **④ `build/03` 릴리스 패키징 ZIP 추출 스캔**(동일 토큰 mirror + SmokeTest drift guard). ③④는 **자동 백스톱**이지 1차 통제가 아니다. **⑤ `.gitignore`**(원문/Pack 경로). — build/03 하나에 기대지 않고 ①~⑤ 병행.
-3. **승인 주체·계약 필수 항목**: 준법/리스크관리 문서오너 승인. 적재본은 **Rule Set 8요소 구조 보존**(Version·Effective Date·Component Map·Formula Description·Validation SQL·Regulation Basis·Approval History + `ValuePolicy`) + **적재 메타 스키마 완비**(문서ID·문서명·출처기관·출처 locator·버전·시행일·폐기일·**file_hash**·적재일·승인상태·대체문서·**라이선스 상태**·보안등급·역할권한) + **계수 출처·근거조항·승인이력** 명시본만. 항목 누락 시 적재 반려(과대표기 금지).
+3. **승인 주체·계약 필수 항목**: 준법/리스크관리 문서오너 승인. 적재본은 `docs/39`의 **NCR-WP-01 Approved NCR Rule Pack Contract**를 빠짐없이 만족해야 한다: **Rule Set ID/Version/Effective/Expiry**, Component Map, Formula Definition, **Coefficient/Unit/Sign/Rounding/`ValuePolicy`**, Regulation Basis, 조회전용 Validation SQL, Approval History, **Pack Hash/`file_hash`**, **Reviewer/Approval Owner**, **Rollback/대체 Pack**. 추가 적재 메타는 문서ID·문서명·출처기관·출처 locator·버전·시행일·폐기일·적재일·승인상태·대체문서·**라이선스 상태**·보안등급·역할권한을 포함한다. **계수 출처·근거조항·승인이력**까지 명시된 본만 승인하며, 항목 누락 시 적재 반려(과대표기 금지).
 4. **로딩 게이트(코드측, 이미 구조 존재)**: Rule Pack 부재/승인 항목 누락 시 계산 차단(SCAFFOLD_ONLY 유지)·Validation SQL 조회전용(`SqlSafetyChecker`)·자동실행 0·답변은 **검토용 초안** 표기(10단계 형식, `docs/10`/§10). 실 계수 적재 후에도 산정 결과는 "검토용 초안"이며 공식 산정 아님.
 5. **repo 상태 불변**: repo는 **스키마+`(확인 필요)` 경고**까지만(현행). `file_hash`·실 version·시행일·계수는 Prod 권한통제 KB 적재 시에만 채워지고 repo 상태는 바뀌지 않는다.
 
@@ -146,6 +146,7 @@ ADR-009가 요구하는 승인 문서 필수 항목을 **하나도 빠뜨리지 
 | 승인자(준법/리스크 문서오너) | |
 | 적재 SOP 승인 | (대기 / 승인 / 반려) |
 | 적재 위치 | (Prod 권한통제 KB — repo 미포함 확인) |
+| **NCR-WP-01 계약 필수항목 완비?** | (예 / 아니오 — 아니오면 실 Rule Pack 승인 불가) |
 | 상태 변경 | SCAFFOLD_ONLY → (Prod 적재 시 권한통제 KB에서만; repo 상태 불변) |
 | 비고 | |
 
