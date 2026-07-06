@@ -19,7 +19,7 @@ allowed-tools: Read Grep Glob Bash(git status *) Bash(git log *) Bash(git diff *
 ## 절대 원칙
 - 이 스킬은 **읽기·진단 전용**이다. `main`을 수정/병합하지 않는다(`CLAUDE.md §11.1`). 문서 수정은 truth-sync 담당.
 - 상태 어휘는 정본만 사용: VERIFIED · PARTIAL · SCAFFOLD_ONLY · PLACEHOLDER · BLOCKED · NOT_IMPLEMENTED · APPROVAL_REQUIRED (`CLAUDE.md §11.4`). **과대표기 금지.**
-- 실 오프라인 Test PC 증거가 없으면 Gate를 PASS로 적지 않는다. 증거 없으면 BLOCKED 유지(`docs/38 §7`, `docs/45`).
+- 실 오프라인 Test PC 증거가 없으면 Gate를 PASS로 적지 않는다. 증거 없으면 BLOCKED 유지(`docs/38 §7`, 현재 `docs/48`, historical `docs/44/45`).
 - SmokeTest 정본 합계는 `Total=` 라인을 단일 근거로 본다(`docs/39` 재현 검증 절차). 임의 추정치 금지.
 - **기준선 이중 표기 규칙**: **Current main SHA**(git HEAD)와 **코드/테스트 baseline SHA**(마지막 코드/테스트 머지)를 항상 구분한다. **문서 전용(docs-only) 머지는 baseline SHA를 올리지 않는다(관례)** — 문서의 baseline 표기가 current main과 다른 것 자체는 drift가 아니며, 코드/테스트를 건드린 머지가 baseline에 미반영일 때만 drift다. 릴리스 컷은 current main 기준으로 수행하되 binary-impact 기준선을 함께 기록한다(`/risk-release-cut`).
 - 보고에 실데이터·실 테이블/컬럼명·내부규정/NCR 원문·비밀정보를 넣지 않는다(`AGENTS.md §3`). 예시는 더미명(`RISK_EXPOSURE_DAILY`/`RISK_LIMIT_MASTER`)만.

@@ -4,7 +4,7 @@ description: Execute a REL release cut — version bump lockstep, build/00~03 pa
 argument-hint: "[version]"
 arguments: [version]
 disable-model-invocation: true
-allowed-tools: Read Grep Glob Edit Write Bash(git status *) Bash(git log *) Bash(git diff *)
+allowed-tools: Read Grep Glob Edit Write Bash(git status *) Bash(git log *) Bash(git diff *) Bash(git tag *) Bash(git push origin v*) Bash(dotnet build *) Bash(dotnet run *) Bash(dotnet list *) Bash(./build/00_check-prereqs.ps1 *) Bash(./build/01_publish-win-x64.ps1 *) Bash(./build/02_package-release.ps1 *) Bash(./build/03_verify-package.ps1 *)
 ---
 
 # Release Cut (REL WP)

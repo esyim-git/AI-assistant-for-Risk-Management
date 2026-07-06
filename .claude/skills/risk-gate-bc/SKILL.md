@@ -10,7 +10,7 @@ allowed-tools: Read Grep Glob Bash(git status *)
 # Gate B/C Evidence
 
 ## 목적
-Gate B(오프라인 Test PC)·Gate C(Excel 2021/운영 반입) 증거 원장(`docs/45`, historical `docs/44`)을 항목별로 채우고, 실 PC 증거가 없는 항목은 `BLOCKED`로 유지한다. **증거 없는 `PASS` 금지.**
+Gate B(오프라인 Test PC)·Gate C(Excel 2021/운영 반입) 증거 원장(현재 정본 `docs/48`, historical `docs/45`/`docs/44`)을 항목별로 채우고, 실 PC 증거가 없는 항목은 `BLOCKED`로 유지한다. **증거 없는 `PASS` 금지.**
 
 ## 언제 사용
 - **수동 호출 전용 (`/risk-gate-bc`).** 모델 자동 호출 비활성(`disable-model-invocation: true`).
@@ -38,7 +38,7 @@ Gate B(오프라인 Test PC)·Gate C(Excel 2021/운영 반입) 증거 원장(`do
 - 항목별 `PASS`/`BLOCKED`(필요 시 `PARTIAL`) 원장 + 증거 메타:
   `상태 · Screenshot · Log · File Hash · 측정값 · 검증자 · 검증시각 · Test PC 사양`.
 - 보고 한 줄 예: `Gate B = BLOCKED (B1~B6 PENDING, 실 Test PC 증거 대기) / Gate C = BLOCKED`.
-- 봉인 시: `docs/45` 상단 판정 갱신 + 전체 `PASS` 사유(모든 항목 증거 충족)를 명시.
+- 봉인 시: 현재 Gate 시트(예: `docs/48` 또는 릴리스별 successor) 상단 판정 갱신 + 전체 `PASS` 사유(모든 항목 증거 충족)를 명시.
 
 ## 체크리스트
 - Gate B(오프라인 실행) 항목·증거 양식: see [gate-b-template.md](gate-b-template.md)

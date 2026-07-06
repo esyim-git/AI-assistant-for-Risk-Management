@@ -30,7 +30,7 @@ Codex가 `feature/<WP-ID>-*` 브랜치에서 구현한 결과를 머지 전에 *
 2. **Diff 축**: `git diff origin/main..<branch>` 로 변경이 **지정 WP 범위(`docs/39`) 안**에 있는지, 범위 외 변경·기능 회귀가 없는지 확인한다. Public Interface·쓰기 경로(`logs/`·`reports/`·`config/`)·경로 가드 준수 확인.
 3. **보안 축(Gate A)**: `docs/28` 게이트 A 항목 + NuGet 0·외부 API 0·secret/실데이터/원문 0·금지 확장자 부재를 Diff에 대해 점검한다. 상세는 [review-dimensions.md](review-dimensions.md). `/risk-security-guard` 스킬과 동일 기준.
 4. **테스트 축**: SmokeTest **이전 Total 보존 + 신규 회귀 추가** 여부, 단언 약화/삭제 0, 보고에 `Total=N PASS / 0 FAIL` 합계 줄이 포함됐는지 확인. 총수 감소면 사유·매핑 필수.
-5. **문서 축**: 해당 WP의 **Claude Review Checklist**(`docs/39`)와 `docs/38·40·45` 정합, 상태 어휘 적정성을 확인한다. 문서 정합 정정은 `/risk-doc-truth-sync`로 이어간다.
+5. **문서 축**: 해당 WP의 **Claude Review Checklist**(`docs/39`)와 `docs/38·40·48`(현재 Gate 정본, `docs/44/45` historical) 정합, 상태 어휘 적정성을 확인한다. 문서 정합 정정은 `/risk-doc-truth-sync`로 이어간다.
 6. **판정 정리**: 4축 각각 PASS / 수정요청을 항목별 근거와 함께 정리하고 머지 가부를 낸다.
 
 ## 산출물/보고
@@ -43,6 +43,6 @@ Codex가 `feature/<WP-ID>-*` 브랜치에서 구현한 결과를 머지 전에 *
 4축(Diff/보안/테스트/문서) 상세 점검 항목·명령·판정 기준은 [review-dimensions.md](review-dimensions.md).
 
 ## 참조
-- `AGENTS.md`(구현 표준·보고·우선순위) · `docs/28`(보안 게이트 A) · `docs/39`(해당 WP Review Checklist) · `docs/38`(Roadmap·Traceability) · `docs/40`(ADR) · `docs/45`(Gate 증거).
+- `AGENTS.md`(구현 표준·보고·우선순위) · `docs/28`(보안 게이트 A) · `docs/39`(해당 WP Review Checklist) · `docs/38`(Roadmap·Traceability) · `docs/40`(ADR) · `docs/48`(현재 Gate 증거·런북) · `docs/44/45`(historical Gate 증거).
 - `CLAUDE.md §11.1`(main 직접 수정 금지) · `§11.3`(리뷰 루프) · `§11.4`(상태 어휘·과대표기 금지) · `§11.6`(Local-Gate).
 - 연계 스킬: `/risk-security-guard`(보안 축 단독) · `/risk-doc-truth-sync`(문서 정합 후속) · `/risk-branch-governance`(머지·브랜치 규약).

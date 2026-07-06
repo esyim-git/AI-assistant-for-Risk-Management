@@ -39,7 +39,7 @@ paths:
 - 위반 0건이면 "데이터/한도 점검: 위반 0건(코드리뷰 레벨)"로 보고. 실 오프라인 검증은 `docs/41` §4(Pilot Gate B/C) 별도.
 
 ## 체크리스트
-상세 점검 항목은 [data-limit-checklist.md](data-limit-checklist.md) 참조 (합성한도/6상태/대사9종/매핑/실데이터/결정성).
+상세 점검 항목은 [data-limit-checklist.md](data-limit-checklist.md) 참조 (합성한도/7상태/대사9종/매핑/실데이터/결정성).
 
 ## 참조
 - `docs/03_DataCatalog.md` (repo 포함/금지 데이터)

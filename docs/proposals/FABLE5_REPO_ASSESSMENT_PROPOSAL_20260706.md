@@ -3,7 +3,7 @@
 > **작성**: 2026-07-06, Fable 5 (Architecture Lead / Program Reviewer 역할 수행)
 > **성격**: 검토용 제안서(Proposal) — 코드 동작을 바꾸지 않으며, 의존성·모델·런타임·실 계수를 추가하지 않는다. 본 문서는 판정(승인)이 아니라 **평가 + 제안**이다. 상태 어휘는 `CLAUDE.md §11.4` 정본(VERIFIED · PARTIAL · SCAFFOLD_ONLY · PLACEHOLDER · BLOCKED · NOT_IMPLEMENTED · APPROVAL_REQUIRED)만 사용한다.
 > **기준선**: main `44d1be1`(#130 머지 후) · 코드/테스트 baseline `7094d91`(#127 QA-WP-09; #128~#130은 docs-only라 baseline 불변 — drift 아님) · VERSION `0.7.0` · v0.7.0 태그 `30c1cfb`(미서명, ZIP SHA256 `42C835…E09DD5`) · 직전 v0.6.0 태그 `3dfa80b` · 정본 SmokeTest **`Total=900 PASS=900 FAIL=0`**(local-gate) · 열린 PR 0.
-> **최종 상태 판정: `READY_FOR_GATE_BC`** (+ 병행으로 v0.8 안전 구현 트랙 착수 가능 — §14)
+> **최종 상태 판정: Gate B/C = `BLOCKED`(실 Test PC 증거 대기)**. 런북·워크시트·판정 규칙은 준비되어 있으며, 병행으로 v0.8 안전 구현 트랙 착수 가능(§14).
 
 ---
 
@@ -245,7 +245,7 @@ RiskManagementAI.sln
 ### 6.6 문서 갭 (Documentation)
 1. 51개 문서의 truth-sync 부하 — 현재는 규율로 유지 중이나, 기준선 표기가 CLAUDE.md·README·docs/38/39/50 등 다중 위치에 중복(단일 STATUS 파일로 수렴 검토 여지). 본 검토의 drift 샘플링 결과 **핵심 기준선(7094d91·Total=900)은 전 위치 정합** — 규율이 실제 작동 중.
 2. docs/51 헤더의 기준선이 `315fd30`(작성 시점 main, docs-only SHA) — 정본 관례(`7094d91`)와 표기 불일치이나 테스트 트리 동일이라 실질 drift 아님(차기 truth-sync에서 주석 권고).
-3. **`risk-data-limit-review` skill 체크리스트가 stale** — "6상태"·"통화 하드코딩 CCY_CD(ColumnMapping 미경유)"로 기재되어 있으나 실제 코드는 **7상태**(DuplicateLimit 포함, 테스트가 enum 서수 [0..6] 단언)·통화/단위 ColumnMapping 경유(R2-WP-01 완료). 리뷰 도구가 코드보다 뒤처지면 리뷰 품질이 저하 — 갱신 필요.
+3. **Data/Analytics 리뷰 Skill 잔여 stale 리스크** — 과거 상태셋·통화 하드코딩 기준이 리뷰 체크리스트에 남으면 실제 코드의 **7상태**(DuplicateLimit 포함)·통화/단위 ColumnMapping 경유(R2-WP-01 완료)를 오판할 수 있다. 리뷰 도구가 코드보다 뒤처지면 리뷰 품질이 저하 — 정기 truth-sync 필요.
 4. docs/40 ADR-008 상태·docs/46에 역사적 `Total=572` 인용 잔존 — 시점 증거 인용으로 정당하나 "현재 수치"로 오독 여지(시점 주석 권고).
 5. 파일럿 대상자용 문서(비개발자용 시작 가이드·FAQ·Known Limitations 요약) 부재.
 
@@ -288,7 +288,7 @@ Severity/Likelihood: H/M/L. (docs/38 §6 RR-01~16과 상보 — 여기서는 제
 
 ### v0.8 — 분석 가치 완성 + KB 콘텐츠 + UI 구조 (2주 ~ 6주)
 - **Goal**: "이미 만든 분석 능력을 사용자 손에" + "규정 검색을 실사용 가능하게".
-- **Included**: **Prior-Day Analytics UI 배선**(4구획·movers 화면+리포트) · **대용량 streaming UI/한도 안내 배선** · **MainWindow 분해 1단계**(행위 불변, 탭 컨트롤러 추출) · **공개 규정 Clause Pack 제작 파이프라인**(오프라인 pack builder + 검증 도구; pack 자체는 RAG 게이트 결정에 따라 repo 외 배포 또는 공개분 동봉) · 통화/단위 ColumnMapping 경유 전환(docs/41 §1 알려진 한계 해소) · 파일럿 킷 문서 초안.
+- **Included**: **Prior-Day Analytics UI 배선**(4구획·movers 화면+리포트) · **대용량 streaming UI/한도 안내 배선** · **MainWindow 분해 1단계**(행위 불변, 탭 컨트롤러 추출) · **공개 규정 Clause Pack 제작 파이프라인**(오프라인 pack builder + 검증 도구; pack 자체는 RAG 게이트 결정에 따라 repo 외 배포 또는 공개분 동봉) · 통화/단위 ColumnMapping 경유 상태 회귀 유지(R2-WP-01에서 완료) · 파일럿 킷 문서 초안.
 - **Excluded**: LLM 런타임 · NCR 실 계수 · Vector/Embedding(전부 STOP 유지).
 - **Test Gate**: Total 증가(신규 회귀 additive)·기존 삭제/약화 0·Unclassified 0.
 - **Approval Gate**: **RAG Approval Gate** — 실 공개 규정 clause pack의 적재 범위/방식(문서오너). 공개 법령 원문이라도 현 정책(`SourceTextAllowed=false` 불변·원문 repo 미포함)의 변경 여부는 승인 사항.
@@ -395,7 +395,7 @@ Severity/Likelihood: H/M/L. (docs/38 §6 RR-01~16과 상보 — 여기서는 제
 - **Purpose**: 파일럿 온보딩 자료. **Scope**: 비개발자용 퀵스타트·시나리오 워크북(docs/20/30 재사용)·Known Limitations·피드백 양식·인시던트/롤백 1페이지. **Priority**: **P2**. **Codex now?**: Yes(Claude 주도 가능). **Approval?**: No.
 
 ### WP-K. GOV-WP-01 — 문서/스킬 정합 스윕 (Claude, planning/*)
-- **Purpose**: 본 검토에서 발견된 stale 항목 일괄 해소. **Scope**: `risk-data-limit-review` skill 갱신(7상태·ColumnMapping 경유 반영), docs/40 ADR-008·docs/46의 `Total=572` 시점 주석, docs/51 기준선 표기 주석, CI 트리거 복원 결정 반영(§6.3-4 결정 후). **Out of Scope**: 코드 0. **Files**: `.claude/skills/risk-data-limit-review/*`, docs/40·46·51. **Tests**: 없음(문서). **Security**: 해당 없음. **Gate**: truth-sync. **Priority**: **P2**. **Codex now?**: No(Claude 문서 오너 작업). **Approval?**: No.
+- **Purpose**: 본 검토에서 발견된 stale 항목 일괄 해소. **Scope**: `risk-data-limit-review`와 `risk-analytics-design` skill/support 갱신(7상태·ColumnMapping 경유 완료 반영), docs/40 ADR-008·docs/46의 `Total=572` 시점 주석, docs/51 기준선 표기 주석, CI 트리거 복원 결정 반영(§6.3-4 결정 후). **Out of Scope**: 코드 0. **Files**: `.claude/skills/risk-data-limit-review/*`, `.claude/skills/risk-analytics-design/*`, docs/40·46·51. **Tests**: 없음(문서). **Security**: 해당 없음. **Gate**: truth-sync. **Priority**: **P2**. **Codex now?**: No(Claude 문서 오너 작업). **Approval?**: No.
 
 **우선순위 요약**: P0 = WP-A(사용자)+WP-B(Codex) 즉시 병행 → P1 = WP-D→WP-C(또는 C 선행)·WP-H(승인 시) → P2 = WP-E·F·G·J·K → P3 = WP-I.
 
@@ -530,7 +530,7 @@ docs/48 증거 워크시트(라운드 분리형)가 이미 정본 — 신규 양
 
 **GO.** — 단, "지금 그대로 파일럿"이 아니라 **"Gate B/C 봉인 → v0.7.1 → v0.8 분석 UI 완성 → 파일럿"** 경로의 GO다. 이 프로젝트의 리스크는 기술 부채나 보안 설계가 아니라 (i) 실 PC 증거 공백, (ii) 결정 대기 상태의 장기화, (iii) 콘텐츠 공백 3가지이고, 셋 다 **이 제안서의 P0~P1 실행으로 해소 가능**하다. 거버넌스·테스트·릴리스 체계는 v1.0을 지탱하기에 이미 충분한 수준이며, 과대표기 금지 규율이 지켜지는 한 파일럿에서 신뢰를 잃을 요인이 구조적으로 차단되어 있다.
 
-**최종 상태: `READY_FOR_GATE_BC`** — Gate B/C는 사용자 실행만 남았고(런북·워크시트·판정 규칙 완비), 병행으로 v0.8 안전 구현 트랙(WP-B/C/D/E/F/G/J)은 승인 없이 즉시 착수 가능하다. 승인 게이트 3건(docs/51)은 APPROVAL_REQUIRED로 대기하며, 이는 차단이 아니라 **결정 대기**다.
+**최종 상태: Gate B/C = `BLOCKED`(실 Test PC 증거 대기), 실행 준비 완료** — Gate B/C는 사용자 실행만 남았고(런북·워크시트·판정 규칙 완비), 병행으로 v0.8 안전 구현 트랙(WP-B/C/D/E/F/G/J)은 승인 없이 즉시 착수 가능하다. 승인 게이트 3건(docs/51)은 APPROVAL_REQUIRED로 대기하며, 이는 차단이 아니라 **결정 대기**다.
 
 ---
 

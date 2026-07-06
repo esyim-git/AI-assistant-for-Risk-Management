@@ -27,7 +27,7 @@
 - [ ] 머지된 WP가 해당 Cap-ID 상태에 반영되었는가(예: STAB-WP-* DONE → C-12 갱신).
 - [ ] 각 Cap-ID 상태 어휘가 정본만 사용하는가: VERIFIED · PARTIAL · SCAFFOLD_ONLY · PLACEHOLDER · BLOCKED · NOT_IMPLEMENTED · APPROVAL_REQUIRED (`CLAUDE.md §11.4`).
 - [ ] NCR Rule Set 등 구조만 있는 항목이 SCAFFOLD_ONLY로 유지되는가(계수/원문 미적재).
-- [ ] Gate 컬럼이 실 Test PC 증거 없이 PASS로 적히지 않았는가(`docs/45`).
+- [ ] Gate 컬럼이 실 Test PC 증거 없이 PASS로 적히지 않았는가(현재 `docs/48`, historical `docs/44/45`).
 - [ ] Risk Register(§6) RR 상태가 머지된 완화책과 일치하는가(필요 시 메모만).
 
 ## 5. NEXT UP
