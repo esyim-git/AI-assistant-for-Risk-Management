@@ -24,22 +24,23 @@ git fetch origin && git switch -c feature/rel-wp-071-release-cut origin/main
 ## 작업 범위 (정확히 3파일, 그 외 0)
 1. `VERSION`: `0.7.0` → `0.7.1`.
 2. `src/RiskManagementAI.Core/Integrity/IntegrityVerifier.cs:27` `ExpectedVersion = "0.7.0"` → `"0.7.1"` (누락 시 manifest version 불일치 → 런타임 Fail-Closed brick + drift 가드 테스트 red).
-3. `tests/RiskManagementAI.SmokeTests/PackagingTests.cs` 합성 manifest의 **현행 버전 리터럴 `"0.7.0"` 전수(현재 21곳)** → `"0.7.1"` (합성본이 `ExpectedVersion`과 일치해야 양성/변조 케이스가 유효).
-   - ⚠️ **버전-불일치 음성 케이스는 예외**(`:257` 인근 "Version mismatch" — manifest가 Core 상수와 **다른** 버전을 선언해야 유효): 해당 케이스의 상이-버전 문자열은 치환하지 말고, 범프 후에도 `ExpectedVersion`과 여전히 다름을 확인한다.
+3. `tests/RiskManagementAI.SmokeTests/PackagingTests.cs` 합성 manifest의 **`ExpectedVersion`과 같아야 하는 모든 현행 버전 리터럴 `"0.7.0"` 전수** → `"0.7.1"` (합성본이 `ExpectedVersion`과 일치해야 양성/변조 케이스가 유효).
+   - `WriteIntegrityManifest(..., "0.7.0", ...)` 호출뿐 아니라 같은 목적의 inline/raw manifest JSON(`"version":"0.7.0"` 등)이 존재하면 전부 포함한다.
+   - ⚠️ **버전-불일치 음성 케이스는 예외**(`:257` 인근 "Version mismatch"·`9.9.9` 등 — manifest가 Core 상수와 **다른** 버전을 선언해야 유효): 해당 케이스의 상이-버전 문자열은 치환하지 말고, 범프 후에도 `ExpectedVersion`과 여전히 다름을 확인한다.
    - **drift 가드(`:343`, `ExpectedVersion == File.ReadAllText("VERSION")` 동적 비교)는 리터럴이 아님 — 미수정·자동통과.** 치환 누락/과치환은 SmokeTest Packaging 도메인 FAIL로 탐지된다.
 - **제외**: 위 3곳 외 `0.7.0` 표기(docs 릴리스 노트·기준선 이력 = **역사 기록, 유지**) · 코드서명/인증서/서명도구(STAB-WP-05, APPROVAL_REQUIRED) · 기능·계약·단언 수 변경 · 신규 NuGet · `docs/48` 갱신(머지 후 Claude truth-sync 몫) · csproj(어셈블리 버전은 build/01 `-p:Version` 주입).
 
 ## 구현 세부 / 보안
 - 단순 리터럴 범프. `ExpectedVersion`==`VERSION` 단일원천 불변식(ADR-006)·런타임 Fail-Closed 의미(manifest version 매칭) 유지.
 - 외부 호출 0·Telemetry 0·자동실행 0·서명 도구/인증서 0(STOP — `docs/41 §6`). 실데이터/원문/토큰/키 0(Gate A).
-- **미서명 출하 고지 유지**: ReleaseNote·Release 본문에 "미서명 + SHA256 + `approved_manifest.json` + 런타임 Fail-Closed" 명시(`docs/52 §4`).
+- **미서명 출하 고지 유지**: generated `ReleaseNote-v0.7.1.md`는 `build/02` 산출물 그대로 검증하고 수동 편집하지 않는다. 미서명 고지는 `docs/52 §4`와 GitHub Release 본문에 "미서명 + SHA256 + `approved_manifest.json` + 런타임 Fail-Closed"로 명시한다.
 - **STOP**: 외부 라이브러리·NuGet·Vector/Embedding·LLM Runtime·모델파일이 필요해지면 **즉시 STOP** → 승인 문서(`docs/41`·`docs/40`) 전까지 추가 금지(`AGENTS.md §4`).
 
 ## 테스트 (Windows, Local-Gate)
 - `dotnet build RiskManagementAI.sln -c Release` **0 warning / 0 error**.
 - `dotnet run --project tests/RiskManagementAI.SmokeTests` → **`Total=900 PASS=900 FAIL=0`** (버전 범프는 단언 가감 없음 → **합계 불변**; PackagingTests 치환 누락 시 그 도메인 FAIL = 누락 탐지기), `Unclassified=0`.
 - 패키징: `./build/00_check-prereqs.ps1` → `./build/01_publish-win-x64.ps1 -Version 0.7.1` → `./build/02_package-release.ps1 -Version 0.7.1` → `./build/03_verify-package.ps1 -Version 0.7.1` 전부 PASS(manifest `version=0.7.1`·ZIP SHA256·금지파일·원문 미포함 스캔).
-- 산출물 4종 확인: portable ZIP `.sha256` 대조 · `ReleaseNote-v0.7.1.md`(Build Commit·미서명 고지) · `DependencyList-v0.7.1.csv`(External NuGet=None·Model=Not included) · `approved_manifest.json`.
+- 산출물 4종 확인: portable ZIP `.sha256` 대조 · `ReleaseNote-v0.7.1.md`(`build/02` 산출물 그대로: Version/Build Commit/SHA 등) · `DependencyList-v0.7.1.csv`(External NuGet=None·Model=Not included) · `approved_manifest.json`.
 
 ## 완료/보고
 보고에 다음을 포함한다(머지 게이트 = 로컬 증거 + Claude 코드리뷰, GitHub CI green 전제 아님 — `CLAUDE.md §11.6`):
@@ -49,4 +50,4 @@ git fetch origin && git switch -c feature/rel-wp-071-release-cut origin/main
 - **Applied Skill Checklists** 명시: `risk-release-cut`, `risk-release-verify`, `risk-security-guard`, `risk-smoke-governance`, `risk-branch-governance`.
 
 ## Claude Review Checklist
-변경이 정확히 3파일(VERSION·ExpectedVersion·PackagingTests 현행 리터럴 전수)·그 외 `0.7.0` 역사표기 미변경 / 버전-불일치 음성 케이스의 상이-버전 유효성 유지 / drift 가드(:343) 보존·통과 / 기능·단언 수 변경 0 → `Total=900` 불변·Unclassified 0 / 외부 NuGet·서명·인증서 0(STOP) / Gate A 0 / build/03 PASS(manifest 0.7.1·SHA256·원문 미포함) 증거 / current main·binary-impact 기준선 구분 보고.
+변경이 정확히 3파일(VERSION·ExpectedVersion·PackagingTests 현행 리터럴 전수: `WriteIntegrityManifest` + inline/raw JSON if present)·그 외 `0.7.0` 역사표기 미변경 / 버전-불일치 음성 케이스의 상이-버전 유효성 유지 / drift 가드(:343) 보존·통과 / generated ReleaseNote 수동 편집 0·미서명 고지는 docs/52+GitHub Release body에서 유지 / 기능·단언 수 변경 0 → `Total=900` 불변·Unclassified 0 / 외부 NuGet·서명·인증서 0(STOP) / Gate A 0 / build/03 PASS(manifest 0.7.1·SHA256·원문 미포함) 증거 / current main·binary-impact 기준선 구분 보고.

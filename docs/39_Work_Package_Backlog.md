@@ -34,13 +34,13 @@
 - **상태**: **READY** — Codex 프롬프트 `prompts/codex/REL-WP-071_release_cut_v0_7_1.md` 발부. 착수 조건 없음(승인 게이트 비접촉).
 - **목표**: published v0.7.0(`30c1cfb`) 이후 main에 머지된 **KB-WP-01/02·UX-WP-04~11·FEEDBACK-WP-01/02·QA-WP-01~09(#94~#127)** 를 출하본에 반영하는 **정합 릴리스 컷**. **신규 기능 구현 아님** — 버전 범프 락스텝만. `docs/48 §B′` B-5 PARTIAL 고착(출하본-main 괴리)의 해소 경로.
 - **선행조건**: #131 머지(완료, main `110e9ee`). 외부 의존성·서명 도구·인증서 **추가 0**(STAB-WP-05 분리).
-- **작업범위(정확히 3파일, 그 외 0)**: ① `VERSION` `0.7.0→0.7.1` ② `IntegrityVerifier.cs:27` `ExpectedVersion` `"0.7.0"→"0.7.1"` ③ `PackagingTests.cs` 합성 manifest 현행 버전 리터럴 `"0.7.0"` 전수(현재 21곳)→`"0.7.1"` — **버전-불일치 음성 케이스(:257 인근)의 상이-버전 문자열은 유지**(범프 후에도 `ExpectedVersion`과 달라야 유효), drift 가드(:343)는 동적 비교라 미수정.
+- **작업범위(정확히 3파일, 그 외 0)**: ① `VERSION` `0.7.0→0.7.1` ② `IntegrityVerifier.cs:27` `ExpectedVersion` `"0.7.0"→"0.7.1"` ③ `PackagingTests.cs` 합성 manifest의 `ExpectedVersion`과 같아야 하는 모든 현행 버전 리터럴 `"0.7.0"` 전수(`WriteIntegrityManifest` + inline/raw JSON if present)→`"0.7.1"` — **버전-불일치 음성 케이스(:257 인근·`9.9.9` 등)의 상이-버전 문자열은 유지**(범프 후에도 `ExpectedVersion`과 달라야 유효), drift 가드(:343)는 동적 비교라 미수정.
 - **제외범위**: 위 3곳 외 `0.7.0` 역사 표기 유지 · 코드서명(STAB-WP-05) · 기능·계약·단언 수 변경 · 신규 NuGet · `docs/48` 갱신(머지 후 Claude truth-sync).
 - **읽을문서**: `docs/52`(릴리스 노트/런북/Gate 연결), `.claude/skills/risk-release-cut/`, `docs/40` ADR-006·008·012, `docs/41 §4·§6`, 본 원장 REL-v0.7.0 항목(직전 컷 선례).
 - **수정예상파일**: `VERSION`, `src/RiskManagementAI.Core/Integrity/IntegrityVerifier.cs`, `tests/RiskManagementAI.SmokeTests/PackagingTests.cs`(3개).
 - **Public Interface**: 없음(버전 상수만).
 - **구현세부**: 단순 리터럴 범프. `ExpectedVersion`==`VERSION` 단일원천(ADR-006)·런타임 Fail-Closed 버전매칭 유지. **기준선 이중 표기**: 컷=current main / binary-impact 기준선=`7094d91`(#128~#131 docs-only) 구분 보고.
-- **보안조건**: 외부 NuGet 0·서명 도구/인증서 0(STOP)·실데이터/원문/토큰/키 0(Gate A)·미서명 출하 고지 유지(`docs/52 §4`).
+- **보안조건**: 외부 NuGet 0·서명 도구/인증서 0(STOP)·실데이터/원문/토큰/키 0(Gate A)·generated ReleaseNote 수동 편집 0, 미서명 출하 고지는 `docs/52 §4`와 GitHub Release 본문에서 유지.
 - **테스트(Local-Gate)**: `dotnet build` 0/0 → SmokeTest **`Total=900 PASS=900 FAIL=0` 불변**(치환 누락 시 Packaging 도메인 FAIL=탐지기)·Unclassified=0 → `build/00~03 -Version 0.7.1` PASS(manifest 0.7.1·ZIP SHA256·원문 미포함 스캔)·산출물 4종(ZIP/.sha256·ReleaseNote·DependencyList·approved_manifest).
 - **완료조건**: 3파일 범프 + build 0/0 + `Total=900` 불변 + build/03 PASS + `dotnet list package` PackageReference 0. 태그 `v0.7.1`·Release 발행=로컬(사용자 결정, `docs/52 §4`). **컷 완료 ≠ Gate 봉인**(Gate B/C BLOCKED 유지 — published v0.7.1로 B13 봉인 경로만 열림).
 - **Branch**: `feature/rel-wp-071-release-cut` · **Commit**: `chore: bump version to 0.7.1 for shipped-artifact parity release (REL-WP-071)`
