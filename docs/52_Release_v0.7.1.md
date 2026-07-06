@@ -1,0 +1,69 @@
+# 52. Release v0.7.1 — 출하 정합(Shipped-Artifact Parity) 릴리스
+
+## 목적 / 범위
+v0.7.1 = **published v0.7.0(태그 `30c1cfb`) 이후 main에 머지된 트랙을 출하본에 반영하는 정합 릴리스.** 신규 기능 구현 0 — 전부 기머지·Claude 4축 리뷰 완료분이며, 코드 변경은 **버전 범프 락스텝 3파일**(REL-WP-071)뿐이다. 본 문서는 v0.7.1 **릴리스 노트 + 패키징 런북 + Gate B 체크 연결 + GitHub Release 핸드오프**다. (`docs/47` v0.7.0 문서의 v0.7.1 대응본.)
+
+> **상태: 컷 대기(REL-WP-071 READY — `prompts/codex/REL-WP-071_release_cut_v0_7_1.md`).** 발행 완료 시 본 문서 상태·태그 SHA·ZIP SHA256을 갱신한다.
+> **기준선 이중 표기**: 컷 = current main(#131 `110e9ee` 이후 HEAD) 기준 · **binary-impact 기준선 = `7094d91`**(#128~#131은 docs-only — 문서 전용 머지는 baseline SHA를 올리지 않는 관례). 정본 SmokeTest `Total=900 PASS=900 FAIL=0`(범프 후에도 불변이어야 함).
+> **코드 서명**: v0.7.1도 **미서명 + Integrity Manifest/Fail-Closed 앵커**로 출하한다. Authenticode 서명은 **STAB-WP-05 APPROVAL_REQUIRED**(`docs/51 §B` 결정 대기 — 릴리스 전제 아님).
+
+---
+
+## 1. v0.7.1 릴리스 노트 (요약 — v0.7.0 → v0.7.1)
+
+**테마: "main에는 있는데 출하본에는 없던 것"의 해소.** Total 714 → 900(#94~#127 누적).
+
+- **KB Clause 검색**(KB-WP-01/02 #94/#101): 공개 규정 Clause Pack 계약·로더·원문 가드 + clause keyword 검색·인용·`ClauseSnippetAllowed` 게이트(공개+메타 완비 시 32자 snippet). `SourceTextAllowed=false` 불변·원문 repo 미포함·합성 더미만·Vector/Embedding STOP.
+- **Excel Function Helper**(UX-WP-04 #102 + UX-WP-11 #122): 함수 검색·상세·인수·리스크예시·수식예시·365여부·Excel 2021 대체식·추천(정적, embedded resource, 차단 함수 추천 0 가드), 자동삽입 0·검색어 미로그.
+- **Smart Assist as-you-type/팝업**(UX-WP-05/06 #103/#104 + 하이진 UX-WP-07/08/09 #110/#111/#113 + 시드 UX-WP-10 #117): `CompletionTriggerPolicy` debounce 트리거·focus-preserving 팝업·Snippet/SafetyNote/Kind 표시·Esc/Close 포커스 복원·이중 핀 축소. **정적·NoModel·자동삽입 0**(실 LLM 랭킹=R4 미구현).
+- **승인 Feedback Example 검색·반영**(FEEDBACK-WP-01/02 #106/#108): ingest 게이트(Blocker 0+`ForbiddenTermScanner`)·결정적 검색·`ReferencesReviewed` 경유 read-only Prompt 반영·hash 이중 audit — **RETRIEVAL, 학습 아님**.
+- **하이진**(R2-WP-05 #109): dead Welford 필드 제거(동작 불변).
+- **테스트 하드닝**(QA-WP-01~09 #115~#127, 제품 코드 0): Safety·Recon/Limit·Kb·Report·Csv/Xlsx/Profile·Ncr·UiContract·Audit/Generation·Mapping/Packaging 도메인 회귀 +57 — **인박스 SmokeTest 도메인 하드닝 스윕 완결, `Total=900`**.
+
+**유지된 절대 원칙**: 오프라인 · 외부 NuGet 0 · 외부 API/telemetry/자동업데이트 0 · SQL/VBA 자동실행 0 · 해시 전용 감사 · NoModelMode · 내부규정/NCR 원문·실데이터·모델파일 미포함 · Vector/Embedding/모델 런타임 미도입.
+
+**아직 없는 것(의도적)**: Local LLM 추론(R4, `docs/51 §A` 결정 대기) · 실 공개 규정 clause pack 콘텐츠(합성 더미만 — RAG 게이트) · 승인 NCR 실 계수(`docs/51 §C`) · 서명 바이너리(STAB-WP-05) · Prior-Day/streaming의 WPF UI 배선(v0.8 트랙, 제안서 §8).
+
+---
+
+## 2. 패키징 런북 (REL-WP-071 머지 후, Windows PowerShell)
+
+> **선행**: REL-WP-071 PR이 머지되어 main `VERSION=0.7.1`인 상태에서 컷한다. 절차 정본 = `.claude/skills/risk-release-cut/`.
+
+```powershell
+git fetch origin main
+git switch -c release/v0.7.1 origin/main
+git add --renormalize .                            # CP949 매핑표 LF 정합
+Get-Content VERSION                                # -> 0.7.1
+
+./build/00_check-prereqs.ps1
+./build/01_publish-win-x64.ps1  -Version 0.7.1     # VERSION 불일치 시 throw
+./build/02_package-release.ps1  -Version 0.7.1
+./build/03_verify-package.ps1   -Version 0.7.1     # 해시·금지파일·원문 미포함 스캔
+```
+산출물(`artifacts/` — gitignored): `RiskManagementAI-v0.7.1-win-x64-portable.zip(.sha256)` · `ReleaseNote-v0.7.1.md` · `DependencyList-v0.7.1.csv` · (ZIP 내) `approved_manifest.json`(version 0.7.1).
+
+**검증 포인트**: manifest `version=0.7.1` 일치 · ZIP SHA256=`.sha256` · PDB/Dev-Test config 0 · 원문 미포함 스캔 PASS · `dotnet list package` PackageReference 0(DependencyList는 self-contained 런타임 목록 — NuGet-0 증거 아님, `docs/47 §2` 동일 주의).
+
+---
+
+## 3. Gate B/C 연결 (v0.7.1)
+
+- 증거 원장 운영은 **`docs/48` 라운드 규약**을 따른다(정본): published v0.7.1 ZIP 라운드가 신설되면 `docs/48` 워크시트에 라운드를 분리 기입하거나, 릴리스별 신규 원장(`docs/48` 양식 복제, 초기 BLOCKED)을 만든다 — 선택은 컷 후 truth-sync에서 확정.
+- **B-5(B13) 봉인 경로 열림**: UX-WP-04~11이 published 아티팩트에 처음 포함되므로, `docs/48 §5b`의 "출하 봉인은 공개 v0.7.1 컷 후" 조건이 충족된다 → published v0.7.1 ZIP에서 Excel Function Helper·as-you-type 팝업·포커스 복원 실 UI 확인 시 B13 봉인 가능.
+- 나머지 항목(B0~B15·C1~C7)은 `docs/48` 판정 규칙 그대로 — **실 오프라인 Test PC 증거 없이 PASS 금지, 컷 완료 ≠ Gate 봉인**(초기 상태 BLOCKED).
+- 증거 민감정보 금지: 실거래/포지션/고객/원문/계정정보 0 — `samples/` dummy·masking만(`docs/48 §B″ 0`).
+
+---
+
+## 4. GitHub Release 핸드오프 (로컬 — 발행 시 갱신)
+
+```powershell
+git tag v0.7.1 <컷 커밋 SHA>
+git push origin v0.7.1
+```
+- 첨부 = portable ZIP + `.sha256` + ReleaseNote-v0.7.1.md (소스/모델 첨부 금지).
+- 본문 = §1 릴리스 노트 + 최종 ZIP **SHA256** + **미서명 고지**("v0.7.1은 미서명 portable ZIP — 무결성은 SHA256 + 동봉 `approved_manifest.json` + 런타임 Fail-Closed로 검증. Authenticode 서명은 STAB-WP-05(승인 대기)").
+- 웹/proxy 세션은 태그 push 403(`docs/47 §0`) → 태그·발행은 로컬. 발행 후: 본 문서 상단 상태 + `docs/38/39`·README 기준선(태그 SHA·ZIP SHA256) truth-sync.
+
+> 관련: `docs/47`(v0.7.0), `docs/48`(Gate B/C 정본 원장·라운드 규약), `docs/24`(패키징), `docs/41 §4·§6`(게이트), `docs/51`(승인 결정 패킷), `docs/proposals/FABLE5_REPO_ASSESSMENT_PROPOSAL_20260706.md §10 WP-B`, `.claude/skills/risk-release-cut/`(컷 절차 정본), `prompts/codex/REL-WP-071_release_cut_v0_7_1.md`.

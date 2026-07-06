@@ -395,7 +395,7 @@ Severity/Likelihood: H/M/L. (docs/38 §6 RR-01~16과 상보 — 여기서는 제
 - **Purpose**: 파일럿 온보딩 자료. **Scope**: 비개발자용 퀵스타트·시나리오 워크북(docs/20/30 재사용)·Known Limitations·피드백 양식·인시던트/롤백 1페이지. **Priority**: **P2**. **Codex now?**: Yes(Claude 주도 가능). **Approval?**: No.
 
 ### WP-K. GOV-WP-01 — 문서/스킬 정합 스윕 (Claude, planning/*)
-- **Purpose**: 본 검토에서 발견된 stale 항목 일괄 해소. **Scope**: `risk-data-limit-review`와 `risk-analytics-design` skill/support 갱신(7상태·ColumnMapping 경유 완료 반영), docs/40 ADR-008·docs/46의 `Total=572` 시점 주석, docs/51 기준선 표기 주석, CI 트리거 복원 결정 반영(§6.3-4 결정 후). **Out of Scope**: 코드 0. **Files**: `.claude/skills/risk-data-limit-review/*`, `.claude/skills/risk-analytics-design/*`, docs/40·46·51. **Tests**: 없음(문서). **Security**: 해당 없음. **Gate**: truth-sync. **Priority**: **P2**. **Codex now?**: No(Claude 문서 오너 작업). **Approval?**: No.
+- **Purpose**: 본 검토에서 발견된 stale 항목 일괄 해소. **Scope**: ~~`risk-data-limit-review`·`risk-analytics-design` skill/support 갱신(7상태·ColumnMapping 경유 완료 반영)~~ — **PR #131에서 처리 완료(리뷰 봇 P2 7건 반영 포함)**. **잔여**: docs/40 ADR-008·docs/46의 `Total=572` 시점 주석, docs/51 기준선 표기 주석, CI 트리거 복원 결정 반영(§6.3-4 결정 후). **Out of Scope**: 코드 0. **Files**: docs/40·46·51. **Tests**: 없음(문서). **Security**: 해당 없음. **Gate**: truth-sync. **Priority**: **P2**. **Codex now?**: No(Claude 문서 오너 작업). **Approval?**: No.
 
 **우선순위 요약**: P0 = WP-A(사용자)+WP-B(Codex) 즉시 병행 → P1 = WP-D→WP-C(또는 C 선행)·WP-H(승인 시) → P2 = WP-E·F·G·J·K → P3 = WP-I.
 
