@@ -21,8 +21,11 @@
 | WPF UX·SQL/VBA 에디터·Smart Assist | `risk-ui-ux-review` |
 | Local LLM Adapter/Runtime | `risk-llm-approval` (**STOP — 승인 전 의존성/모델 추가 금지**) |
 | 테스트 추가/변경 | `risk-smoke-governance` |
-| 릴리스 패키징 | `risk-release-verify` |
-| Gate B/C 증거 | `risk-gate-bc` |
+| **릴리스 컷(REL WP — 버전 범프·출하본 갱신)** | `risk-release-cut` (**기능 변경 0 · 단언 가감 0 · STOP 접촉 0 · 산출물 4종 검증**) |
+| 릴리스 패키지 검증 | `risk-release-verify` |
+| **구조 리팩터(행위 불변 분해 — God-class/탭 추출)** | `risk-arch-refactor` (**행위 변경 0 · 계약 테스트 이전 · MVVM 빅뱅 금지**) |
+| Gate B/C 증거 | `risk-gate-bc` (**증거 민감정보 0 — dummy·masking만**) |
+| Team Pilot 준비/운영 | `risk-team-pilot` (Gate B/C 봉인 선행) |
 | 브랜치·PR·머지 | `risk-branch-governance` |
 | 보안·민감정보 점검(항상) | `risk-security-guard` |
 

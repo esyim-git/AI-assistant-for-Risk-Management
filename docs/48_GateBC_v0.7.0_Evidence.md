@@ -69,6 +69,7 @@ v0.7.0 portable ZIP을 **실 오프라인 Test PC(Gate B)** 및 **운영 반입 
 
 ### 0. 준비
 - Test PC = Windows 11 · **인터넷 차단** · Excel 2021(Gate C). ZIP 반입 후 `evidence/gateB/` 폴더 생성.
+- ⚠️ **증거 민감정보 금지**: `evidence/gateB/`에 저장·커밋하는 모든 파일(해시 출력·스크린샷·로그)에는 **실거래/실포지션/고객정보/내부규정 원문/계정·비밀정보를 포함하지 않는다.** 검증 입력은 `samples/` dummy 데이터만 사용하고, 화면에 사내 정보 노출 소지가 있으면 **masking된 캡처만** 저장한다. 커밋 전 Gate A(`risk-security-guard`) 스캔을 증거 파일에도 동일 적용한다.
 
 ### 1. 무결성·기동 봉인 (B0/B1/B2/B3 — 현 v0.7.0 ZIP)
 ```powershell
@@ -138,6 +139,7 @@ Get-Content artifacts\release\RiskManagementAI-v0.7.0-win-x64-portable.zip.sha25
 
 ## 증거 메타 (각 항목 공통 기입)
 `PASS/FAIL/BLOCKED · Screenshot · Log · File Hash · 측정값 · 검증자 · 검증시각 · Test PC 사양`.
+> **민감정보 금지(공통)**: 증거 파일에 실거래/실포지션/고객정보/내부규정 원문/계정·비밀정보 0 — `samples/` dummy 데이터·masking된 화면만 사용(§B″ 0. 준비 참조).
 
 ### 증거 워크시트 (복사해서 채운 뒤 회신 — 실 PC 실행분만 PASS)
 > 실행 라운드별로 분리 기입. **R1 = 현 published ZIP(`30c1cfb`, SHA `42C835…`)**, **R2 = 5a 로컬 빌드(`7094d91`, 자체 `.sha256`)**. 미실행 항목은 공란 유지(임의 PASS 금지, §11.4).

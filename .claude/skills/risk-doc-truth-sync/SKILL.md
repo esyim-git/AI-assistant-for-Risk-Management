@@ -21,11 +21,13 @@ allowed-tools: Read Grep Glob Edit Bash(git status *) Bash(git log *) Bash(git d
 - **과대표기 금지**: 실제 AI/RAG/NCR/Local LLM 능력을 실제보다 크게 적지 않는다.
 - **증거 없으면 PASS/VERIFIED 금지**: 실 오프라인 Test PC 증거 없는 Gate는 `BLOCKED` 유지(`docs/45`). 머지 Gate 증거는 로컬 `dotnet build` + SmokeTest `Total=N PASS / 0 FAIL`이며 GitHub-CI-green이 전제가 아니다(`CLAUDE.md §11.6`).
 - **민감정보 금지**: 실데이터·실 테이블/컬럼/시스템명·내부규정/NCR 원문·secret/토큰·모델파일·외부 NuGet/다운로드 지침을 문서에 추가하지 않는다. 필요 시 PATH로만 참조한다(예시는 `RISK_EXPOSURE_DAILY`/`RISK_LIMIT_MASTER` 같은 더미만).
-- 문서는 코드 동작을 바꾸지 않는다. `CLAUDE.md`/`AGENTS.md`/`docs/38-45`와 모순되면 안 된다.
+- **기준선 이중 표기 규칙**: 문서 기준선은 **코드/테스트 baseline SHA**(마지막 코드/테스트 머지)로 표기하고, current main과 구분한다. **docs-only 머지는 baseline SHA를 올리지 않는다(관례)** — 이 관례에 따른 표기 차이는 drift로 정정하지 않는다. 릴리스 문서에는 컷 기준(current main)과 binary-impact 기준선을 함께 기록한다.
+- **시점 인용 주석 규칙**: 역사적 수치(과거 `Total=N`·과거 SHA)를 증거로 인용할 때는 시점을 명시한다(예: "`Total=572`(STAB-WP-03b #61 시점)") — "현재 수치"로 오독되지 않게 한다.
+- 문서는 코드 동작을 바꾸지 않는다. `CLAUDE.md`/`AGENTS.md`/`docs/38-48`과 모순되면 안 된다.
 
 ## 절차
 1. **범위 파악**: `git log`로 직전 머지/변경 범위(커밋 SHA·PR·WP-ID·테스트 총수 변화)를 확인한다.
-2. **영향 항목 식별**: `docs/38`(Roadmap·Capability·Traceability) · `docs/39`(WP Backlog·Resume Brief·진행 원장) · `docs/40`(ADR) · `docs/45`(Gate B/C 증거)에서 영향받는 항목을 Grep으로 찾는다.
+2. **영향 항목 식별**: `docs/38`(Roadmap·Capability·Traceability) · `docs/39`(WP Backlog·Resume Brief·진행 원장) · `docs/40`(ADR) · `docs/48`(Gate B/C 증거 — 현재 정본; `docs/44/45`는 historical)에서 영향받는 항목을 Grep으로 찾는다.
 3. **증거 대조**: 각 항목을 실제 코드/테스트 증거(커밋 SHA, SmokeTest `Total=N`, ADR 결정)와 대조한다. 어휘별 충족 기준은 [status-vocabulary.md](status-vocabulary.md), 문서별 점검 항목은 [truth-sync-checklist.md](truth-sync-checklist.md).
 4. **상태 표기 검증**: 증거가 어휘 정의를 만족하는지 확인한다. 불충족이면 더 약한 어휘(예: `VERIFIED`→`PARTIAL`/`SCAFFOLD_ONLY`/`BLOCKED`)로 정정한다.
 5. **최소 수정**: `Edit`로 해당 줄만 정합화하고, 각 상태 표기 옆에 **근거(커밋 SHA / 테스트 `Total=N` / Gate 증거 문서 PATH)**를 명시한다. 기존 테스트·기존 정본 합계를 약화시키지 않는다.

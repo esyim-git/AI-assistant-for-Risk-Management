@@ -5,7 +5,7 @@ Claude Code와 Codex가 반복 작업을 일관되게 수행하도록 도입한 
 
 ## 1. 구조
 ```text
-SKILLS.md                                  # 정본 인덱스(15 skill·호출 순서·금지)
+SKILLS.md                                  # 정본 인덱스(18 skill·호출 순서·금지)
 .claude/skills/<skill-name>/
     SKILL.md                               # frontmatter(name/description/호출방식/allowed-tools) + 간결 본문
     <topic>.md                             # 긴 체크리스트/템플릿 support 파일(선택)
@@ -15,17 +15,18 @@ prompts/codex/README_skills_usage.md       # Codex 사용법
 ```
 - **호출 방식**: frontmatter `disable-model-invocation: true` = 수동(Claude 명시 호출 / Codex 참조). `paths:` 스코프 = 해당 경로 작업 시 자동 적용.
 
-## 2. 15 Skill ↔ 생명주기 매핑
+## 2. 18 Skill ↔ 생명주기 매핑
 | 단계 | Skill |
 |---|---|
-| 상태 파악 | `risk-status-sync` |
+| 상태 파악 | `risk-status-sync` (기준선 이중 표기: 코드/테스트 baseline vs current main) |
 | 계획(WP) | `risk-wp-planner` |
-| 구현(Codex) | 도메인 Skill 참조: `risk-data-limit-review`·`risk-rag-ncr-governance`·`risk-analytics-design`·`risk-feedback-learning`·`risk-ui-ux-review`·`risk-llm-approval` |
+| 구현(Codex) | 도메인 Skill 참조: `risk-data-limit-review`·`risk-rag-ncr-governance`·`risk-analytics-design`·`risk-feedback-learning`·`risk-ui-ux-review`·`risk-llm-approval`·`risk-arch-refactor`(행위 불변 리팩터) |
 | 테스트 | `risk-smoke-governance` |
-| 리뷰 | `risk-codex-review` + `risk-security-guard` |
+| 리뷰 | `risk-codex-review` + `risk-security-guard` (+ 리팩터 WP는 `risk-arch-refactor` 행위 불변 축) |
 | 머지/브랜치 | `risk-branch-governance` |
 | 문서 정합 | `risk-doc-truth-sync` |
-| 릴리스 | `risk-release-verify` → `risk-gate-bc` |
+| 릴리스 | `risk-release-cut`(컷) → `risk-release-verify`(검증) → `risk-gate-bc`(실 PC 증거) |
+| 파일럿(R6) | `risk-team-pilot` (Gate B/C 봉인 선행·실 증거 기반 보고) |
 
 ## 3. Claude 사용 (요약, 정본 = `CLAUDE.md §12`·§13)
 작업 시작 시 필요 Skill 선택 → Codex 인계 전 `risk-wp-planner` → 결과 `risk-codex-review` → Release 전 `risk-release-verify` → Gate B/C 전 `risk-gate-bc` → Local LLM은 `risk-llm-approval` 없이 진행 금지 → RAG/NCR은 `risk-rag-ncr-governance` 적용. **자동 Preflight**(`CLAUDE.md §13`): 사용자가 `/risk-*`를 매번 호출하지 않아도 작업 유형별 체인(계획/PR/UI/Data/RAG/Release/Gate/LLM)을 Claude가 표준 절차로 자동 적용한다. STOP Gate(release/gate/llm)는 자동 실행 아님(승인 선행).
