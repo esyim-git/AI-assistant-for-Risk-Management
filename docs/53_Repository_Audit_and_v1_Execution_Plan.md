@@ -71,7 +71,7 @@
 ### P1 — 거버넌스/사용자 가치
 
 3. **GOV-01: public 저장소인데 main protection/ruleset이 없다.** 기존 문서는 private Free 전제를 유지하며 실제 check 이름도 존재하지 않는 `build`로 적혀 있다.
-4. **GOV-02: audit-input Actions가 수동 전용이다.** 이 audit change가 PR `test`/`wpf-build` 트리거를 복원한다. 첫 hosted green run과 hard protection 적용 전까지는 `PARTIAL`; local-gate는 독립 검증으로 유지한다.
+4. **GOV-02: audit-input Actions가 수동 전용이다.** 이 audit change가 PR `test`/`wpf-build` 트리거를 복원하고 Action을 immutable SHA로 pin한다. 첫 hosted green run과 hard protection 적용 전까지는 `PARTIAL`; local-gate는 독립 검증으로 유지한다.
 5. **SEC-01: GitHub secret scanning/push protection이 disabled다.** Gate A는 유지하되 public 저장소의 원격 방어층을 추가한다.
 6. **ARCH-01: `MainWindow.xaml.cs` 1,614줄 God-class.** 12개 탭, 차트, persistence, DTO가 한 파일에 집중돼 UI 배선 WP의 충돌 위험을 높인다.
 7. **UX-REACH-01: Prior-Day/streaming/XLSX profile/Clause/Example reflection이 Core-only다.** 문서에서 UI 기능처럼 읽히지 않도록 분리 표기하고 v0.8에서 순차 배선한다.

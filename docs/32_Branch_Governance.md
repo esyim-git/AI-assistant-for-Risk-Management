@@ -66,6 +66,7 @@ Local Windows build/smoke/package remains the implementation/release evidence ga
 
 - Enable secret scanning and push protection for the public repository.
 - Keep Actions token permissions read-only by default; no repository secrets are needed for build/test.
+- Pin third-party/official Action steps to immutable full commit SHAs with a version comment.
 - Fork PR workflows use standard hosted runners only. Do not attach a self-hosted company runner to public fork PRs.
 
 ## Verification
