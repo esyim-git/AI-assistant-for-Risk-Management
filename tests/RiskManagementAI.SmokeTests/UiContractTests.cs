@@ -115,6 +115,8 @@ context.AssertTrue(mainWindowCode.Contains("MainTabs.SelectedItem = tab;", Strin
 context.AssertTrue(!mainWindowCode.Contains("1.1m", StringComparison.Ordinal), "WP-01 should remove synthetic 1.1x limit formula from UI code");
 context.AssertTrue(!mainWindowCode.Contains("PROFILE_TOTAL", StringComparison.Ordinal), "WP-01 should not emit aggregate synthetic limit rows");
 context.AssertTrue(mainWindowCode.Contains("LIMIT_DATA_REQUIRED", StringComparison.Ordinal), "WP-01 should emit LIMIT_DATA_REQUIRED when real limit data is missing");
+context.AssertTrue(mainWindowCode.Contains("new ReconciliationSummary(Passed: false, CheckCount: 0", StringComparison.Ordinal), "UI empty-analysis contract should mark zero-check validation as not passed");
+context.AssertTrue(!mainWindowCode.Contains("new ReconciliationSummary(Passed: true, CheckCount: 0", StringComparison.Ordinal), "UI empty-analysis contract should not mark zero-check validation as passed");
 context.AssertTrue(mainWindowCode.Contains("DEMO_ONLY", StringComparison.Ordinal), "WP-01 should mark sample/demo report flows as DEMO_ONLY");
 context.AssertTrue(!mainWindowCode.Contains("BuildUiLimitRows", StringComparison.Ordinal), "WP-07 should remove BuildUiLimitRows from UI code");
 context.AssertTrue(!mainWindowCode.Contains("ExcelReportLimitRow", StringComparison.Ordinal), "WP-07 should remove ExcelReportLimitRow from UI code");

@@ -71,6 +71,7 @@ using (var reportArchive = ZipFile.OpenRead(reportResult.ReportPath))
     context.AssertTrue(limitMonitoringSheet.Contains("PF_NOLIMIT", StringComparison.Ordinal) && limitMonitoringSheet.Contains("NO_LIMIT", StringComparison.Ordinal), "WP-07 report should expose analysis NO_LIMIT status");
     context.AssertTrue(limitMonitoringSheet.Contains("PF_ZERO", StringComparison.Ordinal) && limitMonitoringSheet.Contains("INVALID_LIMIT", StringComparison.Ordinal), "WP-07 report should expose analysis INVALID_LIMIT status");
     context.AssertTrue(summarySheet.Contains("ReconciliationPassed", StringComparison.Ordinal) && summarySheet.Contains("FAIL", StringComparison.Ordinal), "WP-07 report summary should expose reconciliation PASS/FAIL");
+    context.AssertTrue(summarySheet.Contains("<c r=\"B18\" t=\"inlineStr\"><is><t>FAIL</t></is></c>", StringComparison.Ordinal), "Excel report validation state should render FAIL when checks ran and failed");
     context.AssertTrue(summarySheet.Contains("DuplicateLimitCount", StringComparison.Ordinal), "Excel report SUMMARY should expose duplicate limit count");
     context.AssertTrue(summarySheet.Contains("ExceptionCount", StringComparison.Ordinal) && !summarySheet.Contains("ExceptionListCountFormula", StringComparison.Ordinal) && !summarySheet.Contains("COUNTA(EXCEPTION_LIST", StringComparison.Ordinal), "R2-WP-04 report summary should use exact numeric ExceptionCount, not EXCEPTION_LIST COUNTA");
     context.AssertTrue(summarySheet.Contains($"<c r=\"B20\"><v>{expectedExceptionCount}</v></c>", StringComparison.Ordinal), "R2-WP-04 report SUMMARY should store exact ExceptionCount as a static number");
@@ -121,12 +122,37 @@ var noSyntheticLimitReport = reportBuilder.BuildReport(new ExcelReportRequest(
 using (var noSyntheticArchive = ZipFile.OpenRead(noSyntheticLimitReport.ReportPath))
 {
     var validationSheet = ReadZipEntryText(noSyntheticArchive, "xl/worksheets/sheet4.xml");
+    var summarySheet = ReadZipEntryText(noSyntheticArchive, "xl/worksheets/sheet5.xml");
     var limitSheet = ReadZipEntryText(noSyntheticArchive, "xl/worksheets/sheet6.xml");
     var exceptionSheet = ReadZipEntryText(noSyntheticArchive, "xl/worksheets/sheet7.xml");
     context.AssertTrue(validationSheet.Contains("LIMIT_DATA_REQUIRED", StringComparison.Ordinal), "WP-01 report validation should include LIMIT_DATA_REQUIRED finding");
     context.AssertTrue(validationSheet.Contains("DEMO_ONLY", StringComparison.Ordinal), "WP-01 report validation should include DEMO_ONLY finding");
+    context.AssertTrue(summarySheet.Contains("<c r=\"B18\" t=\"inlineStr\"><is><t>NOT_RUN</t></is></c>", StringComparison.Ordinal) && !summarySheet.Contains("<c r=\"B18\" t=\"inlineStr\"><is><t>PASS</t></is></c>", StringComparison.Ordinal), "Excel report zero-check validation state should render NOT_RUN instead of PASS");
+    context.AssertTrue(summarySheet.Contains("<c r=\"B19\"><v>0</v></c>", StringComparison.Ordinal), "Excel report zero-check validation state should retain check count zero");
     context.AssertTrue(limitSheet.Contains("NO_LIMIT_ROW", StringComparison.Ordinal) && limitSheet.Contains("NO_DATA", StringComparison.Ordinal), "WP-01 report should not create synthetic limit rows");
     context.AssertTrue(exceptionSheet.Contains("LIMIT_DATA_REQUIRED", StringComparison.Ordinal), "WP-01 report exception list should surface missing real limit data");
+}
+
+var passingAnalysis = EmptyLimitAnalysis() with
+{
+    Reconciliation = new ReconciliationSummary(
+        Passed: true,
+        CheckCount: 1,
+        Checks: [new ReconciliationCheck("RECON_SUM_BALANCE", Applicable: true, ExceptionCount: 0, SafetySeverity.Info)])
+};
+var passingReconciliationReport = reportBuilder.BuildReport(new ExcelReportRequest(
+    "smoke_corr_wp_01_passing_reconciliation",
+    exposureProfile,
+    passingAnalysis,
+    [],
+    reportSql,
+    "NoModelMode report commentary",
+    "user-smoke"));
+using (var passingReconciliationArchive = ZipFile.OpenRead(passingReconciliationReport.ReportPath))
+{
+    var summarySheet = ReadZipEntryText(passingReconciliationArchive, "xl/worksheets/sheet5.xml");
+    context.AssertTrue(summarySheet.Contains("<c r=\"B18\" t=\"inlineStr\"><is><t>PASS</t></is></c>", StringComparison.Ordinal), "Excel report validation state should retain PASS when checks ran and passed");
+    context.AssertTrue(summarySheet.Contains("<c r=\"B19\"><v>1</v></c>", StringComparison.Ordinal), "Excel report passing validation state should retain positive check count");
 }
 
 var visualRows = BuildRiskVisualSmokeRows();

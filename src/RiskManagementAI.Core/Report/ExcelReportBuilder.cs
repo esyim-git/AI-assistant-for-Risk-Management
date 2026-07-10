@@ -150,7 +150,7 @@ public sealed class ExcelReportBuilder
                 Row("ExposureAmountSum", Number(request.Analysis.Kpis.ExposureAmountSum)),
                 Row("LimitAmountSum", Number(request.Analysis.Kpis.LimitAmountSum)),
                 Row("RemainingLimitSum", Number(request.Analysis.Kpis.RemainingLimitSum)),
-                Row("ReconciliationPassed", request.Analysis.Reconciliation.Passed ? "PASS" : "FAIL"),
+                Row("ReconciliationPassed", GetReconciliationDisplayState(request.Analysis.Reconciliation)),
                 Row("ReconciliationCheckCount", Number(request.Analysis.Reconciliation.CheckCount)),
                 Row("ExceptionCount", Number(exceptionCount)),
                 Row("RawDataReferenceCountFormula", Formula(formulaRawDataRows)),
@@ -177,6 +177,13 @@ public sealed class ExcelReportBuilder
         };
 
         return new WorkbookBuildResult(sheets, formulas, riskVisual.Findings);
+    }
+
+    private static string GetReconciliationDisplayState(ReconciliationSummary reconciliation)
+    {
+        return reconciliation.CheckCount == 0
+            ? "NOT_RUN"
+            : reconciliation.Passed ? "PASS" : "FAIL";
     }
 
     private void WriteWorkbookPackage(ZipArchive archive, WorkbookBuildResult workbook, DateTime createdAt)
