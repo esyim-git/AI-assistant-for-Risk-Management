@@ -2,17 +2,16 @@
 
 ## 0. Current Baseline
 
-- Audit input `origin/main` / code-test baseline: `4efb8e6` (PR #135). Docs/workflow-only merges advance current main but not this product-code/test baseline.
+- v0.7.1 release Build Commit: `fa755256` (PR #136, docs-only). Product code-test baseline remains `4efb8e6` (PR #135); docs/workflow-only merges may advance current main without changing either.
 - VERSION `0.7.1`.
 - Local gate: build warning 0/error 0, SmokeTest `Total=907 PASS=907 FAIL=0`, Unclassified 0.
-- Latest published release: `v0.7.0` (`30c1cfb`, unsigned).
-- v0.7.1 code cut + CORR-WP-01: `VERIFIED`.
-- v0.7.1 final rebuild/tag/Release: `NOT_IMPLEMENTED`.
+- Latest published release: unsigned `v0.7.1` (`fa755256`), ZIP SHA256 `282B71385FEE83B4ED7AD221CAF84AD3A6B4E2B5E5191601F4240AEED0419018`.
+- v0.7.1 code cut + CORR-WP-01 + final rebuild/tag/Release: `VERIFIED` / `PUBLISHED`.
 - Pre-CORR candidate (`abab29b`, SHA256 `A70D0B37AD92344A2ECFBE0D4D96360F56CBAFFF94363249F0BD1A20ADC1ECDC`) is invalid after #135 and must not be published.
 - Formal Gate B/C: `BLOCKED` (`docs/48`). User-reported B0~B3/major functions/C1~C5 success is not attached formal evidence; C6/C7 remain.
-- **NEXT UP = v0.7.1 final rebuild/tag/Release from latest main** (`docs/52`).
+- **NEXT UP = GOV-WP-02** (hosted evidence + branch protection + secret-scanning alignment). Published v0.7.1 Gate B/C is user-driven in parallel (`docs/48`).
 
-Completed MVP-1~3, R1, R2, R3, STAB-WP-01~04, UX-WP-01~11, KB-WP-01/02, FEEDBACK-WP-01/02, QA-WP-01~09, REL-WP-071 code cut, and CORR-WP-01 are not redesigned.
+Completed MVP-1~3, R1, R2, R3, STAB-WP-01~04, UX-WP-01~11, KB-WP-01/02, FEEDBACK-WP-01/02, QA-WP-01~09, REL-WP-071 published release, and CORR-WP-01 are not redesigned.
 
 Current repository audit and detailed sequencing: `docs/53_Repository_Audit_and_v1_Execution_Plan.md`. WP history: `docs/39`.
 
@@ -30,7 +29,7 @@ External dependency, Vector/Embedding, LLM runtime/model, signing credential/too
 | R3 | v0.6.0 | Public KB metadata/citation structure, NCR 8-field structure | RAG/NCR | VERIFIED / NCR SCAFFOLD_ONLY |
 | STAB | v0.6.1 | version, package manifest, runtime Fail-Closed, test baseline/suites | Security/Release | PARTIAL: signing APPROVAL_REQUIRED |
 | R2 | v0.7.0 | semantic hardening, streaming Core, prior-day Core, visualization/report | Data | VERIFIED(Core); WPF reachability PARTIAL |
-| REL | v0.7.1 | post-v0.7.0 shipped-artifact parity | Local/Release | PARTIAL: code cut VERIFIED, publish pending |
+| REL | v0.7.1 | post-v0.7.0 shipped-artifact parity | Local/Release | VERIFIED / PUBLISHED (`fa755256`, unsigned) |
 | CORR | v0.7.1 pre-publish | zero-check reconciliation must be `NOT_RUN` | Data/Report | VERIFIED (#135, `4efb8e6`) |
 | GOV | v0.7.x | public PR CI, actual checks, branch protection, secret scanning | Governance | PARTIAL: hosted `test`/`wpf-build` evidence observed; protection/security settings pending |
 | v0.8 | v0.8.x | behavior-preserving UI decomposition and Core capability reachability | A/B | NOT_IMPLEMENTED |
@@ -47,22 +46,21 @@ External dependency, Vector/Embedding, LLM runtime/model, signing credential/too
 | Audit logs/history | VERIFIED | VERIFIED | v0.7.0 | Hash only |
 | CSV/CP949 profile | VERIFIED | PARTIAL | v0.7.0 | UI uses in-memory path |
 | XLSX profile | VERIFIED | NOT_IMPLEMENTED | library shipped | No Data UI routing |
-| Limit/7-state/reconciliation | VERIFIED | VERIFIED | v0.7.0 | zero-check `NOT_RUN` fix VERIFIED; v0.7.1 publish pending |
-| Prior-Day | VERIFIED | NOT_IMPLEMENTED | main; v0.7.1 publish pending | App call site 0 |
+| Limit/7-state/reconciliation | VERIFIED | VERIFIED | v0.7.1 | zero-check `NOT_RUN` included |
+| Prior-Day | VERIFIED | NOT_IMPLEMENTED | v0.7.1 | App call site 0 |
 | Streaming profile | VERIFIED | NOT_IMPLEMENTED | Core shipped | App call site 0 |
 | RISK_VISUAL/report | VERIFIED | VERIFIED | v0.7.0 | Formal B/C pending |
 | KB catalog | VERIFIED | VERIFIED | v0.7.0 | Public metadata |
-| Clause search/snippet gate | VERIFIED | NOT_IMPLEMENTED | main; v0.7.1 publish pending | App call site 0; real Pack approval |
-| Feedback promotion | VERIFIED | VERIFIED | main; v0.7.1 publish pending | Retrieval, not training |
-| Example retrieval/reflection | VERIFIED | NOT_IMPLEMENTED | main; v0.7.1 publish pending | App review path 0 |
+| Clause search/snippet gate | VERIFIED | NOT_IMPLEMENTED | v0.7.1 | App call site 0; real Pack approval |
+| Feedback promotion | VERIFIED | VERIFIED | v0.7.1 | Retrieval, not training |
+| Example retrieval/reflection | VERIFIED | NOT_IMPLEMENTED | v0.7.1 | App review path 0 |
 | NCR Rule Set | SCAFFOLD_ONLY | PLACEHOLDER | placeholder | Real Pack APPROVAL_REQUIRED |
 | Local LLM | PLACEHOLDER | NoModelMode VERIFIED | no model | APPROVAL_REQUIRED |
 
 ## 4. Dependency Order
 
 ```text
-v0.7.1 final rebuild/tag/Release
-  -> GOV-WP-02 (hosted evidence record + protection/security settings)
+GOV-WP-02 (hosted evidence record + protection/security settings)
   -> ARCH-WP-01
   -> UI-WP-12 Prior-Day
   -> DATA-UI-WP-01 / KB-UI-WP-01 / FEEDBACK-WP-03
@@ -70,6 +68,8 @@ v0.7.1 final rebuild/tag/Release
   -> formal Gate B/C
   -> v1.0 Team Pilot
 ```
+
+User-driven Gate B/C evidence collection may run in parallel from the published v0.7.1 ZIP; formal closure remains required before Team Pilot.
 
 Approval tracks run only when approved and do not block safe Core/UI work: STAB-WP-05 signing, real NCR/internal Pack, R4 LLM.
 

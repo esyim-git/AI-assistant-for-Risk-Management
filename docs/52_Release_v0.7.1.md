@@ -3,8 +3,8 @@
 ## 목적 / 범위
 v0.7.1 = **published v0.7.0(태그 `30c1cfb`) 이후 main에 머지된 트랙을 출하본에 반영하는 정합 릴리스.** REL-WP-071 자체는 버전 범프 락스텝 3파일·신규 기능 0으로 완료됐다. 최종 발행 전 감사에서 발견된 `CORR-WP-01`(zero-check reconciliation false PASS 제거)은 정확성 correction으로 포함한 뒤 다시 패키징한다. 본 문서는 v0.7.1 **릴리스 노트 + 패키징 런북 + Gate B 체크 연결 + GitHub Release 핸드오프**다. (`docs/47` v0.7.0 문서의 v0.7.1 대응본.)
 
-> **상태: `PARTIAL` — REL-WP-071 code cut(#133 `abab29b`) + CORR-WP-01(#135 `4efb8e6`) VERIFIED, tag/GitHub Release 미발행.** Pre-CORR candidate SHA256 `A70D0B37AD92344A2ECFBE0D4D96360F56CBAFFF94363249F0BD1A20ADC1ECDC`는 #135 이후 무효이며 발행 금지다. latest main에서 final candidate를 재생성한다.
-> **기준선**: code/test baseline = `4efb8e6`(#135, VERSION 0.7.1), SmokeTest `Total=907 PASS=907 FAIL=0`. docs/workflow-only merge는 current main과 release Build Commit만 이동하며 code/test baseline은 유지한다.
+> **상태: `VERIFIED` / `PUBLISHED`.** Unsigned Latest Release `v0.7.1`은 tag/Build Commit `fa7552567cb432ec6a4afe9900b3eca480fc5780`에서 2026-07-10 발행됐다: <https://github.com/esyim-git/AI-assistant-for-Risk-Management/releases/tag/v0.7.1>.
+> **정본 증거**: code/test baseline `4efb8e6`(#135), release Build Commit `fa755256`(#136 docs-only), SmokeTest `Total=907 PASS=907 FAIL=0`, build/00~03 PASS, ZIP SHA256 `282B71385FEE83B4ED7AD221CAF84AD3A6B4E2B5E5191601F4240AEED0419018`, manifest version 0.7.1 / required 27/27 / mismatch 0. Pre-CORR SHA256 `A70D0B37AD92344A2ECFBE0D4D96360F56CBAFFF94363249F0BD1A20ADC1ECDC`는 무효이며 발행되지 않았다.
 > **코드 서명**: v0.7.1도 **미서명 + Integrity Manifest/Fail-Closed 앵커**로 출하한다. Authenticode 서명은 **STAB-WP-05 APPROVAL_REQUIRED**(`docs/51 §B` 결정 대기 — 릴리스 전제 아님).
 
 ---
@@ -27,9 +27,9 @@ v0.7.1 = **published v0.7.0(태그 `30c1cfb`) 이후 main에 머지된 트랙을
 
 ---
 
-## 2. 패키징 런북 (CORR-WP-01 머지 후 latest main, Windows PowerShell)
+## 2. 패키징 재현 런북 (완료, Windows PowerShell)
 
-> **선행**: REL-WP-071은 머지됨. `CORR-WP-01`까지 머지되어 main `VERSION=0.7.1`인 상태에서 최종 컷한다. 절차 정본 = `.claude/skills/risk-release-cut/`.
+> **실행 결과**: `fa755256` exact main에서 아래 순서를 완료했다. 절차 정본 = `.claude/skills/risk-release-cut/`.
 
 ```powershell
 git fetch origin main
@@ -57,14 +57,16 @@ Get-Content VERSION                                # -> 0.7.1
 
 ---
 
-## 4. GitHub Release 핸드오프 (로컬 — 발행 시 갱신)
+## 4. GitHub Release 발행 결과
 
 ```powershell
 git tag v0.7.1 <컷 커밋 SHA>
 git push origin v0.7.1
 ```
-- 첨부 = portable ZIP + `.sha256` + ReleaseNote-v0.7.1.md (소스/모델 첨부 금지).
-- 본문 = §1 릴리스 노트 + 최종 ZIP **SHA256** + **미서명 고지**("v0.7.1은 미서명 portable ZIP — 무결성은 SHA256 + 동봉 `approved_manifest.json` + 런타임 Fail-Closed로 검증. Authenticode 서명은 STAB-WP-05(승인 대기)").
-- 웹/proxy 세션은 태그 push 403(`docs/47 §0`) → 태그·발행은 로컬. 발행 후: 본 문서 상단 상태 + `docs/38/39`·README 기준선(태그 SHA·ZIP SHA256) truth-sync.
+- Tag `v0.7.1` = `fa7552567cb432ec6a4afe9900b3eca480fc5780`; Release는 draft/pre-release가 아닌 Latest stable이다.
+- 첨부는 portable ZIP(72,337,105 bytes) + `.sha256`(112 bytes) + packaging-generated `ReleaseNote-v0.7.1.md`(837 bytes) 정확히 3개다. 소스/모델/DependencyList는 GitHub asset으로 첨부하지 않았다.
+- GitHub 계산 ZIP digest `sha256:282b71385fee83b4ed7ad221caf84ad3a6b4e2b5e5191601f4240aeed0419018`가 로컬/sidecar/ReleaseNote SHA와 일치한다.
+- Release 본문은 §1 요약, 최종 SHA256, 미서명 고지, Gate B/C `BLOCKED`를 포함한다.
+- Gate B/C는 발행으로 자동 PASS가 되지 않는다. 사용자는 이 published ZIP을 받아 `docs/48`의 새 라운드로 증거를 봉인한다.
 
 > 관련: `docs/47`(v0.7.0), `docs/48`(Gate B/C 정본 원장·라운드 규약), `docs/24`(패키징), `docs/41 §4·§6`(게이트), `docs/51`(승인 결정 패킷), `docs/proposals/FABLE5_REPO_ASSESSMENT_PROPOSAL_20260706.md §10 WP-B`, `.claude/skills/risk-release-cut/`(컷 절차 정본), `prompts/codex/REL-WP-071_release_cut_v0_7_1.md`.

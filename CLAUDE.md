@@ -4,14 +4,14 @@ Claude Code is Architecture Lead, Program Manager, Security/Release Reviewer, an
 
 ## 0. Current Truth
 
-- Audit input `origin/main` and code-test baseline: `4efb8e6` (PR #135). A docs/workflow-only merge advances current main but not the code-test baseline.
+- v0.7.1 release Build Commit: `fa755256` (PR #136, docs-only). Product code-test baseline remains `4efb8e6` (PR #135); later docs/workflow-only merges advance current main without changing release provenance or the product baseline.
 - VERSION `0.7.1`; authoritative local SmokeTest `Total=907 PASS=907 FAIL=0`.
-- Latest published release is `v0.7.0`; v0.7.1 code cut and CORR-WP-01 are merged but final rebuild/tag/Release is pending.
+- Latest published release is unsigned `v0.7.1` at `fa755256`; ZIP SHA256 is `282B71385FEE83B4ED7AD221CAF84AD3A6B4E2B5E5191601F4240AEED0419018`.
 - Formal Gate B/C is `BLOCKED`; user-reported execution and attached formal evidence remain separate.
-- **NEXT UP = v0.7.1 final rebuild/tag/Release** only (`docs/52`).
+- **NEXT UP = GOV-WP-02**. User-driven Gate B/C proceeds in parallel against the published v0.7.1 assets (`docs/48`).
 - Full evidence and roadmap: `docs/53_Repository_Audit_and_v1_Execution_Plan.md`.
 
-Do not redesign completed MVP-1~3, R1, R2, R3, STAB-WP-01~04, UX-WP-01~11, KB-WP-01/02, FEEDBACK-WP-01/02, QA-WP-01~09, REL-WP-071 code cut, or CORR-WP-01.
+Do not redesign completed MVP-1~3, R1, R2, R3, STAB-WP-01~04, UX-WP-01~11, KB-WP-01/02, FEEDBACK-WP-01/02, QA-WP-01~09, REL-WP-071 published release, or CORR-WP-01.
 
 ## 1. Project Identity
 
