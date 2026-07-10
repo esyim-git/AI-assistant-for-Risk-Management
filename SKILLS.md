@@ -4,10 +4,10 @@
 
 Project Skills make Claude and Codex repeat fragile repository workflows consistently without copying large checklists into every prompt.
 
-- Audit input / code-test baseline: `origin/main@4efb8e6` (PR #135). Docs/workflow-only merges do not advance the code-test baseline.
+- v0.7.1 release Build Commit: `fa755256` (PR #136, docs-only). Product code-test baseline remains `4efb8e6` (PR #135); docs/workflow-only merges may advance current main without changing either.
 - VERSION `0.7.1`, SmokeTest `Total=907 PASS=907 FAIL=0`.
-- Latest published release `v0.7.0`; v0.7.1 final rebuild/tag/Release pending.
-- NEXT UP: v0.7.1 final rebuild/tag/Release from latest main (`docs/52`).
+- Latest published release: unsigned `v0.7.1`, ZIP SHA256 `282B71385FEE83B4ED7AD221CAF84AD3A6B4E2B5E5191601F4240AEED0419018`.
+- NEXT UP: `GOV-WP-02` (`docs/39` + `prompts/codex/GOV-WP-02_branch_security_governance.md`); user-driven Gate B/C runs in parallel on the published v0.7.1 ZIP using `docs/54`.
 
 Current truth: `docs/53_Repository_Audit_and_v1_Execution_Plan.md` and `docs/39` Resume Brief.
 
@@ -108,11 +108,10 @@ risk-llm-approval -> STOP until explicit approval
 
 ## 7. Current Sequence
 
-1. v0.7.1 final rebuild/tag/Release from latest main (`CORR-WP-01` is VERIFIED at #135).
-2. `GOV-WP-02` restored PR CI evidence + branch protection/secret scanning alignment.
-3. `ARCH-WP-01` MainWindow decomposition.
-4. UI reachability WPs for Prior-Day, streaming/XLSX profile, Clause search, and reviewed Example reflection.
-5. .NET 10 migration before Pilot.
-6. Formal Gate B/C and Team Pilot.
+1. `GOV-WP-02` restored PR CI evidence + branch protection/secret scanning alignment.
+2. `ARCH-WP-01` MainWindow decomposition.
+3. UI reachability WPs for Prior-Day, streaming/XLSX profile, Clause search, and reviewed Example reflection.
+4. .NET 10 migration before Pilot.
+5. Formal Gate B/C evidence runs in parallel from published v0.7.1; Team Pilot follows formal closure on a supported LTS build.
 
 Approval tracks (signing, real NCR/internal Pack, Local LLM/runtime/model) remain independent and STOP-governed.

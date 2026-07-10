@@ -44,6 +44,6 @@ allowed-tools: Read, Grep, Glob, Bash(git status:*), Bash(git diff:*), Bash(dotn
 4축(Diff/보안/테스트/문서) 상세 점검 항목·명령·판정 기준은 [review-dimensions.md](review-dimensions.md).
 
 ## 참조
-- `AGENTS.md`(구현 표준·보고·우선순위) · `docs/28`(보안 게이트 A) · `docs/39`(해당 WP Review Checklist) · `docs/38`(Roadmap·Traceability) · `docs/40`(ADR) · `docs/48`(현재 Gate 증거·런북) · `docs/44/45`(historical Gate 증거).
+- `AGENTS.md`(구현 표준·보고·우선순위) · `docs/28`(보안 게이트 A) · `docs/39`(해당 WP Review Checklist) · `docs/38`(Roadmap·Traceability) · `docs/40`(ADR) · `docs/54`(현재 Gate 증거·런북) · `docs/48/45/44`(historical Gate 증거).
 - `CLAUDE.md §11.1`(main 직접 수정 금지) · `§11.3`(리뷰 루프) · `§11.4`(상태 어휘·과대표기 금지) · `§11.6`(Local-Gate).
 - 연계 스킬: `/risk-security-guard`(보안 축 단독) · `/risk-doc-truth-sync`(문서 정합 후속) · `/risk-branch-governance`(머지·브랜치 규약).

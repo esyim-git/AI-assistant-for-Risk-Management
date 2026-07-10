@@ -6,14 +6,15 @@
 
 | 항목 | 현재 |
 |---|---|
-| Audit input / code-test baseline | `origin/main@4efb8e6` (PR #135); docs/workflow merge 후 current main만 이동 |
+| v0.7.1 release Build Commit | `fa755256` (PR #136, docs-only); current main은 live Git 확인 |
+| Product code-test baseline | `4efb8e6` (PR #135) |
 | VERSION | `0.7.1` |
-| 최신 공개 Release | `v0.7.0` (`30c1cfb`, 미서명) |
-| v0.7.1 | code cut + CORR VERIFIED, pre-CORR candidate 폐기, final rebuild/tag/Release 대기 |
+| 최신 공개 Release | `v0.7.1` (`fa755256`, 미서명), ZIP SHA256 `282B7138...9018` |
+| v0.7.1 | `VERIFIED` (published); build/00~03 PASS, manifest 0.7.1 required 27/27 |
 | Build / SmokeTest | warning 0, error 0 / `Total=907 PASS=907 FAIL=0` |
 | 외부 NuGet | `PackageReference` 0, `NuGet.Config <clear/>` |
-| Formal Gate B/C | `BLOCKED` (사용자 실행 PASS 회신 일부 있음; 증거 파일·C6/C7 미완) |
-| NEXT UP | latest main에서 v0.7.1 final rebuild/tag/Release (`docs/52`) |
+| Formal Gate B/C | `BLOCKED` for v0.7.1 (`docs/54`); v0.7.0 user-reported 이력은 `docs/48` |
+| NEXT UP | `GOV-WP-02` (`prompts/codex/GOV-WP-02_branch_security_governance.md`); published v0.7.1 Gate B/C는 사용자 병행 (`docs/54`) |
 
 전체 진단·근거·로드맵은 [docs/53_Repository_Audit_and_v1_Execution_Plan.md](docs/53_Repository_Audit_and_v1_Execution_Plan.md), 실행 원장은 [docs/39_Work_Package_Backlog.md](docs/39_Work_Package_Backlog.md)를 따른다.
 
@@ -104,7 +105,7 @@ Get-Content VERSION
 5. dummy/masked 입력으로 Gate 확인
 ```
 
-세부: [deploy/README_OFFLINE_RUN.md](deploy/README_OFFLINE_RUN.md), [docs/48_GateBC_v0.7.0_Evidence.md](docs/48_GateBC_v0.7.0_Evidence.md).
+세부: [deploy/README_OFFLINE_RUN.md](deploy/README_OFFLINE_RUN.md), [docs/54_GateBC_v0.7.1_Evidence.md](docs/54_GateBC_v0.7.1_Evidence.md). v0.7.0 이력은 [docs/48_GateBC_v0.7.0_Evidence.md](docs/48_GateBC_v0.7.0_Evidence.md)에 보존한다.
 
 ## Workflow
 
@@ -118,11 +119,11 @@ PR은 squash-only, main 직접 push와 force push 금지. `test`/`wpf-build` 자
 
 ## Roadmap
 
-1. latest main v0.7.1 final rebuild·tag·Release (`CORR-WP-01` #135 VERIFIED).
-2. restored PR CI 증거 + branch protection/secret scanning 적용.
-3. `ARCH-WP-01` MainWindow 행위 불변 분해.
-4. Prior-Day, streaming/XLSX profile, Clause, Feedback retrieval UI 배선.
-5. .NET 10 LTS 전환 후 formal Gate B/C와 Team Pilot.
+1. `GOV-WP-02`: restored PR CI 증거 + branch protection/secret scanning 적용.
+2. `ARCH-WP-01` MainWindow 행위 불변 분해.
+3. Prior-Day, streaming/XLSX profile, Clause, Feedback retrieval UI 배선.
+4. .NET 10 LTS 전환.
+5. published v0.7.1부터 formal Gate B/C 증거를 병행하고, 지원 LTS 후보에서 Team Pilot을 봉인.
 6. 승인된 범위에서만 signing, NCR Pack, Local LLM을 진행.
 
 관련 정본: [docs/38_v1_Master_Roadmap.md](docs/38_v1_Master_Roadmap.md), [docs/39_Work_Package_Backlog.md](docs/39_Work_Package_Backlog.md), [docs/40_ADR_Architecture_Evolution.md](docs/40_ADR_Architecture_Evolution.md), [docs/41_Approval_and_Pilot_Gates.md](docs/41_Approval_and_Pilot_Gates.md).

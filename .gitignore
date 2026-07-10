@@ -51,6 +51,7 @@ logs/*
 reports/*
 !logs/.gitkeep
 !reports/.gitkeep
+evidence/gateBC/
 config/ui_layout.local.json
 config/promoted_examples*.jsonl
 config/smoke_promoted_examples*.jsonl

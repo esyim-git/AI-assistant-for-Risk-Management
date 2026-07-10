@@ -1,6 +1,6 @@
 # Gate C — Excel 2021 / 운영 반입 항목·증거 양식 (v0.7+)
 
-정본 원장: `docs/48_GateBC_v0.7.0_Evidence.md` C그룹. `docs/45`(v0.6.0)·`docs/44`(v0.5.0)는 historical이다. 기준: `docs/41 §4`(Pilot Gate C) · `docs/28`(보안검토).
+정본 원장: `docs/54_GateBC_v0.7.1_Evidence.md` C그룹. `docs/48`(v0.7.0)·`docs/45`(v0.6.0)·`docs/44`(v0.5.0)는 historical이다. 기준: `docs/41 §4`(Pilot Gate C) · `docs/28`(보안검토).
 본 파일은 **양식·판정 가이드**다. 코드 동작을 바꾸지 않으며, 실 데이터·실 테이블/컬럼/시스템명·내부규정/NCR 원문·secret·모델파일을 절대 기입하지 않는다. 더미는 `RISK_EXPOSURE_DAILY`/`RISK_LIMIT_MASTER`만.
 
 ## 판정 규칙
@@ -30,6 +30,6 @@
 `상태(PASS/FAIL/BLOCKED/PARTIAL/ACCEPTED_RISK) · Screenshot · Log · File Hash · 측정값 · 검증자 · 검증시각 · Test PC 사양`.
 
 ## 회신 → 판정
-운영자가 표를 채워 회신하면 항목 단위 재판정 후 현재 Gate 시트(예: `docs/48` 또는 릴리스별 successor) 상단 상태를 갱신한다. Gate B + Gate C 전부 `PASS`(명시 예외 수용 포함)면 해당 릴리스 Gate B/C를 봉인한다.
+운영자가 표를 채워 회신하면 항목 단위 재판정 후 현재 Gate 시트(`docs/54` 또는 릴리스별 successor) 상단 상태를 갱신한다. Gate B + Gate C 적용 대상 전부 `PASS`(명시 예외 수용 포함)면 해당 릴리스 Gate B/C를 봉인한다.
 
-> 관련: `docs/41 §4`, `docs/28`, `docs/48`. Gate B는 [gate-b-template.md](gate-b-template.md).
+> 관련: `docs/41 §4`, `docs/28`, `docs/54`; `docs/48`은 historical. Gate B는 [gate-b-template.md](gate-b-template.md).

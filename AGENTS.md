@@ -4,15 +4,15 @@ Codex 및 구현 Agent는 이 파일을 반드시 따른다. 충돌 우선순위
 
 ## 0. Current Baseline
 
-- Audit input `origin/main` / code-test baseline: `4efb8e670ce0306d07683d3fbc5ed7b118844b8b` (PR #135). Docs/workflow-only merges advance current main but not this product-code/test baseline.
+- v0.7.1 release Build Commit: `fa7552567cb432ec6a4afe9900b3eca480fc5780` (PR #136, docs-only). Product code-test baseline remains `4efb8e670ce0306d07683d3fbc5ed7b118844b8b` (PR #135); later docs/workflow-only merges advance current main without changing either release provenance or product baseline.
 - VERSION: `0.7.1`.
 - Authoritative local gate: build warning 0/error 0, SmokeTest `Total=907 PASS=907 FAIL=0`, Unclassified 0.
-- Latest published release: `v0.7.0` (`30c1cfb`, unsigned). v0.7.1 code cut and CORR-WP-01 are merged; final rebuild/tag/Release is pending.
-- Formal Gate B/C: `BLOCKED`. User-reported PC success and formal attached evidence are distinct.
-- **NEXT UP = v0.7.1 final rebuild/tag/Release only** from latest main (`docs/52`); the pre-CORR package candidate is invalid.
+- Latest published release: `v0.7.1` (`fa755256`, unsigned), ZIP SHA256 `282B71385FEE83B4ED7AD221CAF84AD3A6B4E2B5E5191601F4240AEED0419018`.
+- Formal Gate B/C: `BLOCKED` for v0.7.1 (`docs/54`). v0.7.0 user-reported results in `docs/48` are historical and do not carry forward.
+- **NEXT UP = GOV-WP-02** (hosted evidence, branch protection, and secret-scanning alignment; prompt `prompts/codex/GOV-WP-02_branch_security_governance.md`). User-driven Gate B/C runs in parallel on the published v0.7.1 ZIP (`docs/54`).
 - Full current assessment: `docs/53_Repository_Audit_and_v1_Execution_Plan.md`.
 
-Completed MVP-1~3, R1, R2, R3, STAB-WP-01~04, UX-WP-01~11, KB-WP-01/02, FEEDBACK-WP-01/02, QA-WP-01~09, REL-WP-071 code cut, and CORR-WP-01 are not redesigned. Core-only capabilities must not be described as user-facing until an App/WPF call site exists.
+Completed MVP-1~3, R1, R2, R3, STAB-WP-01~04, UX-WP-01~11, KB-WP-01/02, FEEDBACK-WP-01/02, QA-WP-01~09, REL-WP-071 published release, and CORR-WP-01 are not redesigned. Core-only capabilities must not be described as user-facing until an App/WPF call site exists.
 
 ## 1. Final Product Boundary
 

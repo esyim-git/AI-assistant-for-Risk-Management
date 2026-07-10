@@ -1,4 +1,4 @@
-# Truth-Sync 점검 체크리스트 (docs/38·39·40·48)
+# Truth-Sync 점검 체크리스트 (docs/38·39·40·54)
 
 문서별 정합 점검 항목. 각 항목은 **증거**(커밋 SHA / SmokeTest `Total=N PASS / 0 FAIL` / Gate 증거 문서 PATH)와 대조한다.
 어휘는 [status-vocabulary.md](status-vocabulary.md) 7개만. 민감정보(실데이터·실 테이블/컬럼명·내부규정/NCR 원문·secret·모델파일·외부 NuGet/다운로드)는 문서에 넣지 않는다.
@@ -30,12 +30,12 @@
 - [ ] 승인 필요 결정(예: Local LLM Runtime, 모델파일)은 `APPROVAL_REQUIRED` + 승인 문서 PATH(`docs/41`)로 묶여 있다.
 - [ ] 기각된 대안/결과가 코드 현실과 일치한다.
 
-## 4. docs/48 — Gate B/C 증거 (현재 v0.7.0)
+## 4. docs/54 — Gate B/C 증거 (현재 v0.7.1)
 - [ ] 전체 판정이 실 증거와 일치한다(실 오프라인 Test PC 증거 없으면 `BLOCKED` 유지).
 - [ ] 각 항목 상태가 `PASS`/`BLOCKED`/`PENDING` 등으로 증거(트리·로그·캡처·`Get-FileHash`)와 함께 기록됐다.
 - [ ] **하나라도 누락/불일치면 전체 BLOCKED 유지** 규칙을 어기지 않았다.
 - [ ] ZIP 금지파일 0(모델·real_data·internal_*·secrets·*.pem/key/pfx·내부규정/NCR 원문) 항목이 살아 있다.
-- [ ] historical 문서(예: `docs/44` v0.5, `docs/45` v0.6)와 현재 정본(`docs/48` v0.7)의 역할 구분이 유지된다.
+- [ ] historical 문서(`docs/48` v0.7.0, `docs/45` v0.6, `docs/44` v0.5)와 현재 정본(`docs/54` v0.7.1)의 역할 구분이 유지된다.
 
 ## 5. 마감
 - [ ] 작업은 `planning/*` 브랜치에서 했다(main 직접 수정/병합 0).

@@ -8,16 +8,16 @@
 
 ## ★ Current Resume Brief (2026-07-10)
 
-- **Audit input `origin/main` / code-test baseline**: `4efb8e670ce0306d07683d3fbc5ed7b118844b8b` (PR #135). CORR-WP-01 changed product code/tests, so the baseline advanced from `abab29b`; later docs/workflow-only merges advance current main but not this baseline.
-- **VERSION**: `0.7.1`. Latest published release remains `v0.7.0` (`30c1cfb`, unsigned). Remote `v0.7.1` tag/Release does not exist.
-- **Local gate**: `dotnet build -c Release` warning 0/error 0; SmokeTest `Total=907 PASS=907 FAIL=0`, Unclassified 0. Hosted PR #135 run #210: `test`/`wpf-build` success.
-- **Pre-CORR v0.7.1 candidate (`abab29b`)**: SHA256 `A70D0B37AD92344A2ECFBE0D4D96360F56CBAFFF94363249F0BD1A20ADC1ECDC` is invalid after #135 and must not be published. Final candidate has not been rebuilt.
-- **Formal Gate B/C**: `BLOCKED` (`docs/48`). User reported B0~B3, major Excel/report functions, and C1~C5 PASS; attached evidence and C6/C7 are still pending.
+- **Release Build Commit**: `fa7552567cb432ec6a4afe9900b3eca480fc5780` (PR #136, docs-only). **Product code-test baseline** remains `4efb8e670ce0306d07683d3fbc5ed7b118844b8b` (PR #135); later docs/workflow-only merges advance current main without changing either.
+- **VERSION / Release**: `0.7.1`; unsigned `v0.7.1` is published at tag `fa755256`. ZIP SHA256 `282B71385FEE83B4ED7AD221CAF84AD3A6B4E2B5E5191601F4240AEED0419018`; manifest version 0.7.1, required 27/27.
+- **Local gate**: `dotnet build -c Release` warning 0/error 0; SmokeTest `Total=907 PASS=907 FAIL=0`, Unclassified 0; build/00~03 PASS; PackageReference 0; Gate A 0. Hosted PR #136 run #212: `test`/`wpf-build` success.
+- **Pre-CORR candidate (`abab29b`)**: SHA256 `A70D0B37AD92344A2ECFBE0D4D96360F56CBAFFF94363249F0BD1A20ADC1ECDC` remains historical-invalid and was not published.
+- **Formal Gate B/C**: `BLOCKED` for v0.7.1 (`docs/54`). v0.7.0 user-reported B0~B3/major functions/C1~C5 remain historical in `docs/48` and are not carried forward as v0.7.1 PASS.
 - **Release blocker closed**: CORR-WP-01 #135 renders zero checks as `NOT_RUN` and preserves nonzero PASS/FAIL.
-- **NEXT UP = v0.7.1 final rebuild/tag/Release only** from latest main (`docs/52 §2~4`).
-- **After NEXT UP**: GOV-WP-02(protection/security settings and hosted evidence) -> ARCH-WP-01 -> UI-WP-12 -> remaining Core-to-WPF reachability -> .NET 10 -> formal Gate B/C -> Team Pilot.
+- **NEXT UP = GOV-WP-02** (protection/security settings and hosted evidence; prompt `prompts/codex/GOV-WP-02_branch_security_governance.md`). **Parallel user-driven**: published v0.7.1 Gate B/C round (`docs/54`).
+- **After NEXT UP**: ARCH-WP-01 -> UI-WP-12 -> remaining Core-to-WPF reachability -> .NET 10 -> formal Gate B/C closure -> Team Pilot.
 - **Approval tracks remain STOP**: STAB-WP-05 signing, real NCR/internal Pack, Local LLM runtime/model.
-- **Current assessment**: `docs/53_Repository_Audit_and_v1_Execution_Plan.md`; current execution runbook: `docs/52_Release_v0.7.1.md` (completed CORR/REL code-cut prompts are not rerun).
+- **Current assessment**: `docs/53_Repository_Audit_and_v1_Execution_Plan.md`; published release evidence: `docs/52_Release_v0.7.1.md` (completed CORR/REL prompts are not rerun).
 
 ## Historical Resume Snapshot (through PR #131; retained for audit)
 - **현재 기준선**: **코드/테스트 baseline `7094d91`**(확장 트랙 Wave 3 #124~#127 머지 후 — 이후 #128~#131은 docs-only라 baseline 불변, current main은 `git log` 확인: #131 `110e9ee` = 제안서 채택+가이드/Skill 정합), VERSION **0.7.0** (**v0.7.0 정식 릴리스 태그 = `30c1cfb`**, ZIP SHA256 `42C835…`·미서명; 직전 v0.6.0 태그 `3dfa80b`). R1(WP-01~08)·R3(R3-WP-01~05)·REL-v0.6 가드(#54)·**STAB-WP-01~04·STAB-UX-01/02·UX-WP-01~11·R2-WP-01~05·REL-v0.7.0·KB-WP-01/02·FEEDBACK-WP-01/02·QA-WP-01~09**(#56~#127 계열) 모두 **DONE**. 추가 머지: truth-sync/계획/Skills(#63~#123 계열 다수). SmokeTest **`Total=900 PASS=900 FAIL=0`**(local-gate; … → 834(UX-WP-09 #113 +5) → 861(QA-WP-01 #115 +15·QA-WP-02 #116 +6·UX-WP-10 #117 +6) → 877(QA-WP-03 #119 +4·QA-WP-04 #120 +5·QA-WP-05 #121 +4·UX-WP-11 #122 +3) → 900(QA-WP-06 #124 +4·QA-WP-07 #125 +4·QA-WP-08 #126 +8·QA-WP-09 #127 +7)). **FEEDBACK-WP-02(검색 Example → `DraftRequest.Context` review 경유 read-only 반영) 완료**: `DraftReferenceComposer` 결정적(개수/문자 상한·fencing)·원 Context 보존·`ReferencesReviewed` 게이트(자동주입 0)·`effectiveContext`를 `DraftRequest`·audit hash 양쪽에 사용(무참고 경로 RequestHash 불변)·hash-only reflection audit(`PromotedExampleReflection`)·`PromotedExampleRetriever` 미호출 — **RETRIEVAL·학습 아님**. **cleanup 완료**: UX-WP-07(#110 Smart Assist 표면화 하이진)·R2-WP-05(#109 dead Welford 필드 제거·동작 불변)·UX-WP-08(#111 팝업 Esc/Close 포커스 복원). **전부 Claude adversarial 4축 review(각 findings 독립 검증) APPROVE·0 confirmed findings 후 머지.** VERIFIED 범위는 local-gate 한정이며 실 오프라인 Test PC Gate B/C=**BLOCKED**(과대표기 금지; 2026-06-30 부분검증 `docs/48 §B′`, UX-WP-08 실 포커스 렌더=Gate B). STAB-WP-05(코드서명)=APPROVAL_REQUIRED(**인증서 경로 A 확정**). **UX-WP-09 완료**(#113: A-4 이중 핀 축소·finding 미손실). **확장 트랙 Wave 1 완료**(#115~#117: QA-WP-01 +15·QA-WP-02 +6·UX-WP-10 +6). **확장 트랙 Wave 2 완료**(#119~#122: QA-WP-03 Kb/citation +4·QA-WP-04 Report/RISK_VISUAL +5·QA-WP-05 Csv/Xlsx/DataProfile +4·UX-WP-11 Excel 카탈로그(차단 함수 추천 0 checker 가드) +3 — 전부 adversarial 4축 review·**0 confirmed findings** 후 머지). **확장 트랙 Wave 3 완료**(#124~#127: QA-WP-06 Ncr 구조 +4·QA-WP-07 UiContract/레이아웃 영속 +4·QA-WP-08 Audit(해시전용)/Generation(NoModel) +8·QA-WP-09 Mapping/Packaging(무결성 manifest) +7 — 전부 순수 additive 테스트(제품 코드 0)·adversarial 리뷰 **0 confirmed findings** 후 머지; **인박스 SmokeTest 도메인 하드닝 스윕 완결**). **NEXT UP = REL-WP-071**(v0.7.1 출하 정합 릴리스 컷 — 제안서 채택 PR #131 `110e9ee`로 결정지점 해소; 프롬프트 READY·상세는 아래 NEXT UP 항목 및 본 원장 REL-WP-071 참조) ∥ **병행(user-driven)** = Gate B/C Round 1(`docs/48 §B″`). 승인 게이트 3건(STAB-WP-05 서명·NCR 실 Pack·R4 LLM)=`docs/51` 결정 대기. 인박스·Vector/Embedding STOP.
@@ -42,6 +42,25 @@
 - **테스트 수 변경 규약**: 총수 감소 시 사유·매핑 기록(삭제·약화 금지). STAB-WP-02가 합계·도메인 요약·실행시간을 출력하고, 미분류 도메인(`Unclassified`)이 남으면 실패한다.
 - **⚠️ Archived(재실행 금지) 프롬프트**: `prompts/codex_mvp1_implementation_prompt.md`, `prompts/codex_mvp2_*`, `prompts/codex_mvp3_ui_prompt.md`, `prompts/codex_goal_mode_prompt.md`, `prompts/claude_bootstrap_v2_prompt.md`, `prompts/codex/WP-01~07_*`, `prompts/codex/R3-WP-01~05_*`, `prompts/codex/REL-v0.6-packaging-guard.md`, `prompts/codex/REL-WP-071_release_cut_v0_7_1.md`, `prompts/codex/CORR-WP-01_reconciliation_not_run.md`, `prompts/codex/STAB-WP-01_*`, `prompts/codex/STAB-WP-02_*`, `prompts/codex/STAB-WP-04_*`, `prompts/codex/STAB-UX-01_*`, `prompts/codex/UX-WP-01_*` — 모두 **완료/Starter** 단계. 신규 작업은 본 Resume Brief의 NEXT UP만 따른다.
 
+## GOV-WP-02. Public Branch / Security Governance — **NOT_IMPLEMENTED (prompt prepared)** (Cap C-32, RR-18)
+
+- **목표**: public repository의 live `main` protection과 secret scanning/push protection을 실제 check `test`·`wpf-build`에 맞춰 적용하고, single-account self-review deadlock 없이 API readback 증거로 정본화한다.
+- **선행조건**: v0.7.1 release와 post-release truth-sync 머지 완료; hosted `test`·`wpf-build` exact-head green; repository admin 권한. 원격 설정 변경 직전 explicit operator approval 1회가 필요하다.
+- **작업범위**: (1) visibility/default branch/merge policy/protection/rulesets/`security_and_analysis`/latest check runs read-only preflight, (2) 승인 후 Phase A protection 적용(PR required, approvals 0, Code Owner OFF, strict `test`+`wpf-build`, conversation resolution, linear history, admin enforcement where available, force/deletion OFF), (3) secret scanning + push protection ON, (4) REST readback과 governance truth-sync.
+- **제외범위**: product code/tests/release asset/tag/VERSION 변경, workflow job rename, direct/force main push probe, approval 1·Code Owner 강제, signing/NCR/LLM/Gate B/C/Team Pilot, 우회 설정.
+- **읽을문서**: `AGENTS.md`, `SKILLS.md`, `docs/32`, `docs/38`, 본 WP, `docs/53`, `docs/28`, `.claude/skills/risk-branch-governance/`, `.claude/skills/risk-security-guard/`, `.claude/skills/risk-doc-truth-sync/`, 지정 prompt.
+- **수정예상파일**: `docs/32_Branch_Governance.md`, `docs/53_Repository_Audit_and_v1_Execution_Plan.md`, `docs/38_v1_Master_Roadmap.md`, 본 `docs/39`; current truth가 이동할 때만 README/AGENTS/CLAUDE/SKILLS. `.github/workflows/*`는 factual drift가 확인되면 STOP 후 별도 scope amendment 없이는 수정하지 않는다.
+- **Public Interface**: 제품/API 계약 변경 없음. GitHub repository governance settings만 외부 상태로 변경된다.
+- **구현세부**: fresh `feature/gov-wp-02-branch-security-governance`에서 Phase 1 read-only snapshot → exact proposed settings diff 보고 → **STOP/사용자 승인** → REST PATCH → REST 재조회. PATCH 성공 응답만으로 PASS 금지. API/plan이 일부 설정을 거부하면 해당 항목만 `BLOCKED`로 기록하고 우회하지 않는다.
+- **보안조건**: 응답 token/header/credential 저장 0; repo secret 불필요; Actions token read-only; self-hosted company runner 0; 외부 NuGet/API 제품도입 0; Gate A 0.
+- **테스트**: `dotnet build -c Release` 0/0; SmokeTest `Total=907 PASS=907 FAIL=0`, Unclassified 0; PackageReference 0; Gate A 0; GOV PR hosted `test`/`wpf-build` success; protection/security API before/after 값 비교. direct/force push로 보호를 시험하지 않는다.
+- **완료조건**: Phase A target이 REST readback과 일치하고 secret scanning/push protection이 ON이거나, 지원 불가 항목만 구체적 `BLOCKED`로 남는다. approvals 0·Code Owner OFF로 single-account deadlock 0. docs/32·38·39·53 current truth 정합. 다음 NEXT UP을 하나로 지정한다.
+- **Branch**: `feature/gov-wp-02-branch-security-governance`.
+- **Commit**: `docs: harden branch and security governance (GOV-WP-02)`.
+- **Claude Review Checklist**: live-before/after evidence / actual checks exact / approvals 0 anti-deadlock / PR+strict checks+conversation+linear ON / admin enforcement availability / force+deletion OFF / secret scanning+push protection / no direct-push probe / no product/workflow drift / Gate A·907 / STOP approval honored / truth-sync.
+
+> Codex start prompt: `prompts/codex/GOV-WP-02_branch_security_governance.md`.
+
 ## CORR-WP-01. Report Reconciliation `NOT_RUN` truth-state — **VERIFIED (#135, `4efb8e6`)** (Cap C-31, RR-17)
 
 - **상태**: PR #135 squash merged at `4efb8e6`; build warning 0/error 0, SmokeTest `Total=907 PASS=907 FAIL=0`, hosted `test`/`wpf-build` success, Gate A/PackageReference 0. Public contract, 7-state/RECON, hash audit, and NoModelMode remain unchanged.
@@ -56,14 +75,14 @@
 - **구현세부**: display state 계산은 한 helper/한 위치가 정본. zero-check는 `NOT_RUN`; PASS는 실제 check가 존재할 때만. 기존 PASS/FAIL workbook 값과 7상태/RECON code는 유지한다.
 - **보안조건**: 외부 NuGet/API/자동실행 0, audit/원문/쓰기경로 불변, 실데이터 0.
 - **테스트**: (a) zero checks + `Passed=true` synthetic input -> SUMMARY `NOT_RUN`, `PASS` 아님, (b) nonzero all-pass -> PASS, (c) nonzero fail -> FAIL, (d) missing limit finding remains in VALIDATION/EXCEPTION_LIST. 기존 900 단언 삭제·약화 0 + 신규 7 = `Total=907`; Report +5, UiContract +2, Unclassified=0.
-- **완료조건**: 충족 — build warning 0/error 0; `Total=907 PASS=907 FAIL=0`; PackageReference 0; Gate A 0; false PASS 경로 제거. latest main의 v0.7.1 final package 재생성은 NEXT UP이다.
+- **완료조건**: 충족 — build warning 0/error 0; `Total=907 PASS=907 FAIL=0`; PackageReference 0; Gate A 0; false PASS 경로 제거; correction이 published v0.7.1에 포함됐다.
 - **Branch**: `feature/corr-wp-01-reconciliation-not-run`.
 - **Commit**: `fix: report zero-check reconciliation as not run (CORR-WP-01)`.
 - **Claude Review Checklist**: zero-check false PASS 제거 / existing nonzero PASS/FAIL unchanged / public contract unchanged / LIMIT_DATA_REQUIRED retained / tests additive / NuGet 0 / Gate A / release rebuilt only after merge.
 
-## REL-WP-071. v0.7.1 출하 정합(Shipped-Artifact Parity) 릴리스 컷 — **VERIFIED CODE CUT (#133); PUBLISH PENDING**
+## REL-WP-071. v0.7.1 출하 정합(Shipped-Artifact Parity) 릴리스 컷 — **VERIFIED (published)**
 > 채택 근거 = 제안서(`docs/proposals/FABLE5_REPO_ASSESSMENT_PROPOSAL_20260706.md` §10 WP-B·§14 P0, PR #131 `110e9ee` 머지로 채택). 절차 정본 = `.claude/skills/risk-release-cut/`. 릴리스 문서 = `docs/52`.
-- **상태**: **VERIFIED code cut / PUBLISH PENDING** — PR #133 squash merged at `abab29b`; 정확히 3파일을 0.7.1로 락스텝(`#133` 시점 `Total=900`). CORR-WP-01 #135 merged at `4efb8e6` with current `Total=907`. Pre-CORR candidate SHA256 `A70D0B37AD92344A2ECFBE0D4D96360F56CBAFFF94363249F0BD1A20ADC1ECDC` is invalid; remote tag/Release is absent. **NEXT UP은 latest main에서 final candidate를 재생성하고 tag/publish하는 것**이다.
+- **상태**: **VERIFIED**; publication qualifier = published. PR #133 code cut `abab29b`, CORR-WP-01 #135 `4efb8e6`, docs-only truth-sync #136 `fa755256`을 포함한 exact main에서 재빌드했다. `dotnet build` 0/0, SmokeTest `Total=907 PASS=907 FAIL=0`, build/00~03 PASS, PackageReference 0, Gate A 0. Tag/Build Commit `fa7552567cb432ec6a4afe9900b3eca480fc5780`; ZIP SHA256 `282B71385FEE83B4ED7AD221CAF84AD3A6B4E2B5E5191601F4240AEED0419018`; manifest 0.7.1 required 27/27; unsigned Latest Release: <https://github.com/esyim-git/AI-assistant-for-Risk-Management/releases/tag/v0.7.1>. Pre-CORR SHA remains invalid and unpublished.
 - **목표**: published v0.7.0(`30c1cfb`) 이후 main에 머지된 **KB-WP-01/02·UX-WP-04~11·FEEDBACK-WP-01/02·QA-WP-01~09(#94~#127)** 를 출하본에 반영하는 **정합 릴리스 컷**. **신규 기능 구현 아님** — 버전 범프 락스텝만. `docs/48 §B′` B-5 PARTIAL 고착(출하본-main 괴리)의 해소 경로.
 - **선행조건**: #131 머지(완료, main `110e9ee`). 외부 의존성·서명 도구·인증서 **추가 0**(STAB-WP-05 분리).
 - **작업범위(정확히 3파일, 그 외 0)**: ① `VERSION` `0.7.0→0.7.1` ② `IntegrityVerifier.cs:27` `ExpectedVersion` `"0.7.0"→"0.7.1"` ③ `PackagingTests.cs` 합성 manifest의 `ExpectedVersion`과 같아야 하는 모든 현행 버전 리터럴 `"0.7.0"` 전수(`WriteIntegrityManifest` + inline/raw JSON if present)→`"0.7.1"` — **버전-불일치 음성 케이스(:257 인근·`9.9.9` 등)의 상이-버전 문자열은 유지**(범프 후에도 `ExpectedVersion`과 달라야 유효), drift 가드(:343)는 동적 비교라 미수정.
@@ -74,7 +93,7 @@
 - **구현세부**: 단순 리터럴 범프. `ExpectedVersion`==`VERSION` 단일원천(ADR-006)·런타임 Fail-Closed 버전매칭 유지. **기준선 이중 표기**: final cut=current main / binary-impact 기준선=`4efb8e6`(#135) 구분 보고.
 - **보안조건**: 외부 NuGet 0·서명 도구/인증서 0(STOP)·실데이터/원문/토큰/키 0(Gate A)·generated ReleaseNote 수동 편집 0, 미서명 출하 고지는 `docs/52 §4`와 GitHub Release 본문에서 유지.
 - **테스트(Final Local-Gate)**: latest main에서 `dotnet build` 0/0 → SmokeTest **`Total=907 PASS=907 FAIL=0`**·Unclassified=0 → `build/00~03 -Version 0.7.1` PASS(manifest 0.7.1·ZIP SHA256·원문 미포함 스캔)·산출물 4종(ZIP/.sha256·ReleaseNote·DependencyList·approved_manifest).
-- **완료조건**: 3파일 범프와 CORR merge는 완료. 남은 조건은 latest main final build/00~03 PASS + `dotnet list package` PackageReference 0 + tag `v0.7.1`/GitHub Release 발행(`docs/52 §4`). **컷 완료 ≠ Gate 봉인**(Gate B/C BLOCKED 유지 — published v0.7.1로 B13 봉인 경로만 열림).
+- **완료조건**: 충족 — 3파일 범프 + CORR merge + exact-main final build/00~03 + PackageReference 0 + tag/Release 발행. **컷 완료 ≠ Gate 봉인**이므로 Gate B/C는 `BLOCKED`에서 시작하며, published v0.7.1로 B13 봉인 경로가 열렸다.
 - **Branch**: `feature/rel-wp-071-release-cut` · **Commit**: `chore: bump version to 0.7.1 for shipped-artifact parity release (REL-WP-071)`
 - **Claude Review Checklist**: code cut 정확히 3파일(완료) / CORR #135 포함 exact main 재빌드 / `Total=907` / NuGet·서명·인증서 0(STOP) / Gate A 0 / build/03 PASS / tag SHA=ReleaseNote Build Commit / current main·binary-impact 두 SHA 구분 보고.
 
