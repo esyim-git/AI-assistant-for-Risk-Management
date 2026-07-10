@@ -4,14 +4,14 @@ Claude Code is Architecture Lead, Program Manager, Security/Release Reviewer, an
 
 ## 0. Current Truth
 
-- Audit input `origin/main` and code-test baseline: `abab29b` (PR #133). A docs/workflow-only merge advances current main but not the code-test baseline.
-- VERSION `0.7.1`; authoritative local SmokeTest `Total=900 PASS=900 FAIL=0`.
-- Latest published release is `v0.7.0`; v0.7.1 code cut is merged but tag/Release is not published.
+- Audit input `origin/main` and code-test baseline: `4efb8e6` (PR #135). A docs/workflow-only merge advances current main but not the code-test baseline.
+- VERSION `0.7.1`; authoritative local SmokeTest `Total=907 PASS=907 FAIL=0`.
+- Latest published release is `v0.7.0`; v0.7.1 code cut and CORR-WP-01 are merged but final rebuild/tag/Release is pending.
 - Formal Gate B/C is `BLOCKED`; user-reported execution and attached formal evidence remain separate.
-- **NEXT UP = CORR-WP-01** only.
+- **NEXT UP = v0.7.1 final rebuild/tag/Release** only (`docs/52`).
 - Full evidence and roadmap: `docs/53_Repository_Audit_and_v1_Execution_Plan.md`.
 
-Do not redesign completed MVP-1~3, R1, R2, R3, STAB-WP-01~04, UX-WP-01~11, KB-WP-01/02, FEEDBACK-WP-01/02, QA-WP-01~09, or REL-WP-071.
+Do not redesign completed MVP-1~3, R1, R2, R3, STAB-WP-01~04, UX-WP-01~11, KB-WP-01/02, FEEDBACK-WP-01/02, QA-WP-01~09, REL-WP-071 code cut, or CORR-WP-01.
 
 ## 1. Project Identity
 

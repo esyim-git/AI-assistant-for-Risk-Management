@@ -6,14 +6,14 @@
 
 | 항목 | 현재 |
 |---|---|
-| Audit input / code-test baseline | `origin/main@abab29b` (PR #133); docs/workflow merge 후 current main만 이동 |
+| Audit input / code-test baseline | `origin/main@4efb8e6` (PR #135); docs/workflow merge 후 current main만 이동 |
 | VERSION | `0.7.1` |
 | 최신 공개 Release | `v0.7.0` (`30c1cfb`, 미서명) |
-| v0.7.1 | 코드 컷 완료, 병합-main package candidate 검증 완료, tag/Release 미발행 |
-| Build / SmokeTest | warning 0, error 0 / `Total=900 PASS=900 FAIL=0` |
+| v0.7.1 | code cut + CORR VERIFIED, pre-CORR candidate 폐기, final rebuild/tag/Release 대기 |
+| Build / SmokeTest | warning 0, error 0 / `Total=907 PASS=907 FAIL=0` |
 | 외부 NuGet | `PackageReference` 0, `NuGet.Config <clear/>` |
 | Formal Gate B/C | `BLOCKED` (사용자 실행 PASS 회신 일부 있음; 증거 파일·C6/C7 미완) |
-| NEXT UP | `CORR-WP-01` (대사 미실행을 Report `PASS`가 아닌 `NOT_RUN`으로 표시) |
+| NEXT UP | latest main에서 v0.7.1 final rebuild/tag/Release (`docs/52`) |
 
 전체 진단·근거·로드맵은 [docs/53_Repository_Audit_and_v1_Execution_Plan.md](docs/53_Repository_Audit_and_v1_Execution_Plan.md), 실행 원장은 [docs/39_Work_Package_Backlog.md](docs/39_Work_Package_Backlog.md)를 따른다.
 
@@ -80,7 +80,7 @@ dotnet build RiskManagementAI.sln -c Release
 dotnet run --project tests/RiskManagementAI.SmokeTests/RiskManagementAI.SmokeTests.csproj -c Release
 ```
 
-정상 기준: build warning/error 0, `Total=900 PASS=900 FAIL=0`, `Unclassified=0`.
+정상 기준: build warning/error 0, `Total=907 PASS=907 FAIL=0`, `Unclassified=0`.
 
 Release candidate:
 
@@ -114,16 +114,15 @@ Codex : one WP implementation + local gate + PR
 User  : release/approval/Test-PC/Pilot owner
 ```
 
-PR은 squash-only, main 직접 push와 force push 금지. 이 감사 변경은 `test`/`wpf-build` 자동 PR CI를 복원한다. hard branch protection과 원격 security settings는 첫 green run 확인 뒤 [docs/32](docs/32_Branch_Governance.md) Phase A로 닫는다.
+PR은 squash-only, main 직접 push와 force push 금지. `test`/`wpf-build` 자동 PR CI는 #134에서 복원됐고 #135에서 첫 green을 확인했다. hard branch protection과 원격 security settings는 [docs/32](docs/32_Branch_Governance.md) Phase A로 닫는다.
 
 ## Roadmap
 
-1. `CORR-WP-01` 리포트 Reconciliation `NOT_RUN` 정합.
-2. latest main v0.7.1 재패키징·tag·Release.
-3. restored PR CI 첫 green 증거 + branch protection/secret scanning 적용.
-4. `ARCH-WP-01` MainWindow 행위 불변 분해.
-5. Prior-Day, streaming/XLSX profile, Clause, Feedback retrieval UI 배선.
-6. .NET 10 LTS 전환 후 formal Gate B/C와 Team Pilot.
-7. 승인된 범위에서만 signing, NCR Pack, Local LLM을 진행.
+1. latest main v0.7.1 final rebuild·tag·Release (`CORR-WP-01` #135 VERIFIED).
+2. restored PR CI 증거 + branch protection/secret scanning 적용.
+3. `ARCH-WP-01` MainWindow 행위 불변 분해.
+4. Prior-Day, streaming/XLSX profile, Clause, Feedback retrieval UI 배선.
+5. .NET 10 LTS 전환 후 formal Gate B/C와 Team Pilot.
+6. 승인된 범위에서만 signing, NCR Pack, Local LLM을 진행.
 
 관련 정본: [docs/38_v1_Master_Roadmap.md](docs/38_v1_Master_Roadmap.md), [docs/39_Work_Package_Backlog.md](docs/39_Work_Package_Backlog.md), [docs/40_ADR_Architecture_Evolution.md](docs/40_ADR_Architecture_Evolution.md), [docs/41_Approval_and_Pilot_Gates.md](docs/41_Approval_and_Pilot_Gates.md).
