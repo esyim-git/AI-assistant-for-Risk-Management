@@ -1304,7 +1304,7 @@ public partial class MainWindow : Window
                 JoinAudit: Array.Empty<string>()),
             Array.Empty<LimitException>(),
             Array.Empty<SafetyFinding>(),
-            new ReconciliationSummary(Passed: true, CheckCount: 0, Checks: Array.Empty<ReconciliationCheck>()));
+            new ReconciliationSummary(Passed: false, CheckCount: 0, Checks: Array.Empty<ReconciliationCheck>()));
     }
 
     private static IReadOnlyList<SafetyFinding> BuildMissingLimitFindings(string dataPath, DataProfileResult profile)
