@@ -10,7 +10,7 @@ allowed-tools: Read, Grep, Glob, Bash(git status:*), Bash(git diff:*), Bash(dotn
 # Codex Result Review
 
 ## 목적
-Codex가 `feature/<WP-ID>-*` 브랜치에서 구현한 결과를 머지 전에 **Diff·보안·테스트·문서 4축**으로 검토하고, 승인 또는 항목별 수정요청을 낸다. 이 스킬은 검토(읽기) 전용이며 코드 동작을 바꾸지 않는다.
+`feature/<WP-ID>-*` 구현 PR 또는 `planning/*` truth-sync PR을 머지 전에 **Diff·보안·테스트·문서 4축**으로 검토하고, 승인 또는 항목별 수정요청을 낸다. 이 스킬은 검토(읽기) 전용이며 코드 동작을 바꾸지 않는다.
 
 ## 언제 사용
 - Codex가 WP 1개 구현을 보고하고 **머지 승인을 요청**할 때.
@@ -30,8 +30,9 @@ Codex가 `feature/<WP-ID>-*` 브랜치에서 구현한 결과를 머지 전에 *
 2. **Diff 축**: `git diff origin/main..<branch>` 로 변경이 **지정 WP 범위(`docs/39`) 안**에 있는지, 범위 외 변경·기능 회귀가 없는지 확인한다. Public Interface·쓰기 경로(`logs/`·`reports/`·`config/`)·경로 가드 준수 확인.
 3. **보안 축(Gate A)**: `docs/28` 게이트 A 항목 + NuGet 0·외부 API 0·secret/실데이터/원문 0·금지 확장자 부재를 Diff에 대해 점검한다. 상세는 [review-dimensions.md](review-dimensions.md). `/risk-security-guard` 스킬과 동일 기준.
 4. **테스트 축**: SmokeTest **이전 Total 보존 + 신규 회귀 추가** 여부, 단언 약화/삭제 0, 보고에 `Total=N PASS / 0 FAIL` 합계 줄이 포함됐는지 확인. 총수 감소면 사유·매핑 필수.
-5. **문서 축**: 해당 WP의 **Claude Review Checklist**(`docs/39`)와 `docs/38·40·48`(현재 Gate 정본, `docs/44/45` historical) 정합, 상태 어휘 적정성을 확인한다. 문서 정합 정정은 `/risk-doc-truth-sync`로 이어간다.
-6. **판정 정리**: 4축 각각 PASS / 수정요청을 항목별 근거와 함께 정리하고 머지 가부를 낸다.
+5. **문서 축**: 구현 PR은 해당 WP의 **Claude Review Checklist**(`docs/39`), planning PR은 선언한 audit/truth-sync scope를 기준으로 `docs/38·40·48` 정합과 상태 어휘를 확인한다. 문서 정합 정정은 `/risk-doc-truth-sync`로 이어간다.
+6. **Hosted 축**: workflow가 활성화된 PR은 exact head의 `test`·`wpf-build` 결론과 annotation을 확인한다. queued/skipped/not-run/red는 success가 아니다.
+7. **판정 정리**: 4축 각각 PASS / 수정요청을 항목별 근거와 함께 정리하고 머지 가부를 낸다.
 
 ## 산출물/보고
 - **4축 판정표**: `Diff / 보안(Gate A) / 테스트 / 문서` 각각 `PASS` 또는 `수정요청` + 근거.

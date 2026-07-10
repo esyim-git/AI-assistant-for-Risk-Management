@@ -38,7 +38,7 @@
 - [ ] SQL/VBA/Golden6 자동실행 0 · 운영 DB 접속문자열 0.
 - [ ] 실데이터·실 테이블/컬럼명·내부규정/NCR 원문·비밀/키/토큰·모델파일 **repo·스킬파일 미포함**. 예시는 더미명만(`RISK_EXPOSURE_DAILY`/`RISK_LIMIT_MASTER`).
 - [ ] 기존 테스트 삭제·약화 0(각 WP additive·회귀 추가).
-- [ ] 머지 게이트 = 로컬 `dotnet build` + SmokeTest `Total=N PASS / 0 FAIL` 증거 + Claude 코드리뷰(`CLAUDE.md §11.6`). GitHub CI green을 머지 전제로 요구하지 않음.
+- [ ] 머지 게이트 = 로컬 `dotnet build` + SmokeTest `Total=N PASS / 0 FAIL` + Claude 코드리뷰 + 활성 hosted `test`/`wpf-build` exact-head green.
 - [ ] **STOP**: 외부 라이브러리·NuGet·Vector DB·Embedding·Local LLM Runtime·모델파일·외부 차트 라이브러리가 필요해지면 즉시 STOP → 승인 문서(`docs/40`·`docs/41`).
 
 ---
