@@ -1,0 +1,4 @@
+interface:
+  display_name: "Risk Repository Audit"
+  short_description: "Evidence-based repository health and roadmap audit"
+  default_prompt: "Use $risk-repo-audit to assess current repository truth, gaps, and next work."

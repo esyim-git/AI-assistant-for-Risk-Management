@@ -19,7 +19,7 @@ allowed-tools: Read Grep Glob Edit Bash(git status *) Bash(git log *) Bash(git d
 ## 절대 원칙
 - 상태는 정본 7개 어휘만: `VERIFIED · PARTIAL · SCAFFOLD_ONLY · PLACEHOLDER · BLOCKED · NOT_IMPLEMENTED · APPROVAL_REQUIRED` (`CLAUDE.md §11.4`). 정의·규칙은 [status-vocabulary.md](status-vocabulary.md).
 - **과대표기 금지**: 실제 AI/RAG/NCR/Local LLM 능력을 실제보다 크게 적지 않는다.
-- **증거 없으면 PASS/VERIFIED 금지**: 실 오프라인 Test PC 증거 없는 Gate는 `BLOCKED` 유지(현재 정본 `docs/48`, historical `docs/44/45`). 머지 Gate 증거는 로컬 `dotnet build` + SmokeTest `Total=N PASS / 0 FAIL`이며 GitHub-CI-green이 전제가 아니다(`CLAUDE.md §11.6`).
+- **증거 없으면 PASS/VERIFIED 금지**: 실 오프라인 Test PC 증거 없는 Gate는 `BLOCKED` 유지(현재 정본 `docs/48`, historical `docs/44/45`). 머지 Gate는 로컬 build/SmokeTest+리뷰와 활성 hosted `test`/`wpf-build`를 독립 증거로 요구하며 서로 대체하지 않는다(`CLAUDE.md §11`).
 - **민감정보 금지**: 실데이터·실 테이블/컬럼/시스템명·내부규정/NCR 원문·secret/토큰·모델파일·외부 NuGet/다운로드 지침을 문서에 추가하지 않는다. 필요 시 PATH로만 참조한다(예시는 `RISK_EXPOSURE_DAILY`/`RISK_LIMIT_MASTER` 같은 더미만).
 - **기준선 이중 표기 규칙**: 문서 기준선은 **코드/테스트 baseline SHA**(마지막 코드/테스트 머지)로 표기하고, current main과 구분한다. **docs-only 머지는 baseline SHA를 올리지 않는다(관례)** — 이 관례에 따른 표기 차이는 drift로 정정하지 않는다. 릴리스 문서에는 컷 기준(current main)과 binary-impact 기준선을 함께 기록한다.
 - **시점 인용 주석 규칙**: 역사적 수치(과거 `Total=N`·과거 SHA)를 증거로 인용할 때는 시점을 명시한다(예: "`Total=572`(STAB-WP-03b #61 시점)") — "현재 수치"로 오독되지 않게 한다.

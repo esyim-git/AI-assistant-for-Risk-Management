@@ -18,7 +18,7 @@
 ## 2. 사용 규칙
 - **증거 없으면 `VERIFIED`/`PASS` 금지** → 더 약한 어휘로 내린다.
 - **Gate는 실 오프라인 Test PC 증거 없이 PASS 금지** → `BLOCKED` 유지(현재 `docs/48`, historical `docs/44/45`).
-- 머지 Gate 증거 = 로컬 `dotnet build` + SmokeTest `Total=N PASS / 0 FAIL` + Claude 코드리뷰. GitHub-CI-green은 전제 아님(`CLAUDE.md §11.6`).
+- 머지 Gate 증거 = 로컬 `dotnet build` + SmokeTest `Total=N PASS / 0 FAIL` + Claude 코드리뷰 + 활성 hosted `test`/`wpf-build`; 어느 한쪽도 다른 증거를 대체하지 않는다(`CLAUDE.md §11`).
 - 외부 의존성(NuGet/Vector DB/Embedding/Local LLM Runtime/모델파일)이 필요해지는 능력은 `APPROVAL_REQUIRED` + STOP. 구현된 것처럼 적지 않는다.
 - 테스트 총수 감소 시 사유·매핑 기록(삭제·약화 금지, `docs/39` 규약).
 

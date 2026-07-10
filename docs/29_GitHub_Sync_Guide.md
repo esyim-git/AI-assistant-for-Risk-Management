@@ -24,7 +24,7 @@ https://github.com/esyim-git/AI-assistant-for-Risk-Management
 - `git push --force` **금지**, `git reset --hard` **금지**
 - `origin`이 위 URL이 아니면 **중단하고 사용자에게 보고**(절대 덮어쓰지 않음)
 - 원격에 기존 commit/README/branch가 있으면 `main` 직접 push 금지 → **branch로 push**
-- private Free 상태에서는 GitHub branch protection이 강제되지 않으므로, `main` 직접 push 금지를 운영 규칙과 `docs/35` soft guard로 감시한다.
+- 현재 repository는 public이다. `docs/32` Phase A hard protection을 적용하고 `docs/35` soft guard는 post-merge 백업 신호로 유지한다. 보호 적용 전에도 main 직접 push는 금지한다.
 - 충돌 발생 시 자동 병합하지 말고 보고
 - 커밋 전 반드시 `docs/28_Security_Review_Checklist.md` 게이트 A 수행
 
@@ -116,6 +116,6 @@ git push -u origin bootstrap/envsplit-starter-v2
 
 ## 향후 확장
 
-- Branch 보호 규칙(main)은 Pro/Team 업그레이드 또는 public 전환 시 적용. private Free 동안은 `docs/35` soft guard와 secret-scan GitHub Action 추가를 우선한다.
+- Public 전환은 완료됐다. 다음 순서는 PR CI(`test`, `wpf-build`) 복원 → `docs/32` Phase A main protection → secret scanning/push protection 활성화다. 독립 reviewer가 생기기 전 승인 1/Code Owner 강제는 self-review 교착 때문에 보류한다.
 
 > 관련 문서: `docs/06_Development_Workflow.md`, `docs/24_Release_Packaging_Guide.md`, `docs/28_Security_Review_Checklist.md`, `docs/35_Private_Free_Soft_Guard.md`

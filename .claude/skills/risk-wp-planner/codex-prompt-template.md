@@ -45,7 +45,7 @@ git fetch origin && git switch -c feature/<wp-id>-<slug> origin/main
 - 로컬 검증: `dotnet build RiskManagementAI.sln -c Release` + `dotnet run --project tests/RiskManagementAI.SmokeTests`.
 
 ## 완료/보고
-보고에 다음을 포함한다(머지 게이트 = 로컬 증거 + Claude 코드리뷰, GitHub CI green 전제 아님 — `CLAUDE.md §11.6`):
+보고에 다음을 포함한다(머지 게이트 = 로컬 증거 + Claude 코드리뷰 + 활성 hosted exact-head checks):
 - build 결과(0/0) · SmokeTest **합계 줄 `Total=N PASS / 0 FAIL`** · Gate A 결과 · 변경 파일 목록 · 양성 케이스.
 - `docs/39` <WP-ID> 상태 갱신(DONE 등 정본 어휘) 요청. 과대표기 금지(`CLAUDE.md §11.4`).
 

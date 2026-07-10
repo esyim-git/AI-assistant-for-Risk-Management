@@ -1,10 +1,10 @@
 # 52. Release v0.7.1 — 출하 정합(Shipped-Artifact Parity) 릴리스
 
 ## 목적 / 범위
-v0.7.1 = **published v0.7.0(태그 `30c1cfb`) 이후 main에 머지된 트랙을 출하본에 반영하는 정합 릴리스.** 신규 기능 구현 0 — 전부 기머지·Claude 4축 리뷰 완료분이며, 코드 변경은 **버전 범프 락스텝 3파일**(REL-WP-071)뿐이다. 본 문서는 v0.7.1 **릴리스 노트 + 패키징 런북 + Gate B 체크 연결 + GitHub Release 핸드오프**다. (`docs/47` v0.7.0 문서의 v0.7.1 대응본.)
+v0.7.1 = **published v0.7.0(태그 `30c1cfb`) 이후 main에 머지된 트랙을 출하본에 반영하는 정합 릴리스.** REL-WP-071 자체는 버전 범프 락스텝 3파일·신규 기능 0으로 완료됐다. 최종 발행 전 감사에서 발견된 `CORR-WP-01`(zero-check reconciliation false PASS 제거)은 정확성 correction으로 포함한 뒤 다시 패키징한다. 본 문서는 v0.7.1 **릴리스 노트 + 패키징 런북 + Gate B 체크 연결 + GitHub Release 핸드오프**다. (`docs/47` v0.7.0 문서의 v0.7.1 대응본.)
 
-> **상태: 컷 대기(REL-WP-071 READY — `prompts/codex/REL-WP-071_release_cut_v0_7_1.md`).** 발행 완료 시 본 문서 상태·태그 SHA·ZIP SHA256을 갱신한다.
-> **기준선 이중 표기**: 컷 = current main(#131 `110e9ee` 이후 HEAD) 기준 · **binary-impact 기준선 = `7094d91`**(#128~#131은 docs-only — 문서 전용 머지는 baseline SHA를 올리지 않는 관례). 정본 SmokeTest `Total=900 PASS=900 FAIL=0`(범프 후에도 불변이어야 함).
+> **상태: `PARTIAL` — REL-WP-071 code cut VERIFIED(#133 `abab29b`), tag/GitHub Release 미발행.** 2026-07-10 merged-main candidate build/00~03 PASS(manifest 27 entries, SHA256 `A70D0B37AD92344A2ECFBE0D4D96360F56CBAFFF94363249F0BD1A20ADC1ECDC`). 단, `CORR-WP-01`(zero-check reconciliation false PASS) merge 전에는 발행하지 않으며, merge 후 latest main에서 이 candidate를 폐기·재생성한다.
+> **기준선**: audit-input code/test baseline = `abab29b`(#133, VERSION 0.7.1), SmokeTest `Total=900 PASS=900 FAIL=0`. docs/workflow-only merge는 current main과 release Build Commit만 이동하며, 후속 code/test merge는 baseline도 함께 이동한다.
 > **코드 서명**: v0.7.1도 **미서명 + Integrity Manifest/Fail-Closed 앵커**로 출하한다. Authenticode 서명은 **STAB-WP-05 APPROVAL_REQUIRED**(`docs/51 §B` 결정 대기 — 릴리스 전제 아님).
 
 ---
@@ -26,9 +26,9 @@ v0.7.1 = **published v0.7.0(태그 `30c1cfb`) 이후 main에 머지된 트랙을
 
 ---
 
-## 2. 패키징 런북 (REL-WP-071 머지 후, Windows PowerShell)
+## 2. 패키징 런북 (CORR-WP-01 머지 후 latest main, Windows PowerShell)
 
-> **선행**: REL-WP-071 PR이 머지되어 main `VERSION=0.7.1`인 상태에서 컷한다. 절차 정본 = `.claude/skills/risk-release-cut/`.
+> **선행**: REL-WP-071은 머지됨. `CORR-WP-01`까지 머지되어 main `VERSION=0.7.1`인 상태에서 최종 컷한다. 절차 정본 = `.claude/skills/risk-release-cut/`.
 
 ```powershell
 git fetch origin main

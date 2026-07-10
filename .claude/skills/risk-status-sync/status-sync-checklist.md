@@ -40,7 +40,7 @@
 - [ ] 실제 AI/RAG/NCR/Local LLM 능력을 코드/CI 증거보다 크게 표기한 곳이 없는가.
 - [ ] "Gate PASS" 표기에 실 오프라인 Test PC 증거가 첨부되어 있는가(없으면 BLOCKED).
 - [ ] STOP 규칙 대상(외부 NuGet/Vector/Embedding/LLM Runtime/모델파일)이 승인 문서 없이 "도입됨"으로 표기되지 않았는가(`AGENTS.md §4`).
-- [ ] Local-Gate 모델(로컬 build+SmokeTest 증거 + Claude 코드리뷰)을 "GitHub CI green"으로 잘못 기술하지 않았는가(`CLAUDE.md §11.6`).
+- [ ] 로컬 build+SmokeTest+Claude 리뷰와 hosted `test`/`wpf-build`를 서로 대체하지 않고 독립 증거로 기술했는가.
 
 ## 보고 (산출물 형태)
 ```text

@@ -1,73 +1,119 @@
-# SKILLS.md — Project Skills Index (Claude · Codex 공용)
+# SKILLS.md - Project Skills Index
 
-## 1. 목적
-Claude Code와 Codex가 **반복 작업을 일관되게 수행**하도록, 프로젝트 전용 Skill을 한곳에서 색인한다. 긴 절차/체크리스트를 매번 CLAUDE.md/AGENTS.md에 누적하지 않고 **Skill 문서로 분리**해 재사용한다. (기준선: 코드/테스트 baseline `7094d91` — 문서 전용 머지는 baseline SHA 미변경(관례), current main은 `git log` 확인 — VERSION `0.7.0`, 정본 SmokeTest `Total=900`.)
+## 1. Purpose And Baseline
 
-## 2. Claude Code Project Skills 경로
-- 각 Skill = `.claude/skills/<skill-name>/SKILL.md` + (긴 체크리스트는) 같은 폴더의 support `.md`.
-- Claude는 **Skill 도구**로 호출하거나, 작업 맥락에 맞는 Skill을 선택해 그 SKILL.md/support를 따른다.
+Project Skills make Claude and Codex repeat fragile repository workflows consistently without copying large checklists into every prompt.
 
-## 3. Codex가 Skill을 활용하는 방식 (Skill Bridge)
-Codex는 Claude Code Skill을 **자동 실행하지 못한다**. 따라서 Codex는 구현 전 **`SKILLS.md`를 읽고, 현재 WP에 관련된 `.claude/skills/<skill-name>/SKILL.md`(+support)를 체크리스트처럼 참조**한다. 특히 release · security · RAG/NCR · Local LLM · data-limit · UI/UX 작업은 해당 Skill 문서를 **먼저** 읽는다. (상세 = `AGENTS.md §8 Skill Bridge`, `prompts/codex/README_skills_usage.md`.)
+- Audit input / code-test baseline: `origin/main@abab29b` (PR #133). Docs/workflow-only merges do not advance the code-test baseline.
+- VERSION `0.7.1`, SmokeTest `Total=900 PASS=900 FAIL=0`.
+- Latest published release `v0.7.0`; v0.7.1 tag/Release pending.
+- NEXT UP `CORR-WP-01`.
 
-## 4. Skill 목록 (18)
-> 호출: **수동** = frontmatter `disable-model-invocation: true`(Claude가 명시 호출/Codex가 참조). **자동** = `paths:` 스코프로 해당 경로 작업 시 적용.
+Current truth: `docs/53_Repository_Audit_and_v1_Execution_Plan.md` and `docs/39` Resume Brief.
 
-| # | Skill | 목적 | 호출 |
+## 2. Location And Use
+
+Each Skill lives at `.claude/skills/<skill-name>/SKILL.md`; long checklists live one level below it. Claude selects the relevant Skill. Codex explicitly reads it as a checklist through the Skill Bridge.
+
+Applying a Skill is not a Gate PASS. Evidence and approvals remain mandatory.
+
+## 3. Skill Catalog (19)
+
+| # | Skill | Purpose | Class |
 |---|---|---|---|
-| 1 | `risk-status-sync` | 현재 상태(VERSION·Roadmap·SmokeTest·Gate·NEXT UP) 정본화 | 수동 |
-| 2 | `risk-doc-truth-sync` | 문서 ↔ 실제 구현 정합(과대표기/드리프트 제거) | 수동 |
-| 3 | `risk-wp-planner` | Codex용 Work Package + 프롬프트 1개 작성 | 수동 |
-| 4 | `risk-codex-review` | Codex PR/Diff 4축 리뷰(범위·보안·테스트·문서·게이트) | 수동 |
-| 5 | `risk-smoke-governance` | SmokeTest suite 거버넌스(단언 보존·약화 방지·Unclassified=실패) | 자동 `tests/**` |
-| 6 | `risk-release-verify` | 오프라인 Portable Release 패키지 검증(SHA256·manifest·금지파일) | 수동 |
-| 7 | `risk-gate-bc` | 실 오프라인 Test PC Gate B/C 증거 준비·기록 | 수동 |
-| 8 | `risk-security-guard` | repo/release 민감정보·실데이터·원문·모델파일·금지자동화 점검 | 자동 `**` |
-| 9 | `risk-data-limit-review` | 입력·매핑·Exposure-Limit Join·대사·Dashboard=Report·Hidden Risk | 자동 `Core/{Data,Mapping,Risk,Report}/**`·`tests/**` |
-| 10 | `risk-analytics-design` | 전일대비·차트·Heatmap·TopN·집중도 등 R2 분석/시각화 설계 | 수동 |
-| 11 | `risk-rag-ncr-governance` | 규정 RAG·Public/Internal KB·NCR Rule Pack·원문 가드·승인 게이트 | 자동 `Core/{Kb,Ncr}/**`·`kb/**`·`config/ncr/**`·`docs/08*·17*·41*` |
-| 12 | `risk-llm-approval` | Local LLM Adapter/Manifest/Out-of-process 설계 + STOP 승인 요건 | 수동 |
-| 13 | `risk-feedback-learning` | 승인형 Feedback Learning(검토·승격·검색·반영·Audit) — 학습 아님 | 수동 |
-| 14 | `risk-ui-ux-review` | WPF UX·SQL/VBA 에디터·Smart Assist·Completion Popup 검토 | 자동 `App/**`·`Core/Assist/**`·`docs/**` |
-| 15 | `risk-branch-governance` | 브랜치/PR/squash/soft-guard/hard-protection/release tag 정책 | 수동 |
-| 16 | `risk-release-cut` | REL 릴리스 컷 표준 절차(버전 락스텝·기능 0·단언 0·산출물 4종 검증·미서명 고지) | 수동 |
-| 17 | `risk-arch-refactor` | 행위 불변 구조 리팩터 가드(God-class 분해·계약 테스트 이전·MVVM 빅뱅 금지) | 수동 |
-| 18 | `risk-team-pilot` | Team Pilot 준비/Go·No-Go/운영/KPI/종료 보고(실 증거 없는 완료 표기 금지) | 수동 |
+| 1 | `risk-repo-audit` | End-to-end goal/status/bug/reachability/release/governance/roadmap audit | Preflight |
+| 2 | `risk-status-sync` | VERSION, SHA, SmokeTest, Gate, NEXT UP diagnosis | Preflight/read-only |
+| 3 | `risk-doc-truth-sync` | Docs vs implementation/release/Gate truth alignment | Preflight |
+| 4 | `risk-wp-planner` | One 14-field WP + matching Codex prompt | Preflight |
+| 5 | `risk-codex-review` | Scope/security/test/docs/reachability PR review | Preflight |
+| 6 | `risk-smoke-governance` | Assertion preservation, domains, Unclassified=0 | Path-scoped |
+| 7 | `risk-release-verify` | Portable ZIP/SHA/manifest/forbidden-file verification | Evidence Gate |
+| 8 | `risk-gate-bc` | Offline Test-PC evidence preparation and recording | Evidence Gate |
+| 9 | `risk-security-guard` | Gate A: secret/data/original/model/dependency/automation scan | Path-scoped |
+| 10 | `risk-data-limit-review` | Input/mapping/join/reconciliation/dashboard=report review | Path-scoped |
+| 11 | `risk-analytics-design` | Prior-day/visualization/TopN/heatmap design | Preflight |
+| 12 | `risk-rag-ncr-governance` | Public/internal KB, clause, NCR, source-text governance | Path-scoped |
+| 13 | `risk-llm-approval` | Local model/runtime approval package and STOP boundary | STOP Gate |
+| 14 | `risk-feedback-learning` | Approved example curation/retrieval/reflection, not training | Preflight |
+| 15 | `risk-ui-ux-review` | WPF editor/assist/layout/user-flow review | Path-scoped |
+| 16 | `risk-branch-governance` | PR/squash/check/protection/tag rules | Preflight |
+| 17 | `risk-release-cut` | Lockstep version cut and artifact provenance | Preflight |
+| 18 | `risk-arch-refactor` | Behavior-preserving structural decomposition | Preflight |
+| 19 | `risk-team-pilot` | Pilot Go/No-Go, kit, KPI, rollback, closure | Evidence Gate |
 
-## 5. 수동 호출 순서 (일반 반복 루프)
-1. `risk-status-sync` — 현재 상태 정본화 → NEXT UP 확인
-2. `risk-wp-planner` — NEXT UP WP + Codex 프롬프트 작성
-3. (Codex 구현) → `risk-codex-review` — 4축 리뷰 → APPROVE/Fix
-4. `risk-doc-truth-sync` — 머지 후 문서 정합
-5. 도메인별 검토는 6·7·8·9·10·11·12·13·14를 작업 성격에 맞게 병용
+## 4. Standard Chains
 
-## 6. 자동 적용 / 자동 Preflight / STOP Gate 구분
-Skill은 적용 방식에 따라 **3분류**한다. 정본 Preflight 체인 = `CLAUDE.md §13`(Claude) · `AGENTS.md §9`(Codex Automatic Skill Bridge).
+### Repository audit / next direction
 
-| 분류 | Skill | 적용 방식 |
-|---|---|---|
-| **자동 적용(path-scoped)** | `risk-security-guard`·`risk-smoke-governance`·`risk-data-limit-review`·`risk-rag-ncr-governance`·`risk-ui-ux-review` | `paths:` 스코프 — 해당 경로 작업 시 Claude Code가 자동 표면화(Codex는 해당 경로 작업 시 체크리스트로 참조) |
-| **자동 Preflight(표준 절차)** | `risk-status-sync`·`risk-doc-truth-sync`·`risk-wp-planner`·`risk-codex-review`·`risk-analytics-design`·`risk-feedback-learning`·`risk-branch-governance`·**`risk-release-cut`**(REL 컷 작업 인지 시)·**`risk-arch-refactor`**(구조 리팩터 WP 인지 시) | 작업 유형 인지 시 Claude가 명시 호출 없이 표준 절차로 적용(사용자 `/skill` 타이핑 불필요) |
-| **STOP Gate(승인형)** | `risk-release-verify`·`risk-gate-bc`·`risk-llm-approval`·**`risk-team-pilot`**(실 파일럿 증거 없이 완료 표기 금지) | Preflight로 참조하되 **자동 실행·자동 PASS 아님** — 실 Test PC 증거·인증서/모델 승인·실 파일럿 결과 전 진행·PASS 금지(§7·`CLAUDE.md §11.4·§11.5`) |
+```text
+risk-repo-audit
+-> risk-status-sync
+-> risk-doc-truth-sync
+-> risk-wp-planner (exactly one NEXT UP)
+```
 
-> "자동 적용/Preflight"은 **체크리스트 적용**이지 **게이트 통과**가 아니다. Gate B/C·Release·LLM은 증거/승인 선행(STOP).
+### Implementation review
 
-## 7. 금지사항 (모든 Skill 공통)
-외부 다운로드 · 외부 NuGet 추가 · 모델파일 추가 · 실데이터/내부규정 원문/NCR 공식본 원문 추가 · 비밀번호/토큰/secret 추가 · SQL/VBA 자동실행 기능 추가 · main 직접 push · force push · 기존 테스트 삭제/약화. (Skill 문서는 코드 동작을 바꾸지 않는다.)
+```text
+risk-codex-review
++ risk-security-guard
++ domain Skill
++ risk-smoke-governance when tests change
++ risk-branch-governance before merge
+```
 
-## 8. Claude ↔ Codex 반복 Workflow
-`Claude Planning(risk-status-sync→risk-wp-planner) → Codex Implementation(1 WP, SKILLS.md+관련 SKILL.md 참조) → Claude Review(risk-codex-review) → Codex Fix → Claude Final Gate(+risk-security-guard/risk-smoke-governance) → PR(risk-branch-governance) → Claude truth-sync(risk-doc-truth-sync) → 다음 WP`.
+### Release
 
-## 9. Release 전 Skill 호출 순서
-`risk-status-sync` → **`risk-release-cut`**(REL 컷 절차 — 버전 락스텝·기능 0·단언 0) → `risk-smoke-governance` → `risk-security-guard` → `risk-release-verify` → (실 PC) `risk-gate-bc` → `risk-doc-truth-sync`(릴리스 노트/증거 반영).
+```text
+risk-status-sync
+-> risk-release-cut
+-> risk-smoke-governance
+-> risk-security-guard
+-> risk-release-verify
+-> risk-gate-bc (real PC)
+-> risk-doc-truth-sync
+```
 
-## 10. PR Review 전 Skill 호출 순서
-`risk-codex-review`(범위·테스트·문서) + `risk-security-guard`(Gate A) + 도메인 Skill(`risk-data-limit-review`/`risk-rag-ncr-governance`/`risk-ui-ux-review`/`risk-analytics-design`/`risk-feedback-learning`/`risk-llm-approval` 중 해당) + **(구조 리팩터 WP) `risk-arch-refactor`(행위 불변 증명 축)** + `risk-smoke-governance`(테스트 보존) + `risk-branch-governance`(머지 정책).
+### Team Pilot
 
-## 11. Gate B/C 전 Skill 호출 순서
-`risk-release-verify`(패키지 정합·SHA256·금지파일) → `risk-gate-bc`(Test PC 증거 양식/수집 — **증거 민감정보 0: dummy·masking만**) → `risk-doc-truth-sync`(증거 시트 `docs/48` 상태 반영). **실 오프라인 Test PC 증거 없으면 Gate B/C는 PASS 금지(BLOCKED 유지).**
+```text
+risk-gate-bc formal closure
+-> risk-team-pilot
+-> risk-feedback-learning
+-> risk-doc-truth-sync
+```
 
-## 12. Team Pilot 단계 Skill 호출 순서
-`risk-gate-bc`(봉인 상태 확인 — 선행) → **`risk-team-pilot`**(Go/No-Go → Pilot Kit → 운영/KPI → 종료 보고) → `risk-feedback-learning`(파일럿 피드백 승인형 처리) → `risk-doc-truth-sync`(결과 반영). **실 파일럿 증거 없이 파일럿 완료/성공 표기 금지.**
+### Local LLM / model / runtime
 
-> 관련: `.claude/skills/`(Skill 본문) · `CLAUDE.md §12 Skill 운영` · `AGENTS.md §8 Skill Bridge` · `prompts/codex/README_skills_usage.md` · `docs/49_Project_Skills_Guide.md`.
+```text
+risk-llm-approval -> STOP until explicit approval
+```
+
+## 5. Classification
+
+- **Path-scoped**: `risk-security-guard`, `risk-smoke-governance`, `risk-data-limit-review`, `risk-rag-ncr-governance`, `risk-ui-ux-review`.
+- **Preflight**: `risk-repo-audit`, `risk-status-sync`, `risk-doc-truth-sync`, `risk-wp-planner`, `risk-codex-review`, `risk-analytics-design`, `risk-feedback-learning`, `risk-branch-governance`, `risk-release-cut`, `risk-arch-refactor`.
+- **Evidence/STOP Gate**: `risk-release-verify`, `risk-gate-bc`, `risk-llm-approval`, `risk-team-pilot`.
+
+## 6. Common Guardrails
+
+- External NuGet/API/telemetry/auto-update/auto-execution 0.
+- Real data/schema, internal/NCR original, secret/key/certificate, model/runtime repository inclusion 0.
+- Existing tests are not weakened.
+- A Core capability is not a WPF capability without a call site.
+- A package candidate is not a published Release without remote tag/Release evidence.
+- User-reported Test-PC success is not formal Gate evidence.
+- Current main SHA, code-test baseline SHA, published tag SHA, and package Build Commit are reported separately.
+- STOP items never become implementation WPs without approval.
+
+## 7. Current Sequence
+
+1. `CORR-WP-01` report reconciliation `NOT_RUN` truth-state.
+2. v0.7.1 rebuild/tag/Release from latest main.
+3. `GOV-WP-02` restored PR CI first-run evidence + branch protection/secret scanning alignment.
+4. `ARCH-WP-01` MainWindow decomposition.
+5. UI reachability WPs for Prior-Day, streaming/XLSX profile, Clause search, and reviewed Example reflection.
+6. .NET 10 migration before Pilot.
+7. Formal Gate B/C and Team Pilot.
+
+Approval tracks (signing, real NCR/internal Pack, Local LLM/runtime/model) remain independent and STOP-governed.

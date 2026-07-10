@@ -14,6 +14,7 @@
 ## 1. 작업 유형 → 먼저 읽을 Skill
 | 작업 | 먼저 읽을 Skill |
 |---|---|
+| 저장소 전체 진단·목표/현황/로드맵 재정렬 | `risk-repo-audit` (코드·WPF 도달성·출하본·실 PC 증거를 분리) |
 | 데이터 입력·매핑·한도·대사·리포트 | `risk-data-limit-review` |
 | 규정 RAG · KB · NCR · 원문 가드 | `risk-rag-ncr-governance` |
 | 분석·차트·Heatmap·TopN·집중도 | `risk-analytics-design` |
@@ -28,6 +29,7 @@
 | Team Pilot 준비/운영 | `risk-team-pilot` (Gate B/C 봉인 선행) |
 | 브랜치·PR·머지 | `risk-branch-governance` |
 | 보안·민감정보 점검(항상) | `risk-security-guard` |
+| 상태·문서 truth-sync | `risk-status-sync` + `risk-doc-truth-sync` |
 
 ## 2. 구현 중 지켜야 할 Skill 공통 원칙
 - 외부 NuGet 0 · 외부 API/Telemetry/AutoUpdate 0 · SQL/VBA 자동실행 0.
