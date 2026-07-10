@@ -27,7 +27,7 @@ The published ZIP, its `.sha256` sidecar, and the Release body are the hash auth
 
 - Use only repository `samples/` dummy data or masked synthetic data.
 - Do not capture real positions, customers, accounts, internal regulation/NCR originals, credentials, paths containing employee names, or model files.
-- Store screenshots/logs locally under `evidence/gateBC/v0.7.1/`; sanitize them before any repository or PR attachment.
+- Store screenshots/logs locally under the gitignored `evidence/gateBC/v0.7.1/` tree. Never force-add or commit that tree; only a separately sanitized summary may be attached after policy review.
 - `user-reported` is not formal PASS. A formal PASS row needs the evidence file named in the worksheet.
 - Any SHA mismatch, unexpected file, startup failure, formula/link/macro issue, or policy rejection is `FAIL`/`BLOCKED`; stop the round and report it.
 
@@ -71,8 +71,9 @@ Get-ChildItem -LiteralPath $Extract -Recurse |
   Out-File .\evidence\gateBC\v0.7.1\B1-tree.txt
 
 $Forbidden = Get-ChildItem -LiteralPath $Extract -Recurse -File | Where-Object {
+  $RelativePath = $_.FullName.Substring($PrefixLength)
   $_.Extension -match '^\.(gguf|bin|safetensors|onnx|pt|pem|key|pfx|p12|cer|crt|der|env)$' -or
-  $_.FullName -match '(?i)[\\/](real_data|secrets|credentials|exports|internal_[^\\/]*)[\\/]' -or
+  $RelativePath -match '(?i)(^|[\\/])(real_data|secrets|credentials|exports|internal_[^\\/]*)([\\/]|$)' -or
   $_.Name -like 'internal_*'
 }
 $Forbidden |

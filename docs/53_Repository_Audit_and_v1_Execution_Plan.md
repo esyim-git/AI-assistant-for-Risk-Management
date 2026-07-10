@@ -65,7 +65,7 @@
    - empty UI path는 `Passed=false, CheckCount=0`으로 정합했고 `LIMIT_DATA_REQUIRED` 노출을 유지했다.
    - Report/UiContract additive 회귀 +7, `Total=907 PASS=907 FAIL=0`; 공개 계약·7상태·RECON 불변.
 
-2. **REL-01: CLOSED.**
+2. **REL-01: VERIFIED (published).**
    - Exact main `fa755256`에서 build/00~03을 재실행하고 v0.7.1 tag/Latest Release를 발행했다. ZIP SHA256은 `282B71385FEE83B4ED7AD221CAF84AD3A6B4E2B5E5191601F4240AEED0419018`; pre-CORR 후보는 발행되지 않았다.
 
 ### P1 — 거버넌스/사용자 가치
