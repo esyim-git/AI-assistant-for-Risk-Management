@@ -14,7 +14,8 @@
 | Build / SmokeTest | warning 0, error 0 / `Total=907 PASS=907 FAIL=0` |
 | 외부 NuGet | `PackageReference` 0, `NuGet.Config <clear/>` |
 | Formal Gate B/C | `BLOCKED` for v0.7.1 (`docs/54`); v0.7.0 user-reported 이력은 `docs/48` |
-| NEXT UP | `GOV-WP-02` (`prompts/codex/GOV-WP-02_branch_security_governance.md`); published v0.7.1 Gate B/C는 사용자 병행 (`docs/54`) |
+| Repository governance | `VERIFIED` (2026-07-11 REST): PR + strict `test`/`wpf-build`, conversation resolution, linear history, admin enforcement; force/deletion OFF; secret scanning/push protection ON |
+| NEXT UP | `ARCH-WP-01` (`prompts/codex/ARCH-WP-01_mainwindow_partial_decomposition.md`); published v0.7.1 Gate B/C는 사용자 병행 (`docs/54`) |
 
 전체 진단·근거·로드맵은 [docs/53_Repository_Audit_and_v1_Execution_Plan.md](docs/53_Repository_Audit_and_v1_Execution_Plan.md), 실행 원장은 [docs/39_Work_Package_Backlog.md](docs/39_Work_Package_Backlog.md)를 따른다.
 
@@ -115,15 +116,14 @@ Codex : one WP implementation + local gate + PR
 User  : release/approval/Test-PC/Pilot owner
 ```
 
-PR은 squash-only, main 직접 push와 force push 금지. `test`/`wpf-build` 자동 PR CI는 #134에서 복원됐고 #135에서 첫 green을 확인했다. hard branch protection과 원격 security settings는 [docs/32](docs/32_Branch_Governance.md) Phase A로 닫는다.
+PR은 squash-only, main 직접 push와 force push 금지. `test`/`wpf-build` 자동 PR CI는 #134에서 복원됐고 #137 exact-head 및 merge main에서 green을 재확인했다. [docs/32](docs/32_Branch_Governance.md) Phase A 보호와 secret scanning/push protection은 2026-07-11 REST readback으로 `VERIFIED`다.
 
 ## Roadmap
 
-1. `GOV-WP-02`: restored PR CI 증거 + branch protection/secret scanning 적용.
-2. `ARCH-WP-01` MainWindow 행위 불변 분해.
-3. Prior-Day, streaming/XLSX profile, Clause, Feedback retrieval UI 배선.
-4. .NET 10 LTS 전환.
-5. published v0.7.1부터 formal Gate B/C 증거를 병행하고, 지원 LTS 후보에서 Team Pilot을 봉인.
-6. 승인된 범위에서만 signing, NCR Pack, Local LLM을 진행.
+1. `ARCH-WP-01` MainWindow 행위 불변 partial 분해.
+2. Prior-Day, streaming/XLSX profile, Clause, Feedback retrieval UI 배선.
+3. .NET 10 LTS 전환.
+4. published v0.7.1부터 formal Gate B/C 증거를 병행하고, 지원 LTS 후보에서 Team Pilot을 봉인.
+5. 승인된 범위에서만 signing, NCR Pack, Local LLM을 진행.
 
 관련 정본: [docs/38_v1_Master_Roadmap.md](docs/38_v1_Master_Roadmap.md), [docs/39_Work_Package_Backlog.md](docs/39_Work_Package_Backlog.md), [docs/40_ADR_Architecture_Evolution.md](docs/40_ADR_Architecture_Evolution.md), [docs/41_Approval_and_Pilot_Gates.md](docs/41_Approval_and_Pilot_Gates.md).

@@ -9,10 +9,11 @@ Codex 및 구현 Agent는 이 파일을 반드시 따른다. 충돌 우선순위
 - Authoritative local gate: build warning 0/error 0, SmokeTest `Total=907 PASS=907 FAIL=0`, Unclassified 0.
 - Latest published release: `v0.7.1` (`fa755256`, unsigned), ZIP SHA256 `282B71385FEE83B4ED7AD221CAF84AD3A6B4E2B5E5191601F4240AEED0419018`.
 - Formal Gate B/C: `BLOCKED` for v0.7.1 (`docs/54`). v0.7.0 user-reported results in `docs/48` are historical and do not carry forward.
-- **NEXT UP = GOV-WP-02** (hosted evidence, branch protection, and secret-scanning alignment; prompt `prompts/codex/GOV-WP-02_branch_security_governance.md`). User-driven Gate B/C runs in parallel on the published v0.7.1 ZIP (`docs/54`).
+- **GOV-WP-02 = VERIFIED** (2026-07-11 REST readback): `main` requires PR + strict `test`/`wpf-build`, conversation resolution, linear history, and admin enforcement; force push/deletion are OFF; approvals 0/Code Owner OFF avoid the current single-account deadlock; secret scanning and push protection are ON.
+- **NEXT UP = ARCH-WP-01** (behavior-invariant `MainWindow` partial decomposition; prompt `prompts/codex/ARCH-WP-01_mainwindow_partial_decomposition.md`). User-driven Gate B/C runs in parallel on the published v0.7.1 ZIP (`docs/54`).
 - Full current assessment: `docs/53_Repository_Audit_and_v1_Execution_Plan.md`.
 
-Completed MVP-1~3, R1, R2, R3, STAB-WP-01~04, UX-WP-01~11, KB-WP-01/02, FEEDBACK-WP-01/02, QA-WP-01~09, REL-WP-071 published release, and CORR-WP-01 are not redesigned. Core-only capabilities must not be described as user-facing until an App/WPF call site exists.
+Completed MVP-1~3, R1, R2, R3, STAB-WP-01~04, UX-WP-01~11, KB-WP-01/02, FEEDBACK-WP-01/02, QA-WP-01~09, REL-WP-071 published release, CORR-WP-01, and GOV-WP-02 are not redesigned. Core-only capabilities must not be described as user-facing until an App/WPF call site exists.
 
 ## 1. Final Product Boundary
 
@@ -155,7 +156,7 @@ Completion reports include `Applied Skill Checklists: ...`. Skill files are chan
 - PR required, squash only, subject includes `(#PR)`.
 - No force push, branch deletion bypass, or main direct push.
 - Live head SHA must be rechecked before merge.
-- Public-repository hard protection and actual CI check names are governed by `docs/32`; do not require a nonexistent check.
+- Public-repository hard protection is active with actual CI checks `test` and `wpf-build`; `docs/32` governs changes. Do not require a nonexistent check or one-account self-approval.
 
 ## 12. Completion Report
 

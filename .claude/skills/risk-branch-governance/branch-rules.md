@@ -7,10 +7,11 @@
 
 ---
 
-## 0. 현재 운영 전제 (public / Hard Protection Migration)
+## 0. 현재 운영 전제 (public / Phase A Hard Protection)
 
-- Repository는 public이다. 이 audit change가 PR `test`/`wpf-build`와 main-push soft guard trigger를 복원한다.
-- `main` hard protection은 아직 미적용이다. 첫 hosted green run으로 check 이름을 확인한 뒤 `docs/32` Phase A를 적용한다.
+- Repository는 public이다. PR `test`/`wpf-build`와 main-push soft guard trigger가 활성화돼 있다.
+- `main` Phase A hard protection은 2026-07-11 REST readback으로 `VERIFIED`다: PR + strict `test`/`wpf-build`, conversation resolution, linear history, admin enforcement ON; force push/deletion OFF.
+- Secret scanning과 push protection은 ON이다. 변경 시 반드시 적용 후 REST 재조회하며 PATCH 성공만으로 완료 판정하지 않는다.
 - 현재 단일 계정 workflow에서는 required approval=0/Code Owner review OFF로 self-review 교착을 피한다. 독립 reviewer가 생기면 Phase B(approval 1/Code Owner)를 적용한다.
 - `governance-soft-guard`는 hard protection의 대체가 아니라 main push 후 provenance 백업 신호다.
 
@@ -62,7 +63,7 @@ git reflog -n 30                        # force push/hard reset 흔적(로컬)
 
 ## 4. Local + Hosted 머지 게이트
 
-> 로컬 빌드/SmokeTest와 Claude 리뷰는 계속 정본이다. 자동 PR workflow가 활성화된 PR은 `test`·`wpf-build`도 확인하며, Phase A protection 이후에는 둘 다 required check다. queued/skipped/not-run은 success가 아니다.
+> 로컬 빌드/SmokeTest와 Claude 리뷰는 계속 정본이다. 자동 PR workflow의 `test`·`wpf-build`는 Phase A required check다. queued/skipped/not-run은 success가 아니다.
 
 - [ ] 로컬 `dotnet build`(Release) 성공 증거
 - [ ] 로컬 SmokeTest 보고에 합계 줄 **`Total=N PASS / 0 FAIL`** 포함, FAIL=0

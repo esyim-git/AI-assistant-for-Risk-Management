@@ -6,16 +6,17 @@
 
 ---
 
-## ★ Current Resume Brief (2026-07-10)
+## ★ Current Resume Brief (2026-07-11)
 
 - **Release Build Commit**: `fa7552567cb432ec6a4afe9900b3eca480fc5780` (PR #136, docs-only). **Product code-test baseline** remains `4efb8e670ce0306d07683d3fbc5ed7b118844b8b` (PR #135); later docs/workflow-only merges advance current main without changing either.
 - **VERSION / Release**: `0.7.1`; unsigned `v0.7.1` is published at tag `fa755256`. ZIP SHA256 `282B71385FEE83B4ED7AD221CAF84AD3A6B4E2B5E5191601F4240AEED0419018`; manifest version 0.7.1, required 27/27.
-- **Local gate**: `dotnet build -c Release` warning 0/error 0; SmokeTest `Total=907 PASS=907 FAIL=0`, Unclassified 0; build/00~03 PASS; PackageReference 0; Gate A 0. Hosted PR #136 run #212: `test`/`wpf-build` success.
+- **Local gate**: `dotnet build -c Release` warning 0/error 0; SmokeTest `Total=907 PASS=907 FAIL=0`, Unclassified 0; build/00~03 PASS; PackageReference 0; Gate A 0. Hosted PR #137 exact-head run #218 and merge main run #219: `test`/`wpf-build` success; `governance-soft-guard` run #127 success.
 - **Pre-CORR candidate (`abab29b`)**: SHA256 `A70D0B37AD92344A2ECFBE0D4D96360F56CBAFFF94363249F0BD1A20ADC1ECDC` remains historical-invalid and was not published.
 - **Formal Gate B/C**: `BLOCKED` for v0.7.1 (`docs/54`). v0.7.0 user-reported B0~B3/major functions/C1~C5 remain historical in `docs/48` and are not carried forward as v0.7.1 PASS.
 - **Release blocker closed**: CORR-WP-01 #135 renders zero checks as `NOT_RUN` and preserves nonzero PASS/FAIL.
-- **NEXT UP = GOV-WP-02** (protection/security settings and hosted evidence; prompt `prompts/codex/GOV-WP-02_branch_security_governance.md`). **Parallel user-driven**: published v0.7.1 Gate B/C round (`docs/54`).
-- **After NEXT UP**: ARCH-WP-01 -> UI-WP-12 -> remaining Core-to-WPF reachability -> .NET 10 -> formal Gate B/C closure -> Team Pilot.
+- **GOV-WP-02 = VERIFIED** (2026-07-11 REST readback): Phase A `main` protection + secret scanning/push protection are active; approvals 0/Code Owner OFF avoid single-account deadlock.
+- **NEXT UP = ARCH-WP-01** (behavior-invariant `MainWindow` partial decomposition; prompt `prompts/codex/ARCH-WP-01_mainwindow_partial_decomposition.md`). **Parallel user-driven**: published v0.7.1 Gate B/C round (`docs/54`).
+- **After NEXT UP**: UI-WP-12 -> remaining Core-to-WPF reachability -> .NET 10 -> formal Gate B/C closure -> Team Pilot.
 - **Approval tracks remain STOP**: STAB-WP-05 signing, real NCR/internal Pack, Local LLM runtime/model.
 - **Current assessment**: `docs/53_Repository_Audit_and_v1_Execution_Plan.md`; published release evidence: `docs/52_Release_v0.7.1.md` (completed CORR/REL prompts are not rerun).
 
@@ -38,11 +39,13 @@
 - **UX Enhancement 트랙 완료(Gate B 2026-06-30 후속)**: **UX-WP-04**(Excel Function Helper, #102 `73ca99e` DONE) → **UX-WP-05**(Smart Assist as-you-type 표면화, #103 `01715f7` DONE) → **UX-WP-06**(팝업 표시 확장, #104 `e69a1ae` DONE) — 전부 **local-gate VERIFIED**(실 UI 렌더=Gate B BLOCKED). ID=UX-WP-04~06 확정(완료분 UX-WP-01/02/03 #70/#72/#73과 구분). UX-WP-05/06는 Ctrl+Space-only by-design 위에 as-you-type 신규(Core 변경 0·WPF 레이어) + 팝업 표시 확장.
 - **BLOCKED**: PILOT Gate B/C(실 Test PC 증거 대기 — 현재 정본 `docs/48`; `docs/44/45`는 historical). 신규 기능과 분리해 user/Test PC가 병행(`docs/48 §B″` 런북).
 - **재현 검증**: `git fetch origin main && git switch main && dotnet build RiskManagementAI.sln -c Release && dotnet run --project tests/RiskManagementAI.SmokeTests` → 종료부의 두 줄 `=== SmokeTest Summary ===` 및 `Total=N PASS=N FAIL=0 Duration=...s` 확인(정본 합계). CI/로그 grep은 **`Total=`** 사용.
-- **운영 모델(Local + Hosted Gate)**: PR 자동 `test`/`wpf-build` 트리거는 #134에서 복원됐고 #135 run #210이 둘 다 success였다. Local build/SmokeTest/package 증거와 Claude 코드리뷰는 계속 필수이며 hosted CI를 대체하거나 hosted CI로 대체되지 않는다. hard protection/secret scanning은 GOV-WP-02 후속이다.
+- **운영 모델(Local + Hosted Gate)**: PR 자동 `test`/`wpf-build` 트리거는 #134에서 복원됐고 #137 run #218 및 merge main run #219가 둘 다 success였다. Local build/SmokeTest/package 증거와 Claude 코드리뷰는 계속 필수이며 hosted CI를 대체하거나 hosted CI로 대체되지 않는다. GOV-WP-02 Phase A protection/secret scanning/push protection은 REST readback으로 `VERIFIED`다.
 - **테스트 수 변경 규약**: 총수 감소 시 사유·매핑 기록(삭제·약화 금지). STAB-WP-02가 합계·도메인 요약·실행시간을 출력하고, 미분류 도메인(`Unclassified`)이 남으면 실패한다.
-- **⚠️ Archived(재실행 금지) 프롬프트**: `prompts/codex_mvp1_implementation_prompt.md`, `prompts/codex_mvp2_*`, `prompts/codex_mvp3_ui_prompt.md`, `prompts/codex_goal_mode_prompt.md`, `prompts/claude_bootstrap_v2_prompt.md`, `prompts/codex/WP-01~07_*`, `prompts/codex/R3-WP-01~05_*`, `prompts/codex/REL-v0.6-packaging-guard.md`, `prompts/codex/REL-WP-071_release_cut_v0_7_1.md`, `prompts/codex/CORR-WP-01_reconciliation_not_run.md`, `prompts/codex/STAB-WP-01_*`, `prompts/codex/STAB-WP-02_*`, `prompts/codex/STAB-WP-04_*`, `prompts/codex/STAB-UX-01_*`, `prompts/codex/UX-WP-01_*` — 모두 **완료/Starter** 단계. 신규 작업은 본 Resume Brief의 NEXT UP만 따른다.
+- **⚠️ Archived(재실행 금지) 프롬프트**: `prompts/codex_mvp1_implementation_prompt.md`, `prompts/codex_mvp2_*`, `prompts/codex_mvp3_ui_prompt.md`, `prompts/codex_goal_mode_prompt.md`, `prompts/claude_bootstrap_v2_prompt.md`, `prompts/codex/WP-01~07_*`, `prompts/codex/R3-WP-01~05_*`, `prompts/codex/REL-v0.6-packaging-guard.md`, `prompts/codex/REL-WP-071_release_cut_v0_7_1.md`, `prompts/codex/CORR-WP-01_reconciliation_not_run.md`, `prompts/codex/GOV-WP-02_branch_security_governance.md`, `prompts/codex/STAB-WP-01_*`, `prompts/codex/STAB-WP-02_*`, `prompts/codex/STAB-WP-04_*`, `prompts/codex/STAB-UX-01_*`, `prompts/codex/UX-WP-01_*` — 모두 **완료/Starter** 단계. 신규 작업은 본 Resume Brief의 NEXT UP만 따른다.
 
-## GOV-WP-02. Public Branch / Security Governance — **NOT_IMPLEMENTED (prompt prepared)** (Cap C-32, RR-18)
+## GOV-WP-02. Public Branch / Security Governance — **VERIFIED (2026-07-11 REST readback)** (Cap C-32, RR-18)
+
+- **상태증거**: before = protection REST 404, secret scanning/push protection disabled. after = PR required; strict `test`/`wpf-build` (GitHub Actions app id `15368`); conversation resolution, linear history, admin enforcement ON; force/deletion OFF; approvals 0/Code Owner OFF; secret scanning/push protection enabled. PR #137 exact-head run #218, merge main run #219, soft guard run #127 success. Local gate `Total=907 PASS=907 FAIL=0`, Gate A 0, PackageReference 0.
 
 - **목표**: public repository의 live `main` protection과 secret scanning/push protection을 실제 check `test`·`wpf-build`에 맞춰 적용하고, single-account self-review deadlock 없이 API readback 증거로 정본화한다.
 - **선행조건**: v0.7.1 release와 post-release truth-sync 머지 완료; hosted `test`·`wpf-build` exact-head green; repository admin 권한. 원격 설정 변경 직전 explicit operator approval 1회가 필요하다.
@@ -59,7 +62,26 @@
 - **Commit**: `docs: harden branch and security governance (GOV-WP-02)`.
 - **Claude Review Checklist**: live-before/after evidence / actual checks exact / approvals 0 anti-deadlock / PR+strict checks+conversation+linear ON / admin enforcement availability / force+deletion OFF / secret scanning+push protection / no direct-push probe / no product/workflow drift / Gate A·907 / STOP approval honored / truth-sync.
 
-> Codex start prompt: `prompts/codex/GOV-WP-02_branch_security_governance.md`.
+> Archived start prompt (재실행 금지): `prompts/codex/GOV-WP-02_branch_security_governance.md`.
+
+## ARCH-WP-01. MainWindow 행위 불변 partial 분해 1단계 — **NOT_IMPLEMENTED (prompt READY)** (Cap C-33, RR-21)
+
+- **목표**: 1,614줄 `MainWindow.xaml.cs`의 기존 메서드를 역할별 partial class 파일로 그대로 이동해 본 파일을 600줄 이하로 줄이고, 사용자 동작·XAML·공개 계약·감사 결과가 바뀌지 않음을 회귀로 고정한다.
+- **선행조건**: GOV-WP-02 `VERIFIED`; product code-test baseline `4efb8e6`, SmokeTest `Total=907 PASS=907 FAIL=0`; `MainWindow.xaml.cs` 1,614줄 기준.
+- **작업범위**: `MainWindow`의 completion assist, navigation, safety/draft/Excel, knowledge/audit, data/risk/report, presentation helper 메서드를 역할별 `MainWindow.*.cs` partial 파일로 verbatim 이동한다. `UiContractTests`가 정렬된 모든 `MainWindow*.cs` 소스를 하나의 계약 표면으로 읽도록 보강하고, 본 파일 600줄 상한·예상 partial 파일 존재·계약 스캔 누락 방지 구조 가드를 추가한다.
+- **제외범위**: XAML/탭/이벤트 wiring/메서드 시그니처/사용자 문구/동작 변경, DTO·enum 이동(2단계 후보), controller/DI/MVVM 전환, async/cancellation, Core 변경, UI-WP-12 및 신규 기능, 테스트 삭제·메시지 변경.
+- **읽을문서**: `AGENTS.md`, `SKILLS.md`, `CLAUDE.md`, `docs/38`, 본 항목, `docs/40`, `docs/41`, `docs/28`, `docs/proposals/FABLE5_REPO_ASSESSMENT_PROPOSAL_20260706.md` WP-D, `.claude/skills/risk-arch-refactor/`, `.claude/skills/risk-ui-ux-review/`, `.claude/skills/risk-smoke-governance/`, `src/RiskManagementAI.App/MainWindow.xaml.cs`, `tests/RiskManagementAI.SmokeTests/UiContractTests.cs`.
+- **수정예상파일**: `src/RiskManagementAI.App/MainWindow.xaml.cs`, 신규 `MainWindow.CompletionAssist.cs`, `MainWindow.Navigation.cs`, `MainWindow.SafetyDraftExcel.cs`, `MainWindow.KnowledgeAudit.cs`, `MainWindow.DataRiskReport.cs`, `MainWindow.Presentation.cs`, `tests/RiskManagementAI.SmokeTests/UiContractTests.cs`.
+- **Public Interface**: 없음. `MainWindow` 타입, 생성자, XAML event handler 이름/시그니처, Core/App 공개 계약은 모두 불변이다.
+- **구현세부**: 기존 using/namespace와 `public partial class MainWindow : Window`를 유지한다. 메서드 본문은 로직 수정 없이 이동하고, 필드·생성자·layout lifecycle·nested display DTO·`MainTabKey`는 본 파일에 남긴다. `UiContractTests`는 `MainWindow*.cs`를 파일명 Ordinal 정렬 후 결합해 기존 모든 문자열 단언을 그대로 실행한다. 이동 매핑과 전/후 파일별 줄 수를 보고한다.
+- **보안조건**: NuGet/API/telemetry/auto-update/자동실행 0, NoModelMode·hash-only audit·쓰기 경로·경로 가드 불변. 실데이터/원문/모델/인증서/비밀정보 0. 구조 리팩터 외 동작 diff 0.
+- **테스트**: 기존 907개 단언과 assertion message를 삭제·약화·개명하지 않는다. 정렬된 partial-source aggregation으로 모든 기존 `MainWindow` 계약 단언을 보존하고, 본 파일 `<=600`줄·필수 partial 목록·전체 source coverage를 additive 단언한다. Release build 0/0, SmokeTest `Total>=907 PASS=Total FAIL=0`, Unclassified 0, hosted `test`/`wpf-build` exact-head success.
+- **완료조건**: `MainWindow.xaml.cs <=600`줄, 지정 역할별 partial 파일 존재, XAML/사용자 동작/메서드 시그니처/Core/출력·audit 계약 변화 0, 기존 단언 전부 보존 + 구조 가드 추가, PackageReference 0, Gate A 0. 다음 `UI-WP-12`가 충돌이 줄어든 파일 구조에서 착수 가능하다.
+- **Branch**: `feature/arch-wp-01-mainwindow-partial-decomposition`.
+- **Commit**: `refactor: split MainWindow into behavior-invariant partials (ARCH-WP-01)`.
+- **Claude Review Checklist**: one-phase scope / verbatim method moves / XAML·event signatures·user behavior unchanged / DTO·MVVM·Core·new feature 0 / `MainWindow.xaml.cs <=600` / deterministic `MainWindow*.cs` aggregation / all prior assertions/messages preserved / Total non-decrease·Unclassified 0 / build + exact-head hosted checks / NuGet 0 / Gate A 0 / method-to-file and line-count evidence.
+
+> Codex start prompt: `prompts/codex/ARCH-WP-01_mainwindow_partial_decomposition.md`.
 
 ## CORR-WP-01. Report Reconciliation `NOT_RUN` truth-state — **VERIFIED (#135, `4efb8e6`)** (Cap C-31, RR-17)
 
