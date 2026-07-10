@@ -2,16 +2,17 @@
 
 ## 0. Current Baseline
 
-- Audit input `origin/main` / code-test baseline: `abab29b` (PR #133). Docs/workflow-only merges advance current main but not this product-code/test baseline.
+- Audit input `origin/main` / code-test baseline: `4efb8e6` (PR #135). Docs/workflow-only merges advance current main but not this product-code/test baseline.
 - VERSION `0.7.1`.
-- Local gate: build warning 0/error 0, SmokeTest `Total=900 PASS=900 FAIL=0`, Unclassified 0.
+- Local gate: build warning 0/error 0, SmokeTest `Total=907 PASS=907 FAIL=0`, Unclassified 0.
 - Latest published release: `v0.7.0` (`30c1cfb`, unsigned).
-- v0.7.1: code cut `VERIFIED`; tag/Release `NOT_IMPLEMENTED`.
-- v0.7.1 merged-main candidate (`abab29b`): build/00~03 PASS, manifest 27 entries, SHA256 `A70D0B37AD92344A2ECFBE0D4D96360F56CBAFFF94363249F0BD1A20ADC1ECDC`. Any later merge invalidates this candidate.
+- v0.7.1 code cut + CORR-WP-01: `VERIFIED`.
+- v0.7.1 final rebuild/tag/Release: `NOT_IMPLEMENTED`.
+- Pre-CORR candidate (`abab29b`, SHA256 `A70D0B37AD92344A2ECFBE0D4D96360F56CBAFFF94363249F0BD1A20ADC1ECDC`) is invalid after #135 and must not be published.
 - Formal Gate B/C: `BLOCKED` (`docs/48`). User-reported B0~B3/major functions/C1~C5 success is not attached formal evidence; C6/C7 remain.
-- **NEXT UP = CORR-WP-01**.
+- **NEXT UP = v0.7.1 final rebuild/tag/Release from latest main** (`docs/52`).
 
-Completed MVP-1~3, R1, R2, R3, STAB-WP-01~04, UX-WP-01~11, KB-WP-01/02, FEEDBACK-WP-01/02, QA-WP-01~09, and REL-WP-071 are not redesigned.
+Completed MVP-1~3, R1, R2, R3, STAB-WP-01~04, UX-WP-01~11, KB-WP-01/02, FEEDBACK-WP-01/02, QA-WP-01~09, REL-WP-071 code cut, and CORR-WP-01 are not redesigned.
 
 Current repository audit and detailed sequencing: `docs/53_Repository_Audit_and_v1_Execution_Plan.md`. WP history: `docs/39`.
 
@@ -30,8 +31,8 @@ External dependency, Vector/Embedding, LLM runtime/model, signing credential/too
 | STAB | v0.6.1 | version, package manifest, runtime Fail-Closed, test baseline/suites | Security/Release | PARTIAL: signing APPROVAL_REQUIRED |
 | R2 | v0.7.0 | semantic hardening, streaming Core, prior-day Core, visualization/report | Data | VERIFIED(Core); WPF reachability PARTIAL |
 | REL | v0.7.1 | post-v0.7.0 shipped-artifact parity | Local/Release | PARTIAL: code cut VERIFIED, publish pending |
-| CORR | v0.7.1 pre-publish | zero-check reconciliation must be `NOT_RUN` | Data/Report | **NEXT UP / NOT_IMPLEMENTED** |
-| GOV | v0.7.x | public PR CI, actual checks, branch protection, secret scanning | Governance | PARTIAL: workflow restoration in audit change; hosted evidence/settings pending |
+| CORR | v0.7.1 pre-publish | zero-check reconciliation must be `NOT_RUN` | Data/Report | VERIFIED (#135, `4efb8e6`) |
+| GOV | v0.7.x | public PR CI, actual checks, branch protection, secret scanning | Governance | PARTIAL: hosted `test`/`wpf-build` evidence observed; protection/security settings pending |
 | v0.8 | v0.8.x | behavior-preserving UI decomposition and Core capability reachability | A/B | NOT_IMPLEMENTED |
 | Runtime | v0.9.x | .NET 10 LTS migration before .NET 8 EOS | Release/B | NOT_IMPLEMENTED |
 | KB/NCR | v0.9.x+ | approved external Pack tool/SOP; real content remains approval-gated | RAG/NCR | PARTIAL / APPROVAL_REQUIRED |
@@ -46,23 +47,22 @@ External dependency, Vector/Embedding, LLM runtime/model, signing credential/too
 | Audit logs/history | VERIFIED | VERIFIED | v0.7.0 | Hash only |
 | CSV/CP949 profile | VERIFIED | PARTIAL | v0.7.0 | UI uses in-memory path |
 | XLSX profile | VERIFIED | NOT_IMPLEMENTED | library shipped | No Data UI routing |
-| Limit/7-state/reconciliation | VERIFIED | VERIFIED | v0.7.0 | CORR-WP-01 summary fix pending |
-| Prior-Day | VERIFIED | NOT_IMPLEMENTED | Core in v0.7.1 candidate | App call site 0 |
+| Limit/7-state/reconciliation | VERIFIED | VERIFIED | v0.7.0 | zero-check `NOT_RUN` fix VERIFIED; v0.7.1 publish pending |
+| Prior-Day | VERIFIED | NOT_IMPLEMENTED | main; v0.7.1 publish pending | App call site 0 |
 | Streaming profile | VERIFIED | NOT_IMPLEMENTED | Core shipped | App call site 0 |
 | RISK_VISUAL/report | VERIFIED | VERIFIED | v0.7.0 | Formal B/C pending |
 | KB catalog | VERIFIED | VERIFIED | v0.7.0 | Public metadata |
-| Clause search/snippet gate | VERIFIED | NOT_IMPLEMENTED | v0.7.1 candidate Core | App call site 0; real Pack approval |
-| Feedback promotion | VERIFIED | VERIFIED | v0.7.1 candidate | Retrieval, not training |
-| Example retrieval/reflection | VERIFIED | NOT_IMPLEMENTED | v0.7.1 candidate Core | App review path 0 |
+| Clause search/snippet gate | VERIFIED | NOT_IMPLEMENTED | main; v0.7.1 publish pending | App call site 0; real Pack approval |
+| Feedback promotion | VERIFIED | VERIFIED | main; v0.7.1 publish pending | Retrieval, not training |
+| Example retrieval/reflection | VERIFIED | NOT_IMPLEMENTED | main; v0.7.1 publish pending | App review path 0 |
 | NCR Rule Set | SCAFFOLD_ONLY | PLACEHOLDER | placeholder | Real Pack APPROVAL_REQUIRED |
 | Local LLM | PLACEHOLDER | NoModelMode VERIFIED | no model | APPROVAL_REQUIRED |
 
 ## 4. Dependency Order
 
 ```text
-CORR-WP-01
-  -> v0.7.1 rebuild/tag/Release
-  -> GOV-WP-02 (first hosted evidence + protection/security settings)
+v0.7.1 final rebuild/tag/Release
+  -> GOV-WP-02 (hosted evidence record + protection/security settings)
   -> ARCH-WP-01
   -> UI-WP-12 Prior-Day
   -> DATA-UI-WP-01 / KB-UI-WP-01 / FEEDBACK-WP-03
@@ -88,8 +88,8 @@ Historical WP details and per-test increments remain in `docs/39`.
 | C-21 | Test-PC/Pilot evidence | PILOT | `docs/48` | BLOCKED |
 | C-22~30 | Assist/layout/Excel helper | UX/STAB-UX | Assist/UiContract tests | VERIFIED(local-gate) |
 | C-28 | Clause Pack/search/snippet gate | KB-WP-01/02 | Kb tests | VERIFIED Core; WPF NOT_IMPLEMENTED |
-| C-31 | Reconciliation display truth-state | CORR-WP-01 | Report + UiContract regression | **NOT_IMPLEMENTED / NEXT UP** |
-| C-32 | Public PR CI and branch protection | audit change + GOV-WP-02 | hosted checks + API evidence | PARTIAL |
+| C-31 | Reconciliation display truth-state | CORR-WP-01 | Report + UiContract regression; `Total=907` | VERIFIED (#135, `4efb8e6`) |
+| C-32 | Public PR CI and branch protection | audit change + GOV-WP-02 | #135 hosted checks + API evidence | PARTIAL: checks green, settings pending |
 | C-33 | MainWindow decomposition | ARCH-WP-01 | behavior/UI contract parity | NOT_IMPLEMENTED |
 | C-34 | Prior-Day WPF reachability | UI-WP-12 | UiContract/Limit/Report + Gate B | NOT_IMPLEMENTED |
 | C-35 | .NET 10 LTS runtime | RUNTIME-WP-01 | build/smoke/package/Gate B | NOT_IMPLEMENTED |
@@ -104,7 +104,7 @@ Historical WP details and per-test increments remain in `docs/39`.
 | RR-10 | test weakening | High | Smoke governance | Controlled |
 | RR-14 | manifest co-tamper/runtime DLL trust | High | STAB-WP-05 | APPROVAL_REQUIRED |
 | RR-16 | Gate PASS overclaim | High | formal evidence rule | Controlled, Gate BLOCKED |
-| RR-17 | zero reconciliation checks shown as PASS | High | CORR-WP-01 | OPEN / NEXT UP |
+| RR-17 | zero reconciliation checks shown as PASS | High | CORR-WP-01 | VERIFIED mitigation (#135) |
 | RR-18 | public main unprotected, audit-input CI manual, secret scan off | High | workflow restoration in audit change + GOV-WP-02 settings | PARTIAL mitigation |
 | RR-19 | .NET 8 EOS 2026-11-10 | High | RUNTIME-WP-01 before Pilot | OPEN |
 | RR-20 | Core-only features described as user-facing | Medium | reachability matrix + UI WPs | OPEN |
@@ -113,7 +113,7 @@ Historical WP details and per-test increments remain in `docs/39`.
 
 ## 7. Gates
 
-- Data Spec Gate: R1/R2 correctness; CORR-WP-01 must close before v0.7.1 publish.
+- Data Spec Gate: R1/R2 correctness; CORR-WP-01 closed at #135, so final v0.7.1 rebuild is unblocked.
 - Release Gate: exact main commit, build/smoke, build/00~03, SHA, manifest, forbidden files.
 - RAG/NCR Gate: real Pack/content/coefficients require owner approval and stay outside repo.
 - Model Gate: runtime/model/embedding approval before implementation.

@@ -4,10 +4,10 @@
 
 Project Skills make Claude and Codex repeat fragile repository workflows consistently without copying large checklists into every prompt.
 
-- Audit input / code-test baseline: `origin/main@abab29b` (PR #133). Docs/workflow-only merges do not advance the code-test baseline.
-- VERSION `0.7.1`, SmokeTest `Total=900 PASS=900 FAIL=0`.
-- Latest published release `v0.7.0`; v0.7.1 tag/Release pending.
-- NEXT UP `CORR-WP-01`.
+- Audit input / code-test baseline: `origin/main@4efb8e6` (PR #135). Docs/workflow-only merges do not advance the code-test baseline.
+- VERSION `0.7.1`, SmokeTest `Total=907 PASS=907 FAIL=0`.
+- Latest published release `v0.7.0`; v0.7.1 final rebuild/tag/Release pending.
+- NEXT UP: v0.7.1 final rebuild/tag/Release from latest main (`docs/52`).
 
 Current truth: `docs/53_Repository_Audit_and_v1_Execution_Plan.md` and `docs/39` Resume Brief.
 
@@ -108,12 +108,11 @@ risk-llm-approval -> STOP until explicit approval
 
 ## 7. Current Sequence
 
-1. `CORR-WP-01` report reconciliation `NOT_RUN` truth-state.
-2. v0.7.1 rebuild/tag/Release from latest main.
-3. `GOV-WP-02` restored PR CI first-run evidence + branch protection/secret scanning alignment.
-4. `ARCH-WP-01` MainWindow decomposition.
-5. UI reachability WPs for Prior-Day, streaming/XLSX profile, Clause search, and reviewed Example reflection.
-6. .NET 10 migration before Pilot.
-7. Formal Gate B/C and Team Pilot.
+1. v0.7.1 final rebuild/tag/Release from latest main (`CORR-WP-01` is VERIFIED at #135).
+2. `GOV-WP-02` restored PR CI evidence + branch protection/secret scanning alignment.
+3. `ARCH-WP-01` MainWindow decomposition.
+4. UI reachability WPs for Prior-Day, streaming/XLSX profile, Clause search, and reviewed Example reflection.
+5. .NET 10 migration before Pilot.
+6. Formal Gate B/C and Team Pilot.
 
 Approval tracks (signing, real NCR/internal Pack, Local LLM/runtime/model) remain independent and STOP-governed.

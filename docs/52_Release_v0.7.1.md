@@ -3,15 +3,15 @@
 ## 목적 / 범위
 v0.7.1 = **published v0.7.0(태그 `30c1cfb`) 이후 main에 머지된 트랙을 출하본에 반영하는 정합 릴리스.** REL-WP-071 자체는 버전 범프 락스텝 3파일·신규 기능 0으로 완료됐다. 최종 발행 전 감사에서 발견된 `CORR-WP-01`(zero-check reconciliation false PASS 제거)은 정확성 correction으로 포함한 뒤 다시 패키징한다. 본 문서는 v0.7.1 **릴리스 노트 + 패키징 런북 + Gate B 체크 연결 + GitHub Release 핸드오프**다. (`docs/47` v0.7.0 문서의 v0.7.1 대응본.)
 
-> **상태: `PARTIAL` — REL-WP-071 code cut VERIFIED(#133 `abab29b`), tag/GitHub Release 미발행.** 2026-07-10 merged-main candidate build/00~03 PASS(manifest 27 entries, SHA256 `A70D0B37AD92344A2ECFBE0D4D96360F56CBAFFF94363249F0BD1A20ADC1ECDC`). 단, `CORR-WP-01`(zero-check reconciliation false PASS) merge 전에는 발행하지 않으며, merge 후 latest main에서 이 candidate를 폐기·재생성한다.
-> **기준선**: audit-input code/test baseline = `abab29b`(#133, VERSION 0.7.1), SmokeTest `Total=900 PASS=900 FAIL=0`. docs/workflow-only merge는 current main과 release Build Commit만 이동하며, 후속 code/test merge는 baseline도 함께 이동한다.
+> **상태: `PARTIAL` — REL-WP-071 code cut(#133 `abab29b`) + CORR-WP-01(#135 `4efb8e6`) VERIFIED, tag/GitHub Release 미발행.** Pre-CORR candidate SHA256 `A70D0B37AD92344A2ECFBE0D4D96360F56CBAFFF94363249F0BD1A20ADC1ECDC`는 #135 이후 무효이며 발행 금지다. latest main에서 final candidate를 재생성한다.
+> **기준선**: code/test baseline = `4efb8e6`(#135, VERSION 0.7.1), SmokeTest `Total=907 PASS=907 FAIL=0`. docs/workflow-only merge는 current main과 release Build Commit만 이동하며 code/test baseline은 유지한다.
 > **코드 서명**: v0.7.1도 **미서명 + Integrity Manifest/Fail-Closed 앵커**로 출하한다. Authenticode 서명은 **STAB-WP-05 APPROVAL_REQUIRED**(`docs/51 §B` 결정 대기 — 릴리스 전제 아님).
 
 ---
 
 ## 1. v0.7.1 릴리스 노트 (요약 — v0.7.0 → v0.7.1)
 
-**테마: "main에는 있는데 출하본에는 없던 것"의 해소.** Total 714 → 900(#94~#127 누적).
+**테마: "main에는 있는데 출하본에는 없던 것"의 해소.** Total 714 → 907(#94~#127 누적 + CORR-WP-01 #135).
 
 - **KB Clause 검색**(KB-WP-01/02 #94/#101): 공개 규정 Clause Pack 계약·로더·원문 가드 + clause keyword 검색·인용·`ClauseSnippetAllowed` 게이트(공개+메타 완비 시 32자 snippet). `SourceTextAllowed=false` 불변·원문 repo 미포함·합성 더미만·Vector/Embedding STOP.
 - **Excel Function Helper**(UX-WP-04 #102 + UX-WP-11 #122): 함수 검색·상세·인수·리스크예시·수식예시·365여부·Excel 2021 대체식·추천(정적, embedded resource, 차단 함수 추천 0 가드), 자동삽입 0·검색어 미로그.
@@ -19,6 +19,7 @@ v0.7.1 = **published v0.7.0(태그 `30c1cfb`) 이후 main에 머지된 트랙을
 - **승인 Feedback Example 검색·반영**(FEEDBACK-WP-01/02 #106/#108): ingest 게이트(Blocker 0+`ForbiddenTermScanner`)·결정적 검색·`ReferencesReviewed` 경유 read-only Prompt 반영·hash 이중 audit — **RETRIEVAL, 학습 아님**.
 - **하이진**(R2-WP-05 #109): dead Welford 필드 제거(동작 불변).
 - **테스트 하드닝**(QA-WP-01~09 #115~#127, 제품 코드 0): Safety·Recon/Limit·Kb·Report·Csv/Xlsx/Profile·Ncr·UiContract·Audit/Generation·Mapping/Packaging 도메인 회귀 +57 — **인박스 SmokeTest 도메인 하드닝 스윕 완결, `Total=900`**.
+- **Reconciliation truth-state correction**(CORR-WP-01 #135): zero checks는 `NOT_RUN`, nonzero checks만 PASS/FAIL; High `LIMIT_DATA_REQUIRED`와 SUMMARY false-PASS 모순 제거. Report/UiContract 회귀 +7, **`Total=907`**.
 
 **유지된 절대 원칙**: 오프라인 · 외부 NuGet 0 · 외부 API/telemetry/자동업데이트 0 · SQL/VBA 자동실행 0 · 해시 전용 감사 · NoModelMode · 내부규정/NCR 원문·실데이터·모델파일 미포함 · Vector/Embedding/모델 런타임 미도입.
 

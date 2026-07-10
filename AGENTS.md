@@ -4,15 +4,15 @@ Codex 및 구현 Agent는 이 파일을 반드시 따른다. 충돌 우선순위
 
 ## 0. Current Baseline
 
-- Audit input `origin/main`: `abab29b3cb5f8436c846d5f478cd80cd1dbaea22` (PR #133). This remains the code-test baseline until product code/tests change; docs/workflow merges advance current main only.
+- Audit input `origin/main` / code-test baseline: `4efb8e670ce0306d07683d3fbc5ed7b118844b8b` (PR #135). Docs/workflow-only merges advance current main but not this product-code/test baseline.
 - VERSION: `0.7.1`.
-- Authoritative local gate: build warning 0/error 0, SmokeTest `Total=900 PASS=900 FAIL=0`, Unclassified 0.
-- Latest published release: `v0.7.0` (`30c1cfb`, unsigned). v0.7.1 code cut is merged; tag/Release is not published.
+- Authoritative local gate: build warning 0/error 0, SmokeTest `Total=907 PASS=907 FAIL=0`, Unclassified 0.
+- Latest published release: `v0.7.0` (`30c1cfb`, unsigned). v0.7.1 code cut and CORR-WP-01 are merged; final rebuild/tag/Release is pending.
 - Formal Gate B/C: `BLOCKED`. User-reported PC success and formal attached evidence are distinct.
-- **NEXT UP = `CORR-WP-01` only**: zero reconciliation checks must render `NOT_RUN`, never `PASS`.
+- **NEXT UP = v0.7.1 final rebuild/tag/Release only** from latest main (`docs/52`); the pre-CORR package candidate is invalid.
 - Full current assessment: `docs/53_Repository_Audit_and_v1_Execution_Plan.md`.
 
-Completed MVP-1~3, R1, R2, R3, STAB-WP-01~04, UX-WP-01~11, KB-WP-01/02, FEEDBACK-WP-01/02, QA-WP-01~09, and REL-WP-071 are not redesigned. Core-only capabilities must not be described as user-facing until an App/WPF call site exists.
+Completed MVP-1~3, R1, R2, R3, STAB-WP-01~04, UX-WP-01~11, KB-WP-01/02, FEEDBACK-WP-01/02, QA-WP-01~09, REL-WP-071 code cut, and CORR-WP-01 are not redesigned. Core-only capabilities must not be described as user-facing until an App/WPF call site exists.
 
 ## 1. Final Product Boundary
 
