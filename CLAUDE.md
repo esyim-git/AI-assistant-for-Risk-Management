@@ -7,8 +7,8 @@ Claude Code is Architecture Lead, Program Manager, Security/Release Reviewer, an
 - v0.7.1 release Build Commit: `fa755256` (PR #136, docs-only). Product code-test baseline remains `4efb8e6` (PR #135); later docs/workflow-only merges advance current main without changing release provenance or the product baseline.
 - VERSION `0.7.1`; authoritative local SmokeTest `Total=907 PASS=907 FAIL=0`.
 - Latest published release is unsigned `v0.7.1` at `fa755256`; ZIP SHA256 is `282B71385FEE83B4ED7AD221CAF84AD3A6B4E2B5E5191601F4240AEED0419018`.
-- Formal Gate B/C is `BLOCKED`; user-reported execution and attached formal evidence remain separate.
-- **NEXT UP = GOV-WP-02**. User-driven Gate B/C proceeds in parallel against the published v0.7.1 assets (`docs/48`).
+- Formal Gate B/C is `BLOCKED` for v0.7.1 (`docs/54`); v0.7.0 user-reported history in `docs/48` does not carry forward.
+- **NEXT UP = GOV-WP-02**. User-driven Gate B/C proceeds in parallel against the published v0.7.1 assets (`docs/54`); `docs/48` remains v0.7.0 historical evidence.
 - Full evidence and roadmap: `docs/53_Repository_Audit_and_v1_Execution_Plan.md`.
 
 Do not redesign completed MVP-1~3, R1, R2, R3, STAB-WP-01~04, UX-WP-01~11, KB-WP-01/02, FEEDBACK-WP-01/02, QA-WP-01~09, REL-WP-071 published release, or CORR-WP-01.
@@ -99,7 +99,7 @@ Use only `VERIFIED`, `PARTIAL`, `SCAFFOLD_ONLY`, `PLACEHOLDER`, `BLOCKED`, `NOT_
 ## 9. Claude Responsibilities
 
 1. Run `risk-repo-audit` for broad repository/status/roadmap requests.
-2. Keep `docs/38`, `docs/39`, `docs/40`, `docs/41`, `docs/48`, release docs, README, AGENTS, CLAUDE, and SKILLS aligned.
+2. Keep `docs/38`, `docs/39`, `docs/40`, `docs/41`, the active Gate evidence doc (`docs/54`; `docs/48` historical), release docs, README, AGENTS, CLAUDE, and SKILLS aligned.
 3. Define exactly one NEXT UP WP and a matching Codex prompt.
 4. Review Codex diff for scope, security, tests, docs, user reachability, and release provenance.
 5. Maintain Capability -> WP -> Test -> Gate traceability.

@@ -10,11 +10,11 @@
 | Product code-test baseline | `4efb8e6` (PR #135) |
 | VERSION | `0.7.1` |
 | 최신 공개 Release | `v0.7.1` (`fa755256`, 미서명), ZIP SHA256 `282B7138...9018` |
-| v0.7.1 | `PUBLISHED`; build/00~03 PASS, manifest 0.7.1 required 27/27 |
+| v0.7.1 | `VERIFIED` (published); build/00~03 PASS, manifest 0.7.1 required 27/27 |
 | Build / SmokeTest | warning 0, error 0 / `Total=907 PASS=907 FAIL=0` |
 | 외부 NuGet | `PackageReference` 0, `NuGet.Config <clear/>` |
-| Formal Gate B/C | `BLOCKED` (사용자 실행 PASS 회신 일부 있음; 증거 파일·C6/C7 미완) |
-| NEXT UP | `GOV-WP-02`; published v0.7.1 Gate B/C는 사용자 병행 (`docs/48`) |
+| Formal Gate B/C | `BLOCKED` for v0.7.1 (`docs/54`); v0.7.0 user-reported 이력은 `docs/48` |
+| NEXT UP | `GOV-WP-02`; published v0.7.1 Gate B/C는 사용자 병행 (`docs/54`) |
 
 전체 진단·근거·로드맵은 [docs/53_Repository_Audit_and_v1_Execution_Plan.md](docs/53_Repository_Audit_and_v1_Execution_Plan.md), 실행 원장은 [docs/39_Work_Package_Backlog.md](docs/39_Work_Package_Backlog.md)를 따른다.
 
@@ -105,7 +105,7 @@ Get-Content VERSION
 5. dummy/masked 입력으로 Gate 확인
 ```
 
-세부: [deploy/README_OFFLINE_RUN.md](deploy/README_OFFLINE_RUN.md), [docs/48_GateBC_v0.7.0_Evidence.md](docs/48_GateBC_v0.7.0_Evidence.md).
+세부: [deploy/README_OFFLINE_RUN.md](deploy/README_OFFLINE_RUN.md), [docs/54_GateBC_v0.7.1_Evidence.md](docs/54_GateBC_v0.7.1_Evidence.md). v0.7.0 이력은 [docs/48_GateBC_v0.7.0_Evidence.md](docs/48_GateBC_v0.7.0_Evidence.md)에 보존한다.
 
 ## Workflow
 

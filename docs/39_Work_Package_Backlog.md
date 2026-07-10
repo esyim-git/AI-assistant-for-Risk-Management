@@ -12,9 +12,9 @@
 - **VERSION / Release**: `0.7.1`; unsigned `v0.7.1` is published at tag `fa755256`. ZIP SHA256 `282B71385FEE83B4ED7AD221CAF84AD3A6B4E2B5E5191601F4240AEED0419018`; manifest version 0.7.1, required 27/27.
 - **Local gate**: `dotnet build -c Release` warning 0/error 0; SmokeTest `Total=907 PASS=907 FAIL=0`, Unclassified 0; build/00~03 PASS; PackageReference 0; Gate A 0. Hosted PR #136 run #212: `test`/`wpf-build` success.
 - **Pre-CORR candidate (`abab29b`)**: SHA256 `A70D0B37AD92344A2ECFBE0D4D96360F56CBAFFF94363249F0BD1A20ADC1ECDC` remains historical-invalid and was not published.
-- **Formal Gate B/C**: `BLOCKED` (`docs/48`). User reported B0~B3, major Excel/report functions, and C1~C5 PASS; attached evidence and C6/C7 are still pending.
+- **Formal Gate B/C**: `BLOCKED` for v0.7.1 (`docs/54`). v0.7.0 user-reported B0~B3/major functions/C1~C5 remain historical in `docs/48` and are not carried forward as v0.7.1 PASS.
 - **Release blocker closed**: CORR-WP-01 #135 renders zero checks as `NOT_RUN` and preserves nonzero PASS/FAIL.
-- **NEXT UP = GOV-WP-02** (protection/security settings and hosted evidence). **Parallel user-driven**: published v0.7.1 Gate B/C round (`docs/48`).
+- **NEXT UP = GOV-WP-02** (protection/security settings and hosted evidence). **Parallel user-driven**: published v0.7.1 Gate B/C round (`docs/54`).
 - **After NEXT UP**: ARCH-WP-01 -> UI-WP-12 -> remaining Core-to-WPF reachability -> .NET 10 -> formal Gate B/C closure -> Team Pilot.
 - **Approval tracks remain STOP**: STAB-WP-05 signing, real NCR/internal Pack, Local LLM runtime/model.
 - **Current assessment**: `docs/53_Repository_Audit_and_v1_Execution_Plan.md`; published release evidence: `docs/52_Release_v0.7.1.md` (completed CORR/REL prompts are not rerun).
@@ -61,9 +61,9 @@
 - **Commit**: `fix: report zero-check reconciliation as not run (CORR-WP-01)`.
 - **Claude Review Checklist**: zero-check false PASS 제거 / existing nonzero PASS/FAIL unchanged / public contract unchanged / LIMIT_DATA_REQUIRED retained / tests additive / NuGet 0 / Gate A / release rebuilt only after merge.
 
-## REL-WP-071. v0.7.1 출하 정합(Shipped-Artifact Parity) 릴리스 컷 — **VERIFIED / PUBLISHED**
+## REL-WP-071. v0.7.1 출하 정합(Shipped-Artifact Parity) 릴리스 컷 — **VERIFIED (published)**
 > 채택 근거 = 제안서(`docs/proposals/FABLE5_REPO_ASSESSMENT_PROPOSAL_20260706.md` §10 WP-B·§14 P0, PR #131 `110e9ee` 머지로 채택). 절차 정본 = `.claude/skills/risk-release-cut/`. 릴리스 문서 = `docs/52`.
-- **상태**: **VERIFIED / PUBLISHED** — PR #133 code cut `abab29b`, CORR-WP-01 #135 `4efb8e6`, docs-only truth-sync #136 `fa755256`을 포함한 exact main에서 재빌드했다. `dotnet build` 0/0, SmokeTest `Total=907 PASS=907 FAIL=0`, build/00~03 PASS, PackageReference 0, Gate A 0. Tag/Build Commit `fa7552567cb432ec6a4afe9900b3eca480fc5780`; ZIP SHA256 `282B71385FEE83B4ED7AD221CAF84AD3A6B4E2B5E5191601F4240AEED0419018`; manifest 0.7.1 required 27/27; unsigned Latest Release: <https://github.com/esyim-git/AI-assistant-for-Risk-Management/releases/tag/v0.7.1>. Pre-CORR SHA remains invalid and unpublished.
+- **상태**: **VERIFIED**; publication qualifier = published. PR #133 code cut `abab29b`, CORR-WP-01 #135 `4efb8e6`, docs-only truth-sync #136 `fa755256`을 포함한 exact main에서 재빌드했다. `dotnet build` 0/0, SmokeTest `Total=907 PASS=907 FAIL=0`, build/00~03 PASS, PackageReference 0, Gate A 0. Tag/Build Commit `fa7552567cb432ec6a4afe9900b3eca480fc5780`; ZIP SHA256 `282B71385FEE83B4ED7AD221CAF84AD3A6B4E2B5E5191601F4240AEED0419018`; manifest 0.7.1 required 27/27; unsigned Latest Release: <https://github.com/esyim-git/AI-assistant-for-Risk-Management/releases/tag/v0.7.1>. Pre-CORR SHA remains invalid and unpublished.
 - **목표**: published v0.7.0(`30c1cfb`) 이후 main에 머지된 **KB-WP-01/02·UX-WP-04~11·FEEDBACK-WP-01/02·QA-WP-01~09(#94~#127)** 를 출하본에 반영하는 **정합 릴리스 컷**. **신규 기능 구현 아님** — 버전 범프 락스텝만. `docs/48 §B′` B-5 PARTIAL 고착(출하본-main 괴리)의 해소 경로.
 - **선행조건**: #131 머지(완료, main `110e9ee`). 외부 의존성·서명 도구·인증서 **추가 0**(STAB-WP-05 분리).
 - **작업범위(정확히 3파일, 그 외 0)**: ① `VERSION` `0.7.0→0.7.1` ② `IntegrityVerifier.cs:27` `ExpectedVersion` `"0.7.0"→"0.7.1"` ③ `PackagingTests.cs` 합성 manifest의 `ExpectedVersion`과 같아야 하는 모든 현행 버전 리터럴 `"0.7.0"` 전수(`WriteIntegrityManifest` + inline/raw JSON if present)→`"0.7.1"` — **버전-불일치 음성 케이스(:257 인근·`9.9.9` 등)의 상이-버전 문자열은 유지**(범프 후에도 `ExpectedVersion`과 달라야 유효), drift 가드(:343)는 동적 비교라 미수정.
