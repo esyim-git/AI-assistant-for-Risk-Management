@@ -24,7 +24,7 @@
 | 폐기된 pre-CORR ZIP SHA256 | `A70D0B37AD92344A2ECFBE0D4D96360F56CBAFFF94363249F0BD1A20ADC1ECDC` | Build Commit `abab29b`; #135 merge로 무효, 발행 금지 |
 | 외부 NuGet | 0 | `NuGet.Config <clear/>`, csproj `PackageReference` 0 |
 | GitHub | public, squash-only, delete-on-merge | GitHub REST API |
-| Hosted CI | PR 자동 trigger, #137 exact-head run #218 및 merge main run #219 `test`/`wpf-build` success | GitHub Actions API; main `fa814f3` |
+| Hosted CI | PR 자동 trigger, GOV closeout PR #138 final exact-head `test`/`wpf-build` | final SHA/run/conclusions are recorded in PR evidence; parent main `fa814f3` run #219 |
 | main 보호 | `VERIFIED` Phase A | PR + strict `test`/`wpf-build`, conversation resolution, linear history, admin enforcement ON; force/deletion OFF; approvals 0/Code Owner OFF; REST readback |
 | Secret scanning | `VERIFIED` enabled | Secret scanning + push protection ON; repository `security_and_analysis` REST readback |
 | Gate B/C | v0.7.1 formal `BLOCKED` | `docs/54` 신규 라운드. v0.7.0 user-reported 이력은 `docs/48`에만 보존 |
@@ -71,7 +71,7 @@
 ### P1 — 거버넌스/사용자 가치
 
 3. **GOV-01: VERIFIED mitigation (GOV-WP-02).** `main` Phase A protection은 PR + strict `test`/`wpf-build`, conversation resolution, linear history, admin enforcement를 요구하며 force/deletion을 차단한다. ruleset 0은 classic protection 사용에 따른 정상 상태다.
-4. **GOV-02: VERIFIED mitigation.** #134가 PR trigger/immutable Action pin을 복원했고 #137 exact-head run #218과 merge main run #219가 green이다. 2026-07-11 REST readback으로 보호값을 재확인했으며 local-gate는 독립 검증으로 유지한다.
+4. **GOV-02: VERIFIED mitigation.** #134가 PR trigger/immutable Action pin을 복원했고 GOV closeout PR #138 final exact-head의 `test`/`wpf-build`는 required checks다(최종 SHA/run/conclusions는 PR evidence). 2026-07-11 REST readback으로 보호값을 재확인했으며 local-gate는 독립 검증으로 유지한다.
 5. **SEC-01: VERIFIED mitigation.** GitHub secret scanning과 push protection을 활성화하고 별도 REST readback으로 `enabled`를 확인했다. Gate A도 계속 유지한다.
 6. **ARCH-01: `MainWindow.xaml.cs` 1,614줄 God-class.** 12개 탭, 차트, persistence, DTO가 한 파일에 집중돼 UI 배선 WP의 충돌 위험을 높인다.
 7. **UX-REACH-01: Prior-Day/streaming/XLSX profile/Clause/Example reflection이 Core-only다.** 문서에서 UI 기능처럼 읽히지 않도록 분리 표기하고 v0.8에서 순차 배선한다.

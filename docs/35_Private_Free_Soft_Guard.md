@@ -15,14 +15,15 @@ While the repository was private on GitHub Free, branch protection API calls ret
 
 That constraint ended when the repository became public.
 
-## Current State (2026-07-10)
+## Current State (2026-07-11)
 
 - Visibility is public.
-- Hard branch protection is available but not configured.
-- Audit-input main (`abab29b`) kept the advisory workflow manual-only; this audit change restores its `main` push trigger.
-- Secret scanning and push protection are disabled.
+- Phase A hard branch protection is active: PR required; strict `test`/`wpf-build`; conversation resolution, linear history, and admin enforcement ON; force push/deletion OFF.
+- Required approvals remain 0 and Code Owner review remains OFF until a distinct approval-capable reviewer exists.
+- PR CI and the `main` push soft-guard trigger are active. GOV-WP-02 final exact-head SHA/run and `test`/`wpf-build` conclusions are recorded in PR #138 evidence after the last push.
+- Secret scanning and push protection are enabled.
 
-Therefore soft guard alone is no longer the intended end state. Follow `docs/32` Phase A, then Phase B when an independent approving reviewer exists.
+Soft guard is an advisory post-merge backup, not a substitute for the active hard protection. Follow `docs/32` Phase B only after an independent approving reviewer exists.
 
 ## Continued Use
 

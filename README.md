@@ -116,7 +116,7 @@ Codex : one WP implementation + local gate + PR
 User  : release/approval/Test-PC/Pilot owner
 ```
 
-PR은 squash-only, main 직접 push와 force push 금지. `test`/`wpf-build` 자동 PR CI는 #134에서 복원됐고 #137 exact-head 및 merge main에서 green을 재확인했다. [docs/32](docs/32_Branch_Governance.md) Phase A 보호와 secret scanning/push protection은 2026-07-11 REST readback으로 `VERIFIED`다.
+PR은 squash-only, main 직접 push와 force push 금지. `test`/`wpf-build` 자동 PR CI는 #134에서 복원됐고 GOV closeout PR #138의 최종 exact-head/run은 PR evidence에 기록한다. [docs/32](docs/32_Branch_Governance.md) Phase A 보호와 secret scanning/push protection은 2026-07-11 REST readback으로 `VERIFIED`다.
 
 ## Roadmap
 

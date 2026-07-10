@@ -90,7 +90,7 @@ Historical WP details and per-test increments remain in `docs/39`.
 | C-22~30 | Assist/layout/Excel helper | UX/STAB-UX | Assist/UiContract tests | VERIFIED(local-gate) |
 | C-28 | Clause Pack/search/snippet gate | KB-WP-01/02 | Kb tests | VERIFIED Core; WPF NOT_IMPLEMENTED |
 | C-31 | Reconciliation display truth-state | CORR-WP-01 | Report + UiContract regression; `Total=907` | VERIFIED (#135, `4efb8e6`) |
-| C-32 | Public PR CI and branch protection | audit change + GOV-WP-02 | #137 exact-head run #218, main run #219, REST readback | VERIFIED |
+| C-32 | Public PR CI and branch protection | audit change + GOV-WP-02 | #138 final exact-head checks (PR evidence) + REST readback | VERIFIED |
 | C-33 | MainWindow decomposition | ARCH-WP-01 | behavior/UI contract parity | NOT_IMPLEMENTED |
 | C-34 | Prior-Day WPF reachability | UI-WP-12 | UiContract/Limit/Report + Gate B | NOT_IMPLEMENTED |
 | C-35 | .NET 10 LTS runtime | RUNTIME-WP-01 | build/smoke/package/Gate B | NOT_IMPLEMENTED |

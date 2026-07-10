@@ -7,7 +7,7 @@
 - `main` branch protection: **VERIFIED by REST readback**. PR required; strict required checks `test`/`wpf-build` (`github-actions`, app id `15368`); conversation resolution, linear history, and admin enforcement ON; force push/deletion OFF.
 - Required approvals are 0 and Code Owner review is OFF because the PR author/merger is currently one GitHub account. Phase B remains deferred until a distinct reviewer can submit a counted `APPROVED` review.
 - Secret scanning and secret scanning push protection: **enabled**. Non-provider patterns/validity checks and Dependabot security updates remain outside GOV-WP-02 scope.
-- Evidence source: PR #137 exact-head run #218 (`test`/`wpf-build` success); merge main `fa814f3` run #219 and `governance-soft-guard` run #127 success; protection/security readback 2026-07-11.
+- Evidence source: GOV closeout PR #138 (final exact-head SHA/run and `test`/`wpf-build` conclusions are recorded in PR evidence after the last push); parent main `fa814f3` run #219 and `governance-soft-guard` run #127 success; protection/security readback 2026-07-11.
 - Actual CI job/check names: **`test`** and **`wpf-build`**. There is no `build` job.
 - Classic protection is active; repository ruleset count remains 0.
 
