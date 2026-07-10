@@ -7,12 +7,12 @@
 
 ---
 
-## 0. 현재 운영 전제 (private Free / Soft Guard)
+## 0. 현재 운영 전제 (public / Hard Protection Migration)
 
-- Repository는 private + GitHub Free → branch protection/rulesets를 GitHub가 **강제하지 못한다**(`docs/35`).
-- 강제 보호 대신 **soft guard**로 우회를 감지: squash only 머지 설정 + `governance-soft-guard` 워크플로(`main` push head commit이 PR 형식이 아니면 실패 신호).
-- soft guard는 push 자체를 막지 못한다 → 실패를 **신호**로 보고 즉시 정정한다.
-- Pro/Team 업그레이드 또는 public 전환 시 `docs/32 §2·§6`의 hard branch protection으로 즉시 전환.
+- Repository는 public이다. 이 audit change가 PR `test`/`wpf-build`와 main-push soft guard trigger를 복원한다.
+- `main` hard protection은 아직 미적용이다. 첫 hosted green run으로 check 이름을 확인한 뒤 `docs/32` Phase A를 적용한다.
+- 현재 단일 계정 workflow에서는 required approval=0/Code Owner review OFF로 self-review 교착을 피한다. 독립 reviewer가 생기면 Phase B(approval 1/Code Owner)를 적용한다.
+- `governance-soft-guard`는 hard protection의 대체가 아니라 main push 후 provenance 백업 신호다.
 
 ---
 
@@ -60,15 +60,16 @@ git reflog -n 30                        # force push/hard reset 흔적(로컬)
 
 ---
 
-## 4. Local-Gate 머지 게이트 (현재 운영 모델)
+## 4. Local + Hosted 머지 게이트
 
-> 머지 게이트 = **① 로컬 빌드+SmokeTest 증거 ＋ ② Claude 코드리뷰**. GitHub CI green을 머지 전제로 **요구하지 않는다**(분 가용 시 보조망). (`CLAUDE.md §11.6`, `AGENTS.md §5`)
+> 로컬 빌드/SmokeTest와 Claude 리뷰는 계속 정본이다. 자동 PR workflow가 활성화된 PR은 `test`·`wpf-build`도 확인하며, Phase A protection 이후에는 둘 다 required check다. queued/skipped/not-run은 success가 아니다.
 
 - [ ] 로컬 `dotnet build`(Release) 성공 증거
 - [ ] 로컬 SmokeTest 보고에 합계 줄 **`Total=N PASS / 0 FAIL`** 포함, FAIL=0
 - [ ] 이전 Total 보존(직전 기준선 이상), 기존 단언 삭제·약화 0 (`AGENTS.md §3`)
 - [ ] 보안 축 통과: `/risk-security-guard`(Gate A, `docs/28`) — NuGet 0·외부 API 0·민감정보 0
 - [ ] 4축 리뷰 통과: `/risk-codex-review`(Diff·보안·테스트·문서)
+- [ ] 활성 hosted checks `test`·`wpf-build` green(워크플로 변경 PR 자체도 확인)
 - [ ] 상태 어휘만 사용, 증거 없는 PASS/VERIFIED 없음 (`CLAUDE.md §11.4`)
 
 > 재현 대조(보고 검증용): `dotnet build RiskManagementAI.sln -c Release` → `dotnet run --project tests/RiskManagementAI.SmokeTests` → 합계 줄 `Total=N PASS / 0 FAIL` 확인.
@@ -99,12 +100,12 @@ git reflog -n 30                        # force push/hard reset 흔적(로컬)
 판정: 머지 가능(거버넌스 PASS) | 머지 불가(위반 N건)
 ```
 
-- 증거 없는 PASS는 적지 않는다. GitHub CI green은 머지 전제가 아니다(보조망).
+- 증거 없는 PASS는 적지 않는다. 활성 workflow의 red/queued/skipped/not-run을 green으로 간주하지 않는다.
 - 위반은 force push/hard reset이 아니라 **새 PR**로 정정한다.
 
 ---
 
 ## 참조
-- `docs/32_Branch_Governance.md`(브랜치 모델·보호·리뷰·머지·hard protection 전환) · `docs/35_Private_Free_Soft_Guard.md`(soft guard·squash only·`(#PR)`).
+- `docs/32_Branch_Governance.md`(public Phase A/B 보호·리뷰·머지) · `docs/35_Private_Free_Soft_Guard.md`(private-Free soft guard 역사·현재 백업 역할).
 - `AGENTS.md §6`(Release/Branch) · `CLAUDE.md §8`(Git 원칙) · `§11.1`(main 직접 수정 금지·`planning/*`) · `§11.6`(Local-Gate).
 - 연계 스킬: `/risk-security-guard` · `/risk-codex-review` · `/risk-doc-truth-sync`.

@@ -5,7 +5,7 @@ Claude Code와 Codex가 반복 작업을 일관되게 수행하도록 도입한 
 
 ## 1. 구조
 ```text
-SKILLS.md                                  # 정본 인덱스(18 skill·호출 순서·금지)
+SKILLS.md                                  # 정본 인덱스(19 skill·호출 순서·금지)
 .claude/skills/<skill-name>/
     SKILL.md                               # frontmatter(name/description/호출방식/allowed-tools) + 간결 본문
     <topic>.md                             # 긴 체크리스트/템플릿 support 파일(선택)
@@ -15,9 +15,10 @@ prompts/codex/README_skills_usage.md       # Codex 사용법
 ```
 - **호출 방식**: frontmatter `disable-model-invocation: true` = 수동(Claude 명시 호출 / Codex 참조). `paths:` 스코프 = 해당 경로 작업 시 자동 적용.
 
-## 2. 18 Skill ↔ 생명주기 매핑
+## 2. 19 Skill ↔ 생명주기 매핑
 | 단계 | Skill |
 |---|---|
+| 저장소 종합 감사 | `risk-repo-audit` (목표·현재 증거·사용자 도달성·출하 상태·로드맵 분리) |
 | 상태 파악 | `risk-status-sync` (기준선 이중 표기: 코드/테스트 baseline vs current main) |
 | 계획(WP) | `risk-wp-planner` |
 | 구현(Codex) | 도메인 Skill 참조: `risk-data-limit-review`·`risk-rag-ncr-governance`·`risk-analytics-design`·`risk-feedback-learning`·`risk-ui-ux-review`·`risk-llm-approval`·`risk-arch-refactor`(행위 불변 리팩터) |

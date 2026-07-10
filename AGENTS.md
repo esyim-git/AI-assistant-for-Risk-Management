@@ -1,121 +1,162 @@
 # AGENTS.md
 
-Codex 및 구현 Agent는 이 파일을 반드시 읽고 따른다. **충돌 시 우선순위: AGENTS.md > 지정 Work Package(`docs/39`) > Codex Prompt.**
+Codex 및 구현 Agent는 이 파일을 반드시 따른다. 충돌 우선순위는 **AGENTS.md > 지정 Work Package(`docs/39`) > Codex Prompt**다.
 
----
+## 0. Current Baseline
 
-## 0. 현재 기준선 (재설계 금지)
+- Audit input `origin/main`: `abab29b3cb5f8436c846d5f478cd80cd1dbaea22` (PR #133). This remains the code-test baseline until product code/tests change; docs/workflow merges advance current main only.
+- VERSION: `0.7.1`.
+- Authoritative local gate: build warning 0/error 0, SmokeTest `Total=900 PASS=900 FAIL=0`, Unclassified 0.
+- Latest published release: `v0.7.0` (`30c1cfb`, unsigned). v0.7.1 code cut is merged; tag/Release is not published.
+- Formal Gate B/C: `BLOCKED`. User-reported PC success and formal attached evidence are distinct.
+- **NEXT UP = `CORR-WP-01` only**: zero reconciliation checks must render `NOT_RUN`, never `PASS`.
+- Full current assessment: `docs/53_Repository_Audit_and_v1_Execution_Plan.md`.
 
-현재 **코드/테스트 baseline = `7094d91`** — 문서 전용(docs-only) 머지는 baseline SHA를 올리지 않는다(관례); current main은 `git log`로 확인하고 두 SHA를 구분한다 —, **VERSION 0.7.0** (**v0.7.0 정식 릴리스 태그 = `30c1cfb`**; 직전 v0.6.0 태그 `3dfa80b`). 정본 SmokeTest = **Total=900 PASS=900 FAIL=0** (local-gate; 747 → 768(KB-WP-02 +21) → 778(UX-WP-04 +10) → 788(UX-WP-05 +10) → 792(UX-WP-06 +4) → 807(FEEDBACK-WP-01 +15) → 829(FEEDBACK-WP-02 #108 +13·UX-WP-07 #110 +6·UX-WP-08 #111 +3·R2-WP-05 #109 +0) → 834(UX-WP-09 #113 +5) → 861(QA-WP-01 #115 +15·QA-WP-02 #116 +6·UX-WP-10 #117 +6) → 877(QA-WP-03 #119 +4·QA-WP-04 #120 +5·QA-WP-05 #121 +4·UX-WP-11 #122 +3) → 900(QA-WP-06 #124 +4·QA-WP-07 #125 +4·QA-WP-08 #126 +8·QA-WP-09 #127 +7); 이전 이력 631 + STAB-UX-02 +15 + R2-WP-01 +25 + R2-WP-02 +9 + R2-WP-03 +18 + R2-WP-04 +16 + KB-WP-01 +33). R1(Data & Limit Foundation, v0.5.0 완료)과 R3(Regulation/NCR 구조, v0.6.0 완료 — **공개 규정 Metadata 기반 RAG 구조** + **NCR Rule Set 구조**; 규정 원문 RAG·실제 NCR 산정 아님)가 완료되어 있다. STAB v0.6.1 WP-01/02/03a/03b/04 + UX-01/02(Resizable Layout+영속화) + **UX-WP-01·UX-WP-02·UX-WP-03 완료 — UX/STAB-UX 트랙 완료**(#56·#57·#59·#61·#66·#68·#70·#72·#73·#76, STAB-WP-05 코드서명 APPROVAL_REQUIRED) + **R2-WP-01(Risk Semantic Hardening, #79) · R2-WP-02(Streaming/Welford/상한, #81) · R2-WP-03(Prior-Day Analytics, #84) · R2-WP-04(Visualization/Report, #87) 완료 — R2 분석 트랙 완결**(전부 local-gate) + **REL-v0.7.0 버전 범프·v0.7.0 정식 릴리스(#90, 태그 `30c1cfb`, ZIP SHA256 `42C835…`, 미서명)**. UX 트랙 VERIFIED 범위는 **정적·NoModel·외부 Editor 0·자동삽입 0** 한정이며 실 LLM 랭킹/학습=**R4(미구현)**·실 Test PC Gate B/C=**BLOCKED**(과대표기 금지). **KB-WP-01 DONE**(#94; Clause Pack 계약·로더·가드). **KB-WP-02 DONE**(#101 `e911855`, local-gate; clause keyword 검색·`KbKeying` 단일원천·`ClauseSnippetAllowed` 게이트·asOf 유효구간·hash-only `KbClauseSearch` audit·`SourceTextAllowed` false 불변). **UX-WP-04 DONE**(#102 `73ca99e`, Excel Function Helper — embedded resource·UI 배선·자동삽입 0). **UX-WP-05 DONE**(#103 `01715f7`, Smart Assist as-you-type — Core `CompletionTriggerPolicy`·focus-preserving show·debounce·NoModel). **UX-WP-06 DONE**(#104 `e69a1ae`, 팝업 표시 확장 — display formatter·Insertable 게이트/audit 불변). **FEEDBACK-WP-01 DONE**(#106 `f8b330a`, local-gate; 승인 Example ingest 게이트(SQL/VBA Blocker 0 AND `ForbiddenTermScanner` 0)·본문 non-log `FeedbackDraftBodyInput` 분리·metadata-only fallback·`PromotedExampleRetriever` 결정적 검색(`OrderByDescending(Score).ThenBy(ExampleId,Ordinal)`)·hash-only `PromotedExampleSearch` audit — **RETRIEVAL, 학습 아님**·인박스·NuGet 0). **FEEDBACK-WP-02 DONE**(#108 `4e82e8f`, local-gate; 검색 승인 Example을 `DraftRequest.Context`에 review 경유 read-only 반영 — `DraftReferenceComposer` 결정적·원 Context 보존·`ReferencesReviewed` 게이트(자동주입 0)·`effectiveContext`를 `DraftRequest`·audit hash 양쪽에 사용(무참고 경로 RequestHash 불변)·hash-only reflection audit·`PromotedExampleRetriever` 미호출). **UX-WP-07 DONE**(#110 `246e577`, Smart Assist 표면화 하이진 — dedupe Kind 인지·Info/Low 힌트 필터(≥Medium)·`ICompletionProviderWarningSource` allow-function warning 표면화). **R2-WP-05 DONE**(#109 `e55f00d`, dead Welford `mean`/`m2` 필드 제거·동작 바이트 불변·Total 무변). **UX-WP-08 DONE**(#111 `10030be`, 팝업 Esc/Close 포커스 복원(`Close(restoreFocus)`)·실 포커스 렌더=Gate B). **UX-WP-09 DONE**(#113 `0f6e1d7`, local-gate; A-4 동일 finding 이중 핀 축소 — `CollapseDuplicateFindingPins`(BlockedHint 유지·같은 finding SafetyHint 제거)·`IsExplicitFinding`으로 `COMPLETION_FINDING_REQUIRED` fallback 그룹핑 제외·`Findings` 배열은 collapse 이전 산출(미손실 구조 보장)·HashSet membership 전용(결정적)·실 default provider `SQL_DML_DELETE` 1행 회귀 포함). **확장 트랙 Wave 1 DONE**(#115~#117: QA-WP-01 +15·QA-WP-02 +6·UX-WP-10 +6). **확장 트랙 Wave 2 DONE**(#119~#122, local-gate; QA-WP-03 Kb/citation 하드닝 +4·QA-WP-04 Report/RISK_VISUAL 하드닝 +5·QA-WP-05 Csv/Xlsx/DataProfile 하드닝 +4·UX-WP-11 Excel 함수 카탈로그 확장(차단 함수 추천 0 checker 가드) +3 — 전부 adversarial 4축 review·0 confirmed 후 머지). **확장 트랙 Wave 3 DONE**(#124~#127, local-gate; QA-WP-06 Ncr Rule Set 구조 하드닝 +4·QA-WP-07 UiContract/레이아웃 영속 하드닝 +4·QA-WP-08 Audit(해시전용)/Generation(NoModel) 하드닝 +8·QA-WP-09 Mapping/Packaging(무결성 manifest) 하드닝 +7 — 전부 순수 additive 테스트(제품 코드 0)·adversarial 리뷰 0 confirmed 후 머지; **인박스 SmokeTest 도메인 하드닝 스윕 완결**). **NEXT UP = REL-WP-071**(v0.7.1 출하 정합 릴리스 컷 — 결정지점은 제안서 채택 PR #131 `110e9ee`로 해소. 원장=`docs/39`, 릴리스 문서=`docs/52`, 프롬프트=`prompts/codex/REL-WP-071_release_cut_v0_7_1.md` **READY**. 정확히 3파일 락스텝·기능 0·단언 가감 0·`Total=900` 불변·STOP 비접촉 — 착수 전 `.claude/skills/risk-release-cut/` self-read). **병행(user-driven·Codex 비대상)**: Gate B/C Round 1(`docs/48 §B″`). 승인 게이트 3건(STAB-WP-05 서명·NCR 실 Pack·R4 LLM)=`docs/51` 결정 대기(승인 전 접촉 금지). **WP 시퀀스(완료) = KB-WP-01/02 → UX-WP-04/05/06 → FEEDBACK-WP-01/02 → cleanup(UX-WP-07·R2-WP-05·UX-WP-08·UX-WP-09) → Wave 1(QA-WP-01·QA-WP-02·UX-WP-10) → Wave 2(QA-WP-03·QA-WP-04·QA-WP-05·UX-WP-11) → Wave 3(QA-WP-06·QA-WP-07·QA-WP-08·QA-WP-09)**. **STAB-WP-05 인증서 경로 = A(사내 Enterprise CA) 확정**(나머지 §6.2·서명도구는 구현 WP, 실 증거 전 APPROVAL_REQUIRED 유지) — 본 시퀀스 뒤 병행. 실 Test PC Gate B/C 증거 = BLOCKED(`docs/48` 시트). 한 번에 WP 1개씩 구현하되, **파일 겹침이 없는 WP는 각각 독립 브랜치로 병렬 진행 가능**(확장 트랙 Wave 1~3이 이 파일-분리 병렬 모델로 완결; 각 WP는 여전히 자기 브랜치에서 단독 구현·보고). R4 Local LLM=설계/승인대기(Runtime APPROVAL_REQUIRED, STOP) · R6 Team Pilot=Gate B/C 미완료(BLOCKED). **완료된 MVP-1~3, R1, R3, R2(WP-01~05), REL-v0.7.0, KB-WP-01~02, UX-WP-04~11, QA-WP-01~09, FEEDBACK-WP-01~02를 재구현하지 않는다.**
+Completed MVP-1~3, R1, R2, R3, STAB-WP-01~04, UX-WP-01~11, KB-WP-01/02, FEEDBACK-WP-01/02, QA-WP-01~09, and REL-WP-071 are not redesigned. Core-only capabilities must not be described as user-facing until an App/WPF call site exists.
 
-작업 시작 전 반드시 읽는다:
-1. `docs/38_v1_Master_Roadmap.md` — Release Train / 현재 상태
-2. `docs/39_Work_Package_Backlog.md` — WP 백로그 + **Resume Brief의 NEXT UP**(집어야 할 WP 1개)
-3. `docs/40_ADR_Architecture_Evolution.md` — 아키텍처 결정
-4. `docs/41`(게이트), 해당 WP의 `prompts/codex/<WP-ID>_*.md`
-5. 보안 게이트 A: `docs/28_Security_Review_Checklist.md`
+## 1. Final Product Boundary
 
-> `docs/39` Resume Brief에서 **NEXT UP으로 지정된 단 하나의 WP**만 집는다. 여러 WP를 한 번에 구현하지 않는다.
+Build an offline, portable, human-reviewed risk-management Copilot for:
 
----
+- SQL/VBA/Excel 2021 safety checking and drafting support.
+- Golden6 manual Export CSV/XLSX profiling.
+- Exposure-Limit analysis, reconciliation, prior-day analytics, dashboard, and report.
+- Public regulation catalog/approved pack retrieval and review-draft citations.
+- Approved feedback example curation/retrieval and hash-only audit.
 
-## 1. 역할
+It is not an automatic DB/VBA executor, official legal interpretation engine, official NCR calculator, or autonomous model trainer.
 
-Codex = **Implementation Engineer / Test Engineer**. Claude(Architecture Lead/PM/Reviewer)가 작성한 WP를 작은 Diff로 구현·테스트하고, **Claude 승인 전에는 main에 Merge하지 않는다.**
+## 2. Required Reading
 
-작업 루프: Claude Planning → **Codex Implementation(1 WP)** → Claude Review → Codex Fix → Claude Final Gate → PR.
+Before material work read, in order:
 
----
+1. `AGENTS.md`, `SKILLS.md`, `CLAUDE.md`.
+2. `docs/38_v1_Master_Roadmap.md`.
+3. `docs/39_Work_Package_Backlog.md` Resume Brief and the one NEXT UP WP.
+4. `docs/40_ADR_Architecture_Evolution.md` and `docs/41_Approval_and_Pilot_Gates.md`.
+5. `docs/28_Security_Review_Checklist.md`.
+6. The selected `prompts/codex/<WP-ID>_*.md`.
+7. Relevant `.claude/skills/<skill>/SKILL.md` and its direct support files.
 
-## 2. 구현 우선순위
-1. 안전성 2. 감사 가능성 3. 유지보수성 4. 테스트 가능성 5. 성능 6. UI
+For repository-wide diagnosis, use `risk-repo-audit` before `risk-status-sync`/`risk-doc-truth-sync`/`risk-wp-planner`.
 
----
+## 3. Role And Workflow
 
-## 3. 절대 원칙 (불변)
+Codex is Implementation Engineer / Test Engineer. Work one WP at a time on `feature/<WP-ID>-*` unless the user explicitly requests a planning/truth-sync branch.
 
-- **외부 NuGet PackageReference = 0** (※ "최소화"가 아니라 **0**). 추가가 필요해지면 **즉시 STOP**하고 승인 문서를 작성한다(아래 §6).
-- 외부 API 호출 0 · Telemetry 0 · 자동 업데이트 0
-- SQL/VBA/Golden6 자동실행 0 · 운영 DB 접속문자열 포함 0
-- 해시 기반 Audit Log(원문 미저장) · **NoModelMode 유지**
-- 실데이터 / 실 테이블·컬럼명 / 내부규정 원문 / NCR 공식본 원문 / 모델파일·Runtime **repo 미포함**
-- 모델 가중치 자동학습 0
-- **기존 테스트 삭제·약화 금지** (총 테스트 수 감소 시 사유·매핑 필수)
-- 운영환경은 Portable Release ZIP 실행 전용
-- C# nullable enable 유지 · 쓰기 경로는 `logs/`/`reports/`/`config/`만 · 경로는 상대경로·경로 가드 우선
+```text
+Claude planning -> Codex implementation + local gate -> Claude review
+-> Codex fix -> final review -> squash PR -> truth-sync -> next WP
+```
 
----
+- Do not merge before required review/explicit user authorization.
+- Preserve unrelated user changes. Use a clean worktree when the root is dirty.
+- Never use force push, hard reset, or main direct push.
+- One WP has one measurable goal. Put unrelated findings in the backlog.
 
-## 4. STOP 규칙 (Dependency / Runtime)
+## 4. Non-Negotiables
 
-다음이 필요해지는 순간 **구현 STOP** → 승인 문서 작성 전까지 Dependency 추가 금지:
-외부 라이브러리 · NuGet · Vector DB · Embedding Runtime · Local LLM Runtime · 모델파일.
+- External NuGet `PackageReference` = 0.
+- External API, cloud API, telemetry, auto-update = 0.
+- SQL/VBA/Golden6 automatic execution = 0.
+- Audit logs store hashes, not source text; user identifiers are hashes.
+- No real company data, real schema dictionary, internal regulation original, NCR official original, credential, token, certificate/key, model file/runtime in the repository.
+- No automatic model-weight training.
+- Existing tests may not be deleted or weakened. Any total decrease requires explicit mapping and approval.
+- Nullable remains enabled. Prefer deterministic Ordinal ordering.
+- Mutable writes stay under `logs/`, `reports/`, or `config/` with containment guards.
+- Prod runs the self-contained portable ZIP only.
 
-STOP 문서에 포함: 필요 구성요소 · 도입 이유 · 라이선스 · 배포 크기 · 보안 영향 · 오프라인 가능성 · 메모리/CPU/GPU · 반입 방식 · 대안 · 승인 필요사항. (게이트: `docs/41`)
+## 5. STOP Rules
 
----
+STOP immediately before adding any external library/NuGet, Vector DB, Embedding runtime, Local LLM runtime/model, signing credential/tool, real NCR coefficient, or internal source document.
 
-## 5. 코딩/테스트 표준
+The approval packet must state component, reason, license, size, security impact, offline operation, CPU/RAM/GPU, ingress method, alternatives, rollback, and owner approval. Governing documents: `docs/40`, `docs/41`, `docs/51`.
 
-- 예외 메시지는 사용자 친화적, 로그에 민감정보 금지
-- 모든 위험 검사 결과는 코드/심각도/메시지/위치 포함
-- **SmokeTest**(외부 테스트 프레임워크 0)에 WP별 양성/음성 회귀 추가. 기존 단언 보존.
-- WP 완료 시 보고: build 결과 · SmokeTest 결과(**`Total=N PASS / 0 FAIL`** 합계 줄 포함) · Gate A 결과 · 변경 파일 · 양성 케이스.
-- **Local-Gate(현재 운영 모델)**: GitHub Actions 분 소진 동안 **build/test/packaging는 전부 Local에서 실행**하고 결과를 보고한다. 머지 게이트 = **로컬 `dotnet build` + SmokeTest `Total=N PASS/0 FAIL` 증거 + Claude 코드리뷰**(GitHub CI green을 전제로 요구하지 않음). CI(`ci.yml`)는 `workflow_dispatch` 수동(분 가용 시), test=ubuntu·wpf=windows. (`CLAUDE.md §11.6`)
+No approval means no dependency, model, credential, real Pack, or runtime change.
 
----
+## 6. Engineering Standard
 
-## 6. Release / Branch
+- Prefer existing Core contracts and fail-safe/fail-closed patterns.
+- Use structured parsers for CSV/XLSX/JSON/XML; no fragile ad hoc replacements.
+- Findings contain code, severity, message, and location when available.
+- User-facing errors are actionable and do not expose sensitive material.
+- Do not claim a Core-only method is available in WPF.
+- Do not claim a local package candidate is a published release.
+- `CheckCount == 0` or equivalent absence of validation must never be displayed as PASS.
 
-1. `build/00_check-prereqs.ps1` → `01_publish` → `02_package` → `03_verify-package`
-2. `deploy/release_checklist.md` 확인. 운영 반입 대상 = portable release ZIP(소스 ZIP 아님).
-3. Branch governance(`docs/32`·`docs/35`): PR 필수 · CI 필수 · Squash · main 직접 push 금지 · force push 금지 · Commit Subject에 `(#PR)`.
-4. 작업 브랜치: `feature/<WP-ID>-*`. 작은 Diff.
+For UI work, run architecture preflight first. `MainWindow.xaml.cs` is a known concentration point; `ARCH-WP-01` precedes broad new UI work after CORR/GOV.
 
----
+## 7. Test And Security Gate
 
-## 7. 금지 (재확인)
-실제 Golden6 자동접속 · 운영 DB 접속문자열 · VBA 자동실행 · 외부 API · 자동 업데이트 · telemetry · 모델파일 repo 포함 · 회사 실데이터 · 내부규정/NCR 원문.
+For code/tooling behavior changes:
 
-> 과대표기 금지: 실제 AI/RAG/NCR 능력을 실제보다 크게 적지 않는다. 구조만 있으면 SCAFFOLD_ONLY, 미적재면 PLACEHOLDER/APPROVAL_REQUIRED로 표기한다.
+```powershell
+dotnet build RiskManagementAI.sln -c Release
+dotnet run --project tests/RiskManagementAI.SmokeTests/RiskManagementAI.SmokeTests.csproj -c Release
+```
 
----
+Required report:
 
-## 8. Skill Bridge (Codex ↔ Claude Project Skills)
+- build warning/error count.
+- exact `Total=N PASS=N FAIL=0` and Unclassified count.
+- positive and negative regression cases.
+- external PackageReference 0.
+- Gate A result from `docs/28`/`risk-security-guard`.
+- changed files and user-facing behavior.
 
-Codex는 Claude Code Skill을 **자동 실행하지 못한다.** 따라서 Skill = **읽고 따르는 체크리스트**다.
+Hosted CI (`test`, `wpf-build`) is an independent second gate after this workflow change is merged and observed green. Local verification remains required for Windows/WPF/package evidence.
 
-- Codex는 구현 전 **`SKILLS.md`를 먼저 읽는다.**
-- Codex는 해당 WP에 관련된 **`.claude/skills/<skill-name>/SKILL.md`(+support `.md`)를 체크리스트처럼 참조**한다. 특히 **release(컷/검증) · security · RAG/NCR · Local LLM · data-limit · UI/UX · 구조 리팩터** 관련 작업은 해당 Skill 문서를 **먼저** 읽는다 — `risk-release-cut`(REL 컷: 버전 락스텝·기능 0·단언 0) · `risk-release-verify` · `risk-security-guard` · `risk-rag-ncr-governance` · `risk-llm-approval` · `risk-data-limit-review` · `risk-ui-ux-review` · `risk-arch-refactor`(행위 불변 분해).
-- Codex는 **Skill 문서를 수정하지 않는다**(사용자가 명시적으로 요청한 경우 제외).
-- Codex는 **Skill 원칙을 어기는 구현을 하지 않는다**(NuGet 0 · 자동실행 0 · STOP · 원문/실데이터/모델파일 미포함 등).
-- 구현 완료 보고에 **"사용한 Skill 체크리스트"를 명시**한다.
+## 8. Release And Gate Rules
 
-> 상세 사용법·호출 순서 = `SKILLS.md`, `prompts/codex/README_skills_usage.md`, `docs/49_Project_Skills_Guide.md`. Skill 본문은 `CLAUDE.md §12`와 정합.
+Release sequence:
 
----
+```text
+build/00_check-prereqs.ps1
+build/01_publish-win-x64.ps1
+build/02_package-release.ps1
+build/03_verify-package.ps1
+```
 
-## 9. Automatic Skill Bridge (자동 참조 — 사용자 재요청 불필요)
+- Rebuild from the exact commit that will be tagged. A later merge invalidates the previous candidate SHA/provenance.
+- Attach only portable ZIP, `.sha256`, and ReleaseNote unless the release WP explicitly adds an approved artifact.
+- Unsigned artifacts must say unsigned. Signing remains STAB-WP-05 approval-gated.
+- Gate B/C PASS requires real Test-PC evidence. User-reported success is recorded as such and does not replace missing evidence/checklist rows.
+- Team Pilot requires formal Gate B/C and real KPI/rollback evidence.
 
-§8 Skill Bridge를 **자동 절차로 고정**한다. Codex는 사용자가 매번 `AGENTS.md`/`SKILLS.md`/관련 Skill 문서를 붙여넣지 않아도, **모든 구현 착수 전 항상** 다음을 스스로 읽는다:
+## 9. Status Vocabulary
 
-1. `AGENTS.md` (본 파일 — 우선순위·절대원칙·STOP·Gate)
-2. `SKILLS.md` (Skill 인덱스 · 자동 적용/자동 Preflight/STOP Gate 분류 = `SKILLS.md §6`)
-3. 해당 WP에 **관련된 `.claude/skills/<skill-name>/SKILL.md`(+support)** — 작업 유형별 매핑 = `prompts/codex/README_skills_usage.md §1`
-4. 지정 **NEXT UP WP의 Codex 프롬프트** `prompts/codex/<WP-ID>_*.md`
+Use only: `VERIFIED`, `PARTIAL`, `SCAFFOLD_ONLY`, `PLACEHOLDER`, `BLOCKED`, `NOT_IMPLEMENTED`, `APPROVAL_REQUIRED`.
 
-- Codex는 위 문서 목록을 **사용자에게 다시 요구하지 않는다**(자동 참조가 기본값).
-- Codex는 완료 보고에 **"Applied Skill Checklists"** 섹션을 포함한다(적용한 Skill 명시 = §5 "사용한 Skill 체크리스트"의 영문 명칭).
-- release(컷/검증) · security · RAG/NCR · Local LLM · data-limit · UI/UX · 구조 리팩터 작업은 해당 Skill 문서를 **먼저** 읽는다(§8과 동일). **REL 컷 WP = `risk-release-cut`**(기능 변경 0·단언 가감 0·STOP 접촉 0·산출물 4종 검증). **구조 리팩터 WP = `risk-arch-refactor`**(행위 변경 0·계약 테스트 이전·MVVM 빅뱅 금지). **Local LLM/Runtime/모델/Embedding은 `risk-llm-approval` = STOP** — 승인 전 의존성·모델·Runtime 추가 0.
-- Codex는 **Skill 문서를 수정하지 않는다**(사용자 명시 요청 제외).
+Evidence qualifiers such as `local-gate`, `Core-only`, `user-reported`, and `published` must remain explicit. Do not use DONE/PASS without scope and evidence.
 
-### 9.1 예시 — "STAB-UX-01 구현해"
-사용자가 WP 이름만 말해도 Codex는 자동으로 다음을 적용한다:
-- `risk-ui-ux-review` (WPF/Editor/Smart Assist 검토축)
-- `risk-smoke-governance` (SmokeTest 단언 보존·약화 금지·Unclassified=0)
-- `risk-security-guard` (Gate A · 민감정보/실데이터/원문/모델파일 0)
-- `prompts/codex/STAB-UX-01_resizable_editor_layout.md` (해당 WP 프롬프트)
+## 10. Skill Bridge
 
-→ 보고: `Applied Skill Checklists: risk-ui-ux-review, risk-smoke-governance, risk-security-guard`.
+Codex reads project Skills as checklists; it does not pretend they executed automatically.
 
-> Claude 측 자동 Preflight = `CLAUDE.md §13`. 분류 = `SKILLS.md §6`. 상세 = `prompts/codex/README_skills_usage.md`.
+- Repository diagnosis: `risk-repo-audit`.
+- State/docs/planning: `risk-status-sync`, `risk-doc-truth-sync`, `risk-wp-planner`.
+- Every change: `risk-security-guard`.
+- Tests: `risk-smoke-governance`.
+- PR/review: `risk-codex-review`, `risk-branch-governance`.
+- Release: `risk-release-cut`, `risk-release-verify`.
+- UI/refactor: `risk-ui-ux-review`, `risk-arch-refactor`.
+- Data/risk: `risk-data-limit-review`, `risk-analytics-design`.
+- KB/NCR: `risk-rag-ncr-governance`.
+- Feedback: `risk-feedback-learning`.
+- Local model: `risk-llm-approval` then STOP.
+- Test PC/Pilot: `risk-gate-bc`, `risk-team-pilot`.
+
+Completion reports include `Applied Skill Checklists: ...`. Skill files are changed only when the user explicitly asks for Skill improvement.
+
+## 11. Branch And PR
+
+- Branch: `feature/<wp-id>-<slug>`, `planning/<slug>`, `release/vX.Y.Z`, or `hotfix/<slug>`.
+- PR required, squash only, subject includes `(#PR)`.
+- No force push, branch deletion bypass, or main direct push.
+- Live head SHA must be rechecked before merge.
+- Public-repository hard protection and actual CI check names are governed by `docs/32`; do not require a nonexistent check.
+
+## 12. Completion Report
+
+Report role, repo path, reviewed SHA, deployment class, tests, Gate A, formal Gate status, known blockers, next action owner, and guide/Skill update status. Keep Core implementation, WPF reachability, published artifact, Test-PC evidence, and approval state separate.

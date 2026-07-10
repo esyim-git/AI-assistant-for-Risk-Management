@@ -1,18 +1,24 @@
 name: governance-soft-guard
 
-# Manual only while GitHub Actions minutes are exhausted (see ci.yml for the operating model).
-# Squash-merge + "(#PR)" commit-subject discipline is currently enforced by the Claude-driven
-# merge process + code review. To restore automatic enforcement after the monthly reset, add back:
-#   push:
-#     branches: [ main ]
-#   pull_request:
-#     branches: [ main, develop ]
+# Advisory post-merge provenance check. Hard branch protection is the primary
+# control once docs/32 Phase A is applied.
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: governance-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   main-soft-guard:
+    name: main-soft-guard
     runs-on: windows-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:

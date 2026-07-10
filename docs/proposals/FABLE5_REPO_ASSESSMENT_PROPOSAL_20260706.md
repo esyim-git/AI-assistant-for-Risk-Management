@@ -1,5 +1,7 @@
 # Risk Management AI Assistant — Repository Assessment and Success Proposal
 
+> **역사 문서**: 2026-07-06 시점의 제안과 채택 근거를 보존한다. 2026-07-10 현재 증거·결함·실행 순서의 정본은 `docs/53_Repository_Audit_and_v1_Execution_Plan.md`와 `docs/39_Work_Package_Backlog.md`의 Current Resume Brief다.
+
 > **작성**: 2026-07-06, Fable 5 (Architecture Lead / Program Reviewer 역할 수행)
 > **성격**: 검토용 제안서(Proposal) — 코드 동작을 바꾸지 않으며, 의존성·모델·런타임·실 계수를 추가하지 않는다. 본 문서는 판정(승인)이 아니라 **평가 + 제안**이다. 상태 어휘는 `CLAUDE.md §11.4` 정본(VERIFIED · PARTIAL · SCAFFOLD_ONLY · PLACEHOLDER · BLOCKED · NOT_IMPLEMENTED · APPROVAL_REQUIRED)만 사용한다.
 > **기준선**: main `44d1be1`(#130 머지 후) · 코드/테스트 baseline `7094d91`(#127 QA-WP-09; #128~#130은 docs-only라 baseline 불변 — drift 아님) · VERSION `0.7.0` · v0.7.0 태그 `30c1cfb`(미서명, ZIP SHA256 `42C835…E09DD5`) · 직전 v0.6.0 태그 `3dfa80b` · 정본 SmokeTest **`Total=900 PASS=900 FAIL=0`**(local-gate) · 열린 PR 0.
