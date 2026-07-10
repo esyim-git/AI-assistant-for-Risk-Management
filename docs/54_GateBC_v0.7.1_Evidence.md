@@ -59,16 +59,25 @@ if ($Actual -ne $Expected) { throw 'B0 FAIL: published ZIP SHA256 mismatch.' }
 ```powershell
 $Extract = '.\RiskManagementAI-v0.7.1'
 Expand-Archive -LiteralPath $Zip -DestinationPath $Extract -Force
+$ExtractRoot = (Resolve-Path -LiteralPath $Extract).Path
+$PrefixLength = $ExtractRoot.Length + 1
 Get-ChildItem -LiteralPath $Extract -Recurse |
-  Select-Object FullName,Length |
+  ForEach-Object {
+    [pscustomobject]@{
+      RelativePath = $_.FullName.Substring($PrefixLength)
+      Length = if ($_.PSIsContainer) { $null } else { $_.Length }
+    }
+  } |
   Out-File .\evidence\gateBC\v0.7.1\B1-tree.txt
 
 $Forbidden = Get-ChildItem -LiteralPath $Extract -Recurse -File | Where-Object {
-  $_.Extension -match '^\.(gguf|safetensors|onnx|pt|pem|key|pfx|p12|cer|crt|der|env)$' -or
+  $_.Extension -match '^\.(gguf|bin|safetensors|onnx|pt|pem|key|pfx|p12|cer|crt|der|env)$' -or
   $_.FullName -match '(?i)[\\/](real_data|secrets|credentials|exports|internal_[^\\/]*)[\\/]' -or
   $_.Name -like 'internal_*'
 }
-$Forbidden | Select-Object FullName | Out-File .\evidence\gateBC\v0.7.1\B2-forbidden-scan.txt
+$Forbidden |
+  ForEach-Object { $_.FullName.Substring($PrefixLength) } |
+  Out-File .\evidence\gateBC\v0.7.1\B2-forbidden-scan.txt
 if ($Forbidden) { throw 'B2 FAIL: forbidden release content detected.' }
 ```
 
@@ -87,7 +96,7 @@ Confirm `RiskManagementAI.exe`, `run.bat`, `approved_manifest.json`, and `config
 Use dummy inputs only and complete the rows in section 5 in this order:
 
 1. **B4**: load the packaged CP949 and UTF-8 dummy CSV files. In Excel 2021, open copies of the dummy exposure/limit CSV files and Save As `.xlsx`, then load those XLSX copies. For 7-state coverage, use separate synthetic copies only: normal (<0.9), warning (0.9~1.0), breach (>1.0), unmatched exposure key (`NO_LIMIT`), non-positive or inactive limit (`INVALID_LIMIT`), missing required dummy header (`MAPPING_ERROR`), and duplicate limit join key (`DUPLICATE_LIMIT`).
-2. **B5**: confirm all 9 reconciliation checks and source-to-analysis balance PASS for a clean fixture.
+2. **B5**: inspect all 9 reconciliation rows. Require every applicable check and source-to-analysis balance to PASS; when optional currency/unit columns are absent on both sides, accept `RECON_CURRENCY_MISMATCH` and `RECON_UNIT_MISMATCH` as N/A rather than PASS.
 3. **B6**: compare Dashboard and generated `LIMIT_MONITORING`; capture identical counts/amounts and `DuplicateLimitCount`.
 4. **B9**: open `RISK_VISUAL`; confirm 7-state distribution, TopN, HHI, Heatmap, currency warning, and exact numeric Exception Count.
 5. **B10**: confirm WPF chart/heatmap rendering at normal and resized window dimensions.
@@ -125,7 +134,7 @@ Use dummy inputs only and complete the rows in section 5 in this order:
 | B2 forbidden files 0 | [ ] | | `B2-forbidden-scan.txt` | |
 | B3 offline NoModel startup | [ ] | | `B3-*` | |
 | B4 CP949/UTF-8/XLSX + 7 states | [ ] | | `B4-*` | |
-| B5 reconciliation 9 / balance | [ ] | | `B5-*` | |
+| B5 reconciliation 9 / balance | [ ] | | applicable PASS; optional currency/unit may be N/A; `B5-*` | |
 | B6 Dashboard = Report | [ ] | | `B6-*` | |
 | B7 streaming profile WPF reachability | [ ] | `N/A (local-gate only)` | SmokeTest 907 | |
 | B8 Prior-Day WPF reachability | [ ] | `N/A (local-gate only)` | SmokeTest 907 | |

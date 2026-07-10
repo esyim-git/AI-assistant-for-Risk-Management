@@ -14,7 +14,7 @@
 | Build / SmokeTest | warning 0, error 0 / `Total=907 PASS=907 FAIL=0` |
 | 외부 NuGet | `PackageReference` 0, `NuGet.Config <clear/>` |
 | Formal Gate B/C | `BLOCKED` for v0.7.1 (`docs/54`); v0.7.0 user-reported 이력은 `docs/48` |
-| NEXT UP | `GOV-WP-02`; published v0.7.1 Gate B/C는 사용자 병행 (`docs/54`) |
+| NEXT UP | `GOV-WP-02` (`prompts/codex/GOV-WP-02_branch_security_governance.md`); published v0.7.1 Gate B/C는 사용자 병행 (`docs/54`) |
 
 전체 진단·근거·로드맵은 [docs/53_Repository_Audit_and_v1_Execution_Plan.md](docs/53_Repository_Audit_and_v1_Execution_Plan.md), 실행 원장은 [docs/39_Work_Package_Backlog.md](docs/39_Work_Package_Backlog.md)를 따른다.
 

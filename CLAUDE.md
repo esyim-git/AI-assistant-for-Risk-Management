@@ -8,7 +8,7 @@ Claude Code is Architecture Lead, Program Manager, Security/Release Reviewer, an
 - VERSION `0.7.1`; authoritative local SmokeTest `Total=907 PASS=907 FAIL=0`.
 - Latest published release is unsigned `v0.7.1` at `fa755256`; ZIP SHA256 is `282B71385FEE83B4ED7AD221CAF84AD3A6B4E2B5E5191601F4240AEED0419018`.
 - Formal Gate B/C is `BLOCKED` for v0.7.1 (`docs/54`); v0.7.0 user-reported history in `docs/48` does not carry forward.
-- **NEXT UP = GOV-WP-02**. User-driven Gate B/C proceeds in parallel against the published v0.7.1 assets (`docs/54`); `docs/48` remains v0.7.0 historical evidence.
+- **NEXT UP = GOV-WP-02** with executable package in `docs/39` and `prompts/codex/GOV-WP-02_branch_security_governance.md`. User-driven Gate B/C proceeds in parallel against the published v0.7.1 assets (`docs/54`); `docs/48` remains v0.7.0 historical evidence.
 - Full evidence and roadmap: `docs/53_Repository_Audit_and_v1_Execution_Plan.md`.
 
 Do not redesign completed MVP-1~3, R1, R2, R3, STAB-WP-01~04, UX-WP-01~11, KB-WP-01/02, FEEDBACK-WP-01/02, QA-WP-01~09, REL-WP-071 published release, or CORR-WP-01.

@@ -9,7 +9,7 @@
 - v0.7.1 code cut + CORR-WP-01 + final rebuild/tag/Release: `VERIFIED` (published release evidence attached).
 - Pre-CORR candidate (`abab29b`, SHA256 `A70D0B37AD92344A2ECFBE0D4D96360F56CBAFFF94363249F0BD1A20ADC1ECDC`) is invalid after #135 and must not be published.
 - Formal Gate B/C: `BLOCKED` (`docs/54`). v0.7.0 user-reported evidence remains historical in `docs/48`; v0.7.1 starts a release-specific round.
-- **NEXT UP = GOV-WP-02** (hosted evidence + branch protection + secret-scanning alignment). Published v0.7.1 Gate B/C is user-driven in parallel (`docs/54`).
+- **NEXT UP = GOV-WP-02** (hosted evidence + branch protection + secret-scanning alignment; package `docs/39`, prompt `prompts/codex/GOV-WP-02_branch_security_governance.md`). Published v0.7.1 Gate B/C is user-driven in parallel (`docs/54`).
 
 Completed MVP-1~3, R1, R2, R3, STAB-WP-01~04, UX-WP-01~11, KB-WP-01/02, FEEDBACK-WP-01/02, QA-WP-01~09, REL-WP-071 published release, and CORR-WP-01 are not redesigned.
 

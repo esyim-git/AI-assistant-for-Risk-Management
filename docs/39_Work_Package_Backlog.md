@@ -14,7 +14,7 @@
 - **Pre-CORR candidate (`abab29b`)**: SHA256 `A70D0B37AD92344A2ECFBE0D4D96360F56CBAFFF94363249F0BD1A20ADC1ECDC` remains historical-invalid and was not published.
 - **Formal Gate B/C**: `BLOCKED` for v0.7.1 (`docs/54`). v0.7.0 user-reported B0~B3/major functions/C1~C5 remain historical in `docs/48` and are not carried forward as v0.7.1 PASS.
 - **Release blocker closed**: CORR-WP-01 #135 renders zero checks as `NOT_RUN` and preserves nonzero PASS/FAIL.
-- **NEXT UP = GOV-WP-02** (protection/security settings and hosted evidence). **Parallel user-driven**: published v0.7.1 Gate B/C round (`docs/54`).
+- **NEXT UP = GOV-WP-02** (protection/security settings and hosted evidence; prompt `prompts/codex/GOV-WP-02_branch_security_governance.md`). **Parallel user-driven**: published v0.7.1 Gate B/C round (`docs/54`).
 - **After NEXT UP**: ARCH-WP-01 -> UI-WP-12 -> remaining Core-to-WPF reachability -> .NET 10 -> formal Gate B/C closure -> Team Pilot.
 - **Approval tracks remain STOP**: STAB-WP-05 signing, real NCR/internal Pack, Local LLM runtime/model.
 - **Current assessment**: `docs/53_Repository_Audit_and_v1_Execution_Plan.md`; published release evidence: `docs/52_Release_v0.7.1.md` (completed CORR/REL prompts are not rerun).
@@ -41,6 +41,25 @@
 - **운영 모델(Local + Hosted Gate)**: PR 자동 `test`/`wpf-build` 트리거는 #134에서 복원됐고 #135 run #210이 둘 다 success였다. Local build/SmokeTest/package 증거와 Claude 코드리뷰는 계속 필수이며 hosted CI를 대체하거나 hosted CI로 대체되지 않는다. hard protection/secret scanning은 GOV-WP-02 후속이다.
 - **테스트 수 변경 규약**: 총수 감소 시 사유·매핑 기록(삭제·약화 금지). STAB-WP-02가 합계·도메인 요약·실행시간을 출력하고, 미분류 도메인(`Unclassified`)이 남으면 실패한다.
 - **⚠️ Archived(재실행 금지) 프롬프트**: `prompts/codex_mvp1_implementation_prompt.md`, `prompts/codex_mvp2_*`, `prompts/codex_mvp3_ui_prompt.md`, `prompts/codex_goal_mode_prompt.md`, `prompts/claude_bootstrap_v2_prompt.md`, `prompts/codex/WP-01~07_*`, `prompts/codex/R3-WP-01~05_*`, `prompts/codex/REL-v0.6-packaging-guard.md`, `prompts/codex/REL-WP-071_release_cut_v0_7_1.md`, `prompts/codex/CORR-WP-01_reconciliation_not_run.md`, `prompts/codex/STAB-WP-01_*`, `prompts/codex/STAB-WP-02_*`, `prompts/codex/STAB-WP-04_*`, `prompts/codex/STAB-UX-01_*`, `prompts/codex/UX-WP-01_*` — 모두 **완료/Starter** 단계. 신규 작업은 본 Resume Brief의 NEXT UP만 따른다.
+
+## GOV-WP-02. Public Branch / Security Governance — **NOT_IMPLEMENTED (prompt prepared)** (Cap C-32, RR-18)
+
+- **목표**: public repository의 live `main` protection과 secret scanning/push protection을 실제 check `test`·`wpf-build`에 맞춰 적용하고, single-account self-review deadlock 없이 API readback 증거로 정본화한다.
+- **선행조건**: v0.7.1 release와 post-release truth-sync 머지 완료; hosted `test`·`wpf-build` exact-head green; repository admin 권한. 원격 설정 변경 직전 explicit operator approval 1회가 필요하다.
+- **작업범위**: (1) visibility/default branch/merge policy/protection/rulesets/`security_and_analysis`/latest check runs read-only preflight, (2) 승인 후 Phase A protection 적용(PR required, approvals 0, Code Owner OFF, strict `test`+`wpf-build`, conversation resolution, linear history, admin enforcement where available, force/deletion OFF), (3) secret scanning + push protection ON, (4) REST readback과 governance truth-sync.
+- **제외범위**: product code/tests/release asset/tag/VERSION 변경, workflow job rename, direct/force main push probe, approval 1·Code Owner 강제, signing/NCR/LLM/Gate B/C/Team Pilot, 우회 설정.
+- **읽을문서**: `AGENTS.md`, `SKILLS.md`, `docs/32`, `docs/38`, 본 WP, `docs/53`, `docs/28`, `.claude/skills/risk-branch-governance/`, `.claude/skills/risk-security-guard/`, `.claude/skills/risk-doc-truth-sync/`, 지정 prompt.
+- **수정예상파일**: `docs/32_Branch_Governance.md`, `docs/53_Repository_Audit_and_v1_Execution_Plan.md`, `docs/38_v1_Master_Roadmap.md`, 본 `docs/39`; current truth가 이동할 때만 README/AGENTS/CLAUDE/SKILLS. `.github/workflows/*`는 factual drift가 확인되면 STOP 후 별도 scope amendment 없이는 수정하지 않는다.
+- **Public Interface**: 제품/API 계약 변경 없음. GitHub repository governance settings만 외부 상태로 변경된다.
+- **구현세부**: fresh `feature/gov-wp-02-branch-security-governance`에서 Phase 1 read-only snapshot → exact proposed settings diff 보고 → **STOP/사용자 승인** → REST PATCH → REST 재조회. PATCH 성공 응답만으로 PASS 금지. API/plan이 일부 설정을 거부하면 해당 항목만 `BLOCKED`로 기록하고 우회하지 않는다.
+- **보안조건**: 응답 token/header/credential 저장 0; repo secret 불필요; Actions token read-only; self-hosted company runner 0; 외부 NuGet/API 제품도입 0; Gate A 0.
+- **테스트**: `dotnet build -c Release` 0/0; SmokeTest `Total=907 PASS=907 FAIL=0`, Unclassified 0; PackageReference 0; Gate A 0; GOV PR hosted `test`/`wpf-build` success; protection/security API before/after 값 비교. direct/force push로 보호를 시험하지 않는다.
+- **완료조건**: Phase A target이 REST readback과 일치하고 secret scanning/push protection이 ON이거나, 지원 불가 항목만 구체적 `BLOCKED`로 남는다. approvals 0·Code Owner OFF로 single-account deadlock 0. docs/32·38·39·53 current truth 정합. 다음 NEXT UP을 하나로 지정한다.
+- **Branch**: `feature/gov-wp-02-branch-security-governance`.
+- **Commit**: `docs: harden branch and security governance (GOV-WP-02)`.
+- **Claude Review Checklist**: live-before/after evidence / actual checks exact / approvals 0 anti-deadlock / PR+strict checks+conversation+linear ON / admin enforcement availability / force+deletion OFF / secret scanning+push protection / no direct-push probe / no product/workflow drift / Gate A·907 / STOP approval honored / truth-sync.
+
+> Codex start prompt: `prompts/codex/GOV-WP-02_branch_security_governance.md`.
 
 ## CORR-WP-01. Report Reconciliation `NOT_RUN` truth-state — **VERIFIED (#135, `4efb8e6`)** (Cap C-31, RR-17)
 

@@ -7,7 +7,7 @@ Project Skills make Claude and Codex repeat fragile repository workflows consist
 - v0.7.1 release Build Commit: `fa755256` (PR #136, docs-only). Product code-test baseline remains `4efb8e6` (PR #135); docs/workflow-only merges may advance current main without changing either.
 - VERSION `0.7.1`, SmokeTest `Total=907 PASS=907 FAIL=0`.
 - Latest published release: unsigned `v0.7.1`, ZIP SHA256 `282B71385FEE83B4ED7AD221CAF84AD3A6B4E2B5E5191601F4240AEED0419018`.
-- NEXT UP: `GOV-WP-02`; user-driven Gate B/C runs in parallel on the published v0.7.1 ZIP using `docs/54`.
+- NEXT UP: `GOV-WP-02` (`docs/39` + `prompts/codex/GOV-WP-02_branch_security_governance.md`); user-driven Gate B/C runs in parallel on the published v0.7.1 ZIP using `docs/54`.
 
 Current truth: `docs/53_Repository_Audit_and_v1_Execution_Plan.md` and `docs/39` Resume Brief.
 
