@@ -21,7 +21,7 @@ Gate B(오프라인 Test PC)·Gate C(Excel 2021/운영 반입) 증거 원장(현
 - **실 오프라인 Test PC 증거가 없으면 항목 `BLOCKED` 유지** — `PASS`로 적지 않는다. user-reported(증거 미첨부)는 봉인 PASS가 아니라 `user-reported`로만 기록한다(`docs/54 §2·§4`). (CLAUDE.md §11.4)
 - 상태 어휘는 정본만: `VERIFIED`/`PARTIAL`/`SCAFFOLD_ONLY`/`PLACEHOLDER`/`BLOCKED`/`NOT_IMPLEMENTED`/`APPROVAL_REQUIRED`. **과대표기 금지.**
 - 전체 `PASS` 조건: **모든 적용 대상 항목 `PASS`**(문서에 명시된 `N/A`/`ACCEPTED_RISK` 예외 수용 포함). 하나라도 누락/불일치면 해당 항목 + 전체 `BLOCKED` 유지. (`docs/54 §4`)
-- **증거 민감정보 금지**: 원장/증거 파일(`evidence/gateB/*` — 해시 출력·스크린샷·로그)에 **실거래/실포지션/고객정보·실 테이블/컬럼/시스템명·내부규정 원문·NCR 공식본 원문·계정/비밀정보·secret·모델파일** 포함 금지. 검증 입력은 `samples/` **dummy 데이터만** 사용하고, 캡처에 사내 정보 노출 소지가 있으면 **masking된 화면만** 저장한다. 증거 커밋 전 Gate A(`risk-security-guard`) 스캔을 증거 파일에도 동일 적용한다. 더미는 `RISK_EXPOSURE_DAILY`/`RISK_LIMIT_MASTER`만.
+- **증거 민감정보 금지**: 원본 증거 파일(`evidence/gateBC/*` — 해시 출력·스크린샷·로그)은 gitignored local-only이며 force-add/commit 금지다. **실거래/실포지션/고객정보·실 테이블/컬럼/시스템명·내부규정 원문·NCR 공식본 원문·계정/비밀정보·secret·모델파일**을 포함하지 않는다. 검증 입력은 `samples/` **dummy 데이터만** 사용하고, 캡처는 masking한다. 별도 정제 요약을 PR에 첨부할 때만 Gate A(`risk-security-guard`)를 적용한다. 더미는 `RISK_EXPOSURE_DAILY`/`RISK_LIMIT_MASTER`만.
 - **릴리스 분리 규칙**: v0.7.1은 `docs/54`, v0.7.0은 `docs/48`에 기록한다. 서로 다른 릴리스의 PASS/user-reported 결과를 승계하지 않으며, **test-only 로컬 빌드로 출하본 게이트를 봉인(PASS)하지 않는다**.
 - 이 스킬은 **프로세스/체크리스트 가이드**다. 코드·산출물 동작을 바꾸지 않으며, 원장 `.md`만 `Edit`한다.
 

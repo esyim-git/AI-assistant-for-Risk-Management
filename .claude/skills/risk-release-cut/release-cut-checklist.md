@@ -32,7 +32,7 @@ REL WP 실행용. 코드 동작·테스트 단언을 바꾸지 않는다. 상태
 ## 5. 발행·후속
 - [ ] 태그 `vX.Y.Z` = 컷 커밋(로컬에서 push — 웹 세션 403).
 - [ ] GitHub Release: 본문에 릴리스 노트 + ZIP SHA256 + 미서명 고지, 첨부 = ZIP·`.sha256`·ReleaseNote만.
-- [ ] 신규 Gate B/C 증거 문서(또는 docs/48 갱신) 초기 상태 = **BLOCKED**(실 PC 증거 대기).
+- [ ] 신규 Gate B/C 증거 문서를 현재 `docs/54` 양식으로 별도 생성하고 초기 상태 = **BLOCKED**(실 PC 증거 대기). 과거 릴리스 원장을 갱신하지 않는다.
 - [ ] truth-sync: README·`docs/38`·`docs/39`·`SKILLS.md`/`CLAUDE.md`/`AGENTS.md` 기준선·태그·ZIP SHA 반영(`risk-doc-truth-sync`).
 
 ## 보고 양식
@@ -43,5 +43,5 @@ REL-vX.Y.Z 컷 보고
 - 로컬 게이트: build 0/0 · Total=N PASS / 0 FAIL (불변) · Gate A 0건 · PackageReference 0
 - 산출물: ZIP SHA256 <hash> · ReleaseNote/DependencyList/approved_manifest PASS
 - 발행: 태그 <sha> · Release <URL> (미서명 고지 포함)
-- Gate B/C: BLOCKED (증거 대기, docs/48)
+- Gate B/C: BLOCKED (증거 대기, 현재 릴리스별 원장; v0.7.1은 `docs/54`)
 ```

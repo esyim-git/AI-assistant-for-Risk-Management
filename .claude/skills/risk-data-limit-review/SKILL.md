@@ -30,7 +30,7 @@ paths:
 1. **합성한도 점검**: `노출×배수`·`1.1m` 류 합성 한도 산식이 `src/`에 0개인지 확인. 실 한도 부재 시 빈 입력 경로가 `LIMIT_DATA_REQUIRED`/`DEMO_ONLY`로 끝나는지 확인.
 2. **ColumnMapping 점검**: 기본=현행 호환(`ColumnMapping.SafeDefaults()`), 커스텀은 all-or-nothing(누락/중복 시 fallback), `config/` 경로 가드(`ColumnMappingLoader.IsSafeRelativeConfigPath`). **미승인 매핑 미반영** 확인.
 3. **상태셋·대사 점검**: `LimitMonitorStatus` **7상태**(`NORMAL/WARNING/BREACH/NO_LIMIT/INVALID_LIMIT/MAPPING_ERROR/DUPLICATE_LIMIT` — R2-WP-01 #79 ADD-ONLY) 분류와 대사 9종(`RECON_*`)·`ReconciliationSummary` 활성/적용(Applicable) 여부 확인. 중복 Join Key는 임의 선택 없이 `DUPLICATE_LIMIT`로 차단되는지 확인(`JoinAudit` 기록 포함).
-4. **전일대비(Prior-Day) 점검**: `PriorDayAnalyzer`가 기존 `LimitMonitor.Analyze` 2회 diff(새 엔진 재구현 0)·same-day guard·`PRIOR_DAY_DUPLICATE_KEY`/`BASE_DT_FORMAT_MISMATCH` Hidden-Risk·4구획 계약을 유지하는지 확인. 현재 WPF call site 미노출 상태는 local-gate 전용으로만 표기(docs/48 B8).
+4. **전일대비(Prior-Day) 점검**: `PriorDayAnalyzer`가 기존 `LimitMonitor.Analyze` 2회 diff(새 엔진 재구현 0)·same-day guard·`PRIOR_DAY_DUPLICATE_KEY`/`BASE_DT_FORMAT_MISMATCH` Hidden-Risk·4구획 계약을 유지하는지 확인. 현재 WPF call site 미노출 상태는 local-gate 전용으로만 표기(docs/54 B8; docs/48은 v0.7.0 historical).
 5. **실데이터·결정성 점검**: 실 테이블/컬럼명·실데이터 미포함(더미 일반명만), `IsDeterministic=true`(동일 입력=동일 수치), 읽기 전용·자동실행 0 확인.
 
 ## 산출물/보고

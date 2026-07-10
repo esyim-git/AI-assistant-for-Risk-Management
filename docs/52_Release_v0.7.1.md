@@ -68,7 +68,7 @@ git push origin v0.7.1
 - 수동 업로드 asset은 portable ZIP(72,337,105 bytes) + `.sha256`(112 bytes) + packaging-generated `ReleaseNote-v0.7.1.md`(837 bytes) 정확히 3개다. GitHub가 자동 제공하는 Source code(zip/tar.gz)는 수동 asset이 아니며 운영 반입 금지다. **유일한 runtime 반입물은 portable ZIP**이다. 모델/DependencyList는 GitHub asset으로 첨부하지 않았다.
 - GitHub 계산 ZIP digest `sha256:282b71385fee83b4ed7ad221caf84ad3a6b4e2b5e5191601f4240aeed0419018`가 로컬/sidecar/ReleaseNote SHA와 일치한다.
 - Release 본문은 §1 요약, 최종 SHA256, 미서명 고지, Gate B/C `BLOCKED`를 포함한다.
-- 2026-07-11 Release 본문의 Gate B/C handoff를 v0.7.1 정본 `docs/54`로 정정했다. `docs/48`은 v0.7.0 historical evidence다.
+- 2026-07-11 KST(2026-07-10 UTC) Release 본문의 Gate B/C handoff를 v0.7.1 정본 `docs/54`로 정정했다. `docs/48`은 v0.7.0 historical evidence다.
 - Gate B/C는 발행으로 자동 PASS가 되지 않는다. 사용자는 이 published ZIP을 받아 `docs/54`의 v0.7.1 라운드로 증거를 봉인한다.
 
 > 관련: `docs/54`(v0.7.1 Gate B/C 정본), `docs/48`(v0.7.0 역사 증거), `docs/47`(v0.7.0), `docs/24`(패키징), `docs/41 §4·§6`(게이트), `docs/51`(승인 결정 패킷), `docs/proposals/FABLE5_REPO_ASSESSMENT_PROPOSAL_20260706.md §10 WP-B`, `.claude/skills/risk-release-cut/`(컷 절차 정본), `prompts/codex/REL-WP-071_release_cut_v0_7_1.md`.

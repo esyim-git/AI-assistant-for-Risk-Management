@@ -60,8 +60,8 @@
 - [ ] Movement 분류(`New/Resolved/Increased/Decreased/Unchanged/StateTransition`) · TopN movers는 `|UsageRatioDelta|` 기준(New/Resolved/StateTransition 제외).
 - [ ] Hidden-Risk finding: `BASE_DT_FORMAT_MISMATCH` · `PRIOR_DAY_STATE_TRANSITION` · `PRIOR_DAY_DUPLICATE_KEY` 유지.
 - [ ] 4구획 출력 계약(`DataFact/Methodology/UserValidation/HiddenRisk`) + 검토용 초안 고지 · `IsDeterministic=true`.
-- [ ] **현 상태 표기**: WPF call site 미노출 → Test PC PASS로 봉인 금지, local-gate 전용(docs/48 B8). UI 배선 WP(UI-WP-12류) 후 Gate B 대상 전환.
-- 근거: `PriorDayAnalyzer.cs`, R2-WP-03(#84), `docs/48` B8.
+- [ ] **현 상태 표기**: WPF call site 미노출 → Test PC PASS로 봉인 금지, local-gate 전용(`docs/54` B8). UI 배선 WP(UI-WP-12류) 후 Gate B 대상 전환.
+- 근거: `PriorDayAnalyzer.cs`, R2-WP-03(#84), `docs/54` B8; `docs/48`은 v0.7.0 historical.
 
 ---
 

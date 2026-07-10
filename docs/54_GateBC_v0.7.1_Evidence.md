@@ -61,7 +61,7 @@ $Extract = '.\RiskManagementAI-v0.7.1'
 Expand-Archive -LiteralPath $Zip -DestinationPath $Extract -Force
 $ExtractRoot = (Resolve-Path -LiteralPath $Extract).Path
 $PrefixLength = $ExtractRoot.Length + 1
-Get-ChildItem -LiteralPath $Extract -Recurse |
+Get-ChildItem -LiteralPath $Extract -Recurse -Force |
   ForEach-Object {
     [pscustomobject]@{
       RelativePath = $_.FullName.Substring($PrefixLength)
@@ -70,7 +70,7 @@ Get-ChildItem -LiteralPath $Extract -Recurse |
   } |
   Out-File .\evidence\gateBC\v0.7.1\B1-tree.txt
 
-$Forbidden = Get-ChildItem -LiteralPath $Extract -Recurse -File | Where-Object {
+$Forbidden = Get-ChildItem -LiteralPath $Extract -Recurse -File -Force | Where-Object {
   $RelativePath = $_.FullName.Substring($PrefixLength)
   $_.Extension -match '^\.(gguf|bin|safetensors|onnx|pt|pem|key|pfx|p12|cer|crt|der|env)$' -or
   $RelativePath -match '(?i)(^|[\\/])(real_data|secrets|credentials|exports|internal_[^\\/]*)([\\/]|$)' -or

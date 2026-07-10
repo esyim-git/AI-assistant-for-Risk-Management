@@ -78,7 +78,7 @@ git reflog -n 30                        # force push/hard reset 흔적(로컬)
 
 ## 5. 머지 후 정합
 
-- [ ] `/risk-doc-truth-sync`로 `docs/38`(Roadmap·Traceability)·`docs/39`(Resume Brief 기준선 SHA·NEXT UP·Total)·`docs/40`(ADR)·`docs/48`(현재 Gate 증거, `docs/44/45` historical) 갱신
+- [ ] `/risk-doc-truth-sync`로 `docs/38`(Roadmap·Traceability)·`docs/39`(Resume Brief 기준선 SHA·NEXT UP·Total)·`docs/40`(ADR)·`docs/54`(현재 Gate 증거, `docs/48/45/44` historical) 갱신
 - [ ] 문서 상태 어휘가 실제 main과 일치(과대표기 없음)
 - [ ] `governance-soft-guard` 워크플로 실패가 없는지 확인, 실패 시 원인 정정
 
