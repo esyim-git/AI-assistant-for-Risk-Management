@@ -9,7 +9,8 @@
 - v0.7.1 code cut + CORR-WP-01 + final rebuild/tag/Release: `VERIFIED` (published release evidence attached).
 - Pre-CORR candidate (`abab29b`, SHA256 `A70D0B37AD92344A2ECFBE0D4D96360F56CBAFFF94363249F0BD1A20ADC1ECDC`) is invalid after #135 and must not be published.
 - Formal Gate B/C: `BLOCKED` (`docs/54`). v0.7.0 user-reported evidence remains historical in `docs/48`; v0.7.1 starts a release-specific round.
-- **NEXT UP = GOV-WP-02** (hosted evidence + branch protection + secret-scanning alignment; package `docs/39`, prompt `prompts/codex/GOV-WP-02_branch_security_governance.md`). Published v0.7.1 Gate B/C is user-driven in parallel (`docs/54`).
+- GOV-WP-02: `VERIFIED` by 2026-07-11 REST readback. Phase A protection requires strict `test`/`wpf-build`, conversation resolution, linear history, and admin enforcement; force/deletion are OFF; secret scanning/push protection are ON; approvals 0/Code Owner OFF preserve the current single-account workflow.
+- **NEXT UP = ARCH-WP-01** (behavior-invariant `MainWindow` partial decomposition; package `docs/39`, prompt `prompts/codex/ARCH-WP-01_mainwindow_partial_decomposition.md`). Published v0.7.1 Gate B/C is user-driven in parallel (`docs/54`).
 
 Completed MVP-1~3, R1, R2, R3, STAB-WP-01~04, UX-WP-01~11, KB-WP-01/02, FEEDBACK-WP-01/02, QA-WP-01~09, REL-WP-071 published release, and CORR-WP-01 are not redesigned.
 
@@ -31,7 +32,7 @@ External dependency, Vector/Embedding, LLM runtime/model, signing credential/too
 | R2 | v0.7.0 | semantic hardening, streaming Core, prior-day Core, visualization/report | Data | VERIFIED(Core); WPF reachability PARTIAL |
 | REL | v0.7.1 | post-v0.7.0 shipped-artifact parity | Local/Release | VERIFIED; published at `fa755256` (unsigned) |
 | CORR | v0.7.1 pre-publish | zero-check reconciliation must be `NOT_RUN` | Data/Report | VERIFIED (#135, `4efb8e6`) |
-| GOV | v0.7.x | public PR CI, actual checks, branch protection, secret scanning | Governance | PARTIAL: hosted `test`/`wpf-build` evidence observed; protection/security settings pending |
+| GOV | v0.7.x | public PR CI, actual checks, branch protection, secret scanning | Governance | VERIFIED (GOV-WP-02; 2026-07-11 REST readback) |
 | v0.8 | v0.8.x | behavior-preserving UI decomposition and Core capability reachability | A/B | NOT_IMPLEMENTED |
 | Runtime | v0.9.x | .NET 10 LTS migration before .NET 8 EOS | Release/B | NOT_IMPLEMENTED |
 | KB/NCR | v0.9.x+ | approved external Pack tool/SOP; real content remains approval-gated | RAG/NCR | PARTIAL / APPROVAL_REQUIRED |
@@ -60,8 +61,8 @@ External dependency, Vector/Embedding, LLM runtime/model, signing credential/too
 ## 4. Dependency Order
 
 ```text
-GOV-WP-02 (hosted evidence record + protection/security settings)
-  -> ARCH-WP-01
+GOV-WP-02 VERIFIED
+  -> ARCH-WP-01 (NEXT UP)
   -> UI-WP-12 Prior-Day
   -> DATA-UI-WP-01 / KB-UI-WP-01 / FEEDBACK-WP-03
   -> RUNTIME-WP-01 (.NET 10)
@@ -89,7 +90,7 @@ Historical WP details and per-test increments remain in `docs/39`.
 | C-22~30 | Assist/layout/Excel helper | UX/STAB-UX | Assist/UiContract tests | VERIFIED(local-gate) |
 | C-28 | Clause Pack/search/snippet gate | KB-WP-01/02 | Kb tests | VERIFIED Core; WPF NOT_IMPLEMENTED |
 | C-31 | Reconciliation display truth-state | CORR-WP-01 | Report + UiContract regression; `Total=907` | VERIFIED (#135, `4efb8e6`) |
-| C-32 | Public PR CI and branch protection | audit change + GOV-WP-02 | #135 hosted checks + API evidence | PARTIAL: checks green, settings pending |
+| C-32 | Public PR CI and branch protection | audit change + GOV-WP-02 | #138 final exact-head checks (PR evidence) + REST readback | VERIFIED |
 | C-33 | MainWindow decomposition | ARCH-WP-01 | behavior/UI contract parity | NOT_IMPLEMENTED |
 | C-34 | Prior-Day WPF reachability | UI-WP-12 | UiContract/Limit/Report + Gate B | NOT_IMPLEMENTED |
 | C-35 | .NET 10 LTS runtime | RUNTIME-WP-01 | build/smoke/package/Gate B | NOT_IMPLEMENTED |
@@ -105,7 +106,7 @@ Historical WP details and per-test increments remain in `docs/39`.
 | RR-14 | manifest co-tamper/runtime DLL trust | High | STAB-WP-05 | APPROVAL_REQUIRED |
 | RR-16 | Gate PASS overclaim | High | formal evidence rule | Controlled, Gate BLOCKED |
 | RR-17 | zero reconciliation checks shown as PASS | High | CORR-WP-01 | VERIFIED mitigation (#135) |
-| RR-18 | public main unprotected, audit-input CI manual, secret scan off | High | workflow restoration in audit change + GOV-WP-02 settings | PARTIAL mitigation |
+| RR-18 | public main unprotected, audit-input CI manual, secret scan off | High | workflow restoration + GOV-WP-02 Phase A/security settings | VERIFIED mitigation |
 | RR-19 | .NET 8 EOS 2026-11-10 | High | RUNTIME-WP-01 before Pilot | OPEN |
 | RR-20 | Core-only features described as user-facing | Medium | reachability matrix + UI WPs | OPEN |
 | RR-21 | MainWindow 1,614-line concentration | Medium | ARCH-WP-01 | OPEN |
@@ -118,7 +119,7 @@ Historical WP details and per-test increments remain in `docs/39`.
 - RAG/NCR Gate: real Pack/content/coefficients require owner approval and stay outside repo.
 - Model Gate: runtime/model/embedding approval before implementation.
 - Pilot Gate B/C: real Test-PC evidence and rollback/performance rows; formal state remains BLOCKED.
-- Governance Gate: PR CI uses actual job names; branch protection cannot require a nonexistent check or an impossible self-approval.
+- Governance Gate: `VERIFIED`; PR CI/protection use actual `test`/`wpf-build`, approvals 0/Code Owner OFF avoid impossible self-approval, and settings changes require REST readback.
 
 ## 8. Handoff
 

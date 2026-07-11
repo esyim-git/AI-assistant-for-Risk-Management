@@ -8,10 +8,11 @@ Claude Code is Architecture Lead, Program Manager, Security/Release Reviewer, an
 - VERSION `0.7.1`; authoritative local SmokeTest `Total=907 PASS=907 FAIL=0`.
 - Latest published release is unsigned `v0.7.1` at `fa755256`; ZIP SHA256 is `282B71385FEE83B4ED7AD221CAF84AD3A6B4E2B5E5191601F4240AEED0419018`.
 - Formal Gate B/C is `BLOCKED` for v0.7.1 (`docs/54`); v0.7.0 user-reported history in `docs/48` does not carry forward.
-- **NEXT UP = GOV-WP-02** with executable package in `docs/39` and `prompts/codex/GOV-WP-02_branch_security_governance.md`. User-driven Gate B/C proceeds in parallel against the published v0.7.1 assets (`docs/54`); `docs/48` remains v0.7.0 historical evidence.
+- **GOV-WP-02 = VERIFIED** by 2026-07-11 REST readback: `main` Phase A protection is active on strict `test`/`wpf-build`, secret scanning and push protection are enabled, and approvals 0/Code Owner OFF preserve the single-account workflow.
+- **NEXT UP = ARCH-WP-01** with executable package in `docs/39` and `prompts/codex/ARCH-WP-01_mainwindow_partial_decomposition.md`. User-driven Gate B/C proceeds in parallel against the published v0.7.1 assets (`docs/54`); `docs/48` remains v0.7.0 historical evidence.
 - Full evidence and roadmap: `docs/53_Repository_Audit_and_v1_Execution_Plan.md`.
 
-Do not redesign completed MVP-1~3, R1, R2, R3, STAB-WP-01~04, UX-WP-01~11, KB-WP-01/02, FEEDBACK-WP-01/02, QA-WP-01~09, REL-WP-071 published release, or CORR-WP-01.
+Do not redesign completed MVP-1~3, R1, R2, R3, STAB-WP-01~04, UX-WP-01~11, KB-WP-01/02, FEEDBACK-WP-01/02, QA-WP-01~09, REL-WP-071 published release, CORR-WP-01, or GOV-WP-02.
 
 ## 1. Project Identity
 
@@ -133,7 +134,7 @@ dotnet build RiskManagementAI.sln -c Release
 dotnet run --project tests/RiskManagementAI.SmokeTests/RiskManagementAI.SmokeTests.csproj -c Release
 ```
 
-This audit change restores hosted PR CI (`test`, `wpf-build`) as a second gate; first-run evidence and repository settings are completed in `GOV-WP-02`. Public standard GitHub-hosted runners no longer have the old private-repository 2,000-minute blocker.
+Hosted PR CI (`test`, `wpf-build`) is the independent second gate. GOV-WP-02 verified the exact checks and enabled Phase A protection plus secret scanning/push protection; public standard GitHub-hosted runners no longer have the old private-repository 2,000-minute blocker.
 
 ## 12. Skill Operation
 
@@ -173,7 +174,7 @@ Automatic Preflight means the checklist is selected and read; it does not mean a
 - Recheck live head SHA immediately before merge.
 - Rebuild release assets from the exact tag target after every merge; earlier hashes become non-canonical.
 - Attach only approved portable artifacts. State unsigned status explicitly.
-- Public repository hard protection must use actual check names and a profile compatible with the current reviewer model (`docs/32`).
+- Public repository hard protection is active with actual check names and a profile compatible with the current reviewer model; changes follow `docs/32` and require a fresh REST readback.
 
 ## 15. Documentation Standard
 
