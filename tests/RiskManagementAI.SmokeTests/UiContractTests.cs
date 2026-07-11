@@ -41,7 +41,34 @@ context.AssertTrue(dashboardSnapshotWithHistoryWarning.Findings.Any(f => f.Code 
 XNamespace wpf = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
 XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 var mainWindowXaml = XDocument.Load(Path.Combine("src", "RiskManagementAI.App", "MainWindow.xaml"));
-var mainWindowCode = File.ReadAllText(Path.Combine("src", "RiskManagementAI.App", "MainWindow.xaml.cs"));
+var mainWindowSourceDirectory = Path.Combine("src", "RiskManagementAI.App");
+var mainWindowSourcePaths = Directory
+    .EnumerateFiles(mainWindowSourceDirectory, "MainWindow*.cs", SearchOption.TopDirectoryOnly)
+    .OrderBy(path => Path.GetFileName(path), StringComparer.Ordinal)
+    .ToArray();
+var mainWindowSourceFiles = mainWindowSourcePaths.Select(Path.GetFileName).ToArray();
+var expectedMainWindowSourceFiles = new[]
+{
+    "MainWindow.CompletionAssist.cs",
+    "MainWindow.DataRiskReport.cs",
+    "MainWindow.KnowledgeAudit.cs",
+    "MainWindow.Navigation.cs",
+    "MainWindow.Presentation.cs",
+    "MainWindow.SafetyDraftExcel.cs",
+    "MainWindow.xaml.cs"
+};
+var mainWindowSourceTexts = mainWindowSourcePaths.Select(File.ReadAllText).ToArray();
+var mainWindowCode = string.Join(Environment.NewLine, mainWindowSourceTexts);
+context.AssertTrue(
+    expectedMainWindowSourceFiles.SequenceEqual(mainWindowSourceFiles, StringComparer.Ordinal),
+    "UI contract source aggregation should include every MainWindow partial file");
+context.AssertTrue(
+    File.ReadLines(Path.Combine(mainWindowSourceDirectory, "MainWindow.xaml.cs")).Count() <= 600,
+    "UI MainWindow.xaml.cs should stay at or below the ARCH-WP-01 line cap");
+context.AssertTrue(
+    mainWindowSourceTexts.Length == mainWindowSourcePaths.Length
+        && mainWindowSourceTexts.All(text => mainWindowCode.Contains(text, StringComparison.Ordinal)),
+    "UI contract source aggregation should cover every MainWindow partial file");
 var expectedMenuButtons = new[]
 {
     "Dashboard",
