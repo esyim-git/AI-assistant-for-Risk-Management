@@ -1,18 +1,18 @@
 # CLAUDE.md
 
-Claude Code is Architecture Lead, Program Manager, Security/Release Reviewer, and Documentation Owner. Codex is Implementation/Test Engineer.
+Compatibility guide retained for existing links and historical records. Claude-specific active actor assignments are retired: Local Codex owns current planning, implementation, verification, Draft PR authoring, and review coordination. Root `AGENTS.md`, the native `risk-local-codex-lifecycle` Skill, and `docs/32` govern current actor and merge rules.
 
 ## 0. Current Truth
 
-- v0.7.1 release Build Commit: `fa755256` (PR #136, docs-only). Product code-test baseline remains `4efb8e6` (PR #135); later docs/workflow-only merges advance current main without changing release provenance or the product baseline.
-- VERSION `0.7.1`; authoritative local SmokeTest `Total=907 PASS=907 FAIL=0`.
+- Current main and product code-test baseline: `0a3386f` (PR #139, ARCH-WP-01). The v0.7.1 release Build Commit remains `fa755256` (PR #136); later code/test merges advance the product baseline without changing published release provenance.
+- VERSION `0.7.1`; authoritative current-main SmokeTest `Total=910 PASS=910 FAIL=0` (reproduced 2026-07-13 at `0a3386f`).
 - Latest published release is unsigned `v0.7.1` at `fa755256`; ZIP SHA256 is `282B71385FEE83B4ED7AD221CAF84AD3A6B4E2B5E5191601F4240AEED0419018`.
 - Formal Gate B/C is `BLOCKED` for v0.7.1 (`docs/54`); v0.7.0 user-reported history in `docs/48` does not carry forward.
 - **GOV-WP-02 = VERIFIED** by 2026-07-11 REST readback: `main` Phase A protection is active on strict `test`/`wpf-build`, secret scanning and push protection are enabled, and approvals 0/Code Owner OFF preserve the single-account workflow.
-- **NEXT UP = ARCH-WP-01** with executable package in `docs/39` and `prompts/codex/ARCH-WP-01_mainwindow_partial_decomposition.md`. User-driven Gate B/C proceeds in parallel against the published v0.7.1 assets (`docs/54`); `docs/48` remains v0.7.0 historical evidence.
+- **NEXT UP = BLOCKED pending status/truth-sync**. ARCH-WP-01 is already merged as PR #139; do not reuse the stale `docs/38`/`docs/39` NEXT UP entry. Select the next WP only through `risk-status-sync -> risk-doc-truth-sync -> risk-wp-planner`. User-driven Gate B/C proceeds independently against the published v0.7.1 assets (`docs/54`); `docs/48` remains v0.7.0 historical evidence.
 - Full evidence and roadmap: `docs/53_Repository_Audit_and_v1_Execution_Plan.md`.
 
-Do not redesign completed MVP-1~3, R1, R2, R3, STAB-WP-01~04, UX-WP-01~11, KB-WP-01/02, FEEDBACK-WP-01/02, QA-WP-01~09, REL-WP-071 published release, CORR-WP-01, or GOV-WP-02.
+Do not redesign completed MVP-1~3, R1, R2, R3, STAB-WP-01~04, UX-WP-01~11, KB-WP-01/02, FEEDBACK-WP-01/02, QA-WP-01~09, REL-WP-071 published release, CORR-WP-01, GOV-WP-02, or ARCH-WP-01.
 
 ## 1. Project Identity
 
@@ -97,22 +97,22 @@ Use only `VERIFIED`, `PARTIAL`, `SCAFFOLD_ONLY`, `PLACEHOLDER`, `BLOCKED`, `NOT_
 - `CheckCount == 0` is `NOT_RUN`, never PASS.
 - Current main SHA and code-test baseline SHA are separate concepts; any code/test release-cut change advances the baseline.
 
-## 9. Claude Responsibilities
+## 9. Local Codex Planning And Review Responsibilities
 
 1. Run `risk-repo-audit` for broad repository/status/roadmap requests.
 2. Keep `docs/38`, `docs/39`, `docs/40`, `docs/41`, the active Gate evidence doc (`docs/54`; `docs/48` historical), release docs, README, AGENTS, CLAUDE, and SKILLS aligned.
-3. Define exactly one NEXT UP WP and a matching Codex prompt.
-4. Review Codex diff for scope, security, tests, docs, user reachability, and release provenance.
+3. Define exactly one NEXT UP WP and a matching implementation prompt.
+4. Coordinate review of the diff for scope, security, tests, docs, user reachability, and release provenance. Important PRs use a separate Local Codex task/context for the final exact-head verdict.
 5. Maintain Capability -> WP -> Test -> Gate traceability.
 6. Keep approval-gated work STOP until the owner records approval.
 7. Do not directly edit/merge main; use `planning/*` for planning/truth-sync.
 
-## 10. Codex Responsibilities
+## 10. Local Codex Implementation Responsibilities
 
 - Implement one WP on `feature/<WP-ID>-*`.
 - Run build, SmokeTest, relevant package checks, Gate A, and self-review.
 - Report exact total and evidence.
-- Wait for required review/explicit user authorization before merge.
+- Wait for local evidence, hosted required checks, independent review, and explicit or standing user authorization before merge.
 - Preserve unrelated user changes and use a clean worktree.
 
 ## 11. Development Loop
@@ -121,8 +121,9 @@ Use only `VERIFIED`, `PARTIAL`, `SCAFFOLD_ONLY`, `PLACEHOLDER`, `BLOCKED`, `NOT_
 risk-repo-audit/status-sync
 -> risk-doc-truth-sync
 -> risk-wp-planner (one WP)
--> Codex implementation
--> risk-codex-review + domain Skill + Gate A
+-> Local Codex implementation + local gate
+-> Draft PR
+-> separate Local Codex exact-head review + domain Skill + Gate A
 -> squash PR
 -> truth-sync
 ```
@@ -134,11 +135,11 @@ dotnet build RiskManagementAI.sln -c Release
 dotnet run --project tests/RiskManagementAI.SmokeTests/RiskManagementAI.SmokeTests.csproj -c Release
 ```
 
-Hosted PR CI (`test`, `wpf-build`) is the independent second gate. GOV-WP-02 verified the exact checks and enabled Phase A protection plus secret scanning/push protection; public standard GitHub-hosted runners no longer have the old private-repository 2,000-minute blocker.
+Hosted PR CI (`test`, `wpf-build`) is the independent second gate. GOV-WP-02 verified the exact checks and enabled Phase A protection plus secret scanning/push protection. If Actions are unavailable or quota-blocked, record the closest local equivalent as `local-fallback-only`; merge remains blocked until protected-branch checks succeed or the operator explicitly approves a documented governance change.
 
 ## 12. Skill Operation
 
-Project Skills live in `.claude/skills/<name>/SKILL.md`; index is `SKILLS.md`.
+The native Local Codex lifecycle Skill lives at `.agents/skills/risk-local-codex-lifecycle/SKILL.md`. The existing `.claude/skills/<name>/SKILL.md` set is a transitional domain-checklist catalog indexed by `SKILLS.md`; legacy actor wording does not override current root governance.
 
 - Broad audit: `risk-repo-audit`.
 - State/docs/planning: `risk-status-sync`, `risk-doc-truth-sync`, `risk-wp-planner`.
@@ -172,6 +173,7 @@ Automatic Preflight means the checklist is selected and read; it does not mean a
 - PR required, squash only, subject contains `(#PR)`.
 - Force push, hard reset, and main direct push are prohibited.
 - Recheck live head SHA immediately before merge.
+- Important PRs require a separate Local Codex exact-head review recorded as `independent_review_verdict` plus `reviewed_head`; numeric approvals stay 0 until a distinct approval-capable GitHub actor exists.
 - Rebuild release assets from the exact tag target after every merge; earlier hashes become non-canonical.
 - Attach only approved portable artifacts. State unsigned status explicitly.
 - Public repository hard protection is active with actual check names and a profile compatible with the current reviewer model; changes follow `docs/32` and require a fresh REST readback.

@@ -1,19 +1,19 @@
 # AGENTS.md
 
-Codex 및 구현 Agent는 이 파일을 반드시 따른다. 충돌 우선순위는 **AGENTS.md > 지정 Work Package(`docs/39`) > Codex Prompt**다.
+Local Codex 및 구현 Agent는 이 파일을 반드시 따른다. 충돌 우선순위는 **AGENTS.md > 지정 Work Package(`docs/39`) > Codex Prompt**다.
 
 ## 0. Current Baseline
 
-- v0.7.1 release Build Commit: `fa7552567cb432ec6a4afe9900b3eca480fc5780` (PR #136, docs-only). Product code-test baseline remains `4efb8e670ce0306d07683d3fbc5ed7b118844b8b` (PR #135); later docs/workflow-only merges advance current main without changing either release provenance or product baseline.
+- Current main and product code-test baseline: `0a3386f5de8209ced9443d371375d63ee0309343` (PR #139, ARCH-WP-01). The v0.7.1 release Build Commit remains `fa7552567cb432ec6a4afe9900b3eca480fc5780` (PR #136); later code/test merges advance the product baseline without changing published release provenance.
 - VERSION: `0.7.1`.
-- Authoritative local gate: build warning 0/error 0, SmokeTest `Total=907 PASS=907 FAIL=0`, Unclassified 0.
+- Authoritative local gate at `0a3386f`: build warning 0/error 0, SmokeTest `Total=910 PASS=910 FAIL=0`, Unclassified 0 (reproduced 2026-07-13).
 - Latest published release: `v0.7.1` (`fa755256`, unsigned), ZIP SHA256 `282B71385FEE83B4ED7AD221CAF84AD3A6B4E2B5E5191601F4240AEED0419018`.
 - Formal Gate B/C: `BLOCKED` for v0.7.1 (`docs/54`). v0.7.0 user-reported results in `docs/48` are historical and do not carry forward.
 - **GOV-WP-02 = VERIFIED** (2026-07-11 REST readback): `main` requires PR + strict `test`/`wpf-build`, conversation resolution, linear history, and admin enforcement; force push/deletion are OFF; approvals 0/Code Owner OFF avoid the current single-account deadlock; secret scanning and push protection are ON.
-- **NEXT UP = ARCH-WP-01** (behavior-invariant `MainWindow` partial decomposition; prompt `prompts/codex/ARCH-WP-01_mainwindow_partial_decomposition.md`). User-driven Gate B/C runs in parallel on the published v0.7.1 ZIP (`docs/54`).
+- **NEXT UP = BLOCKED pending status/truth-sync**. ARCH-WP-01 is already merged as PR #139; do not reuse the stale NEXT UP entry in `docs/38`/`docs/39`. Run `risk-status-sync -> risk-doc-truth-sync -> risk-wp-planner` before new implementation. User-driven Gate B/C continues independently against the published v0.7.1 ZIP (`docs/54`).
 - Full current assessment: `docs/53_Repository_Audit_and_v1_Execution_Plan.md`.
 
-Completed MVP-1~3, R1, R2, R3, STAB-WP-01~04, UX-WP-01~11, KB-WP-01/02, FEEDBACK-WP-01/02, QA-WP-01~09, REL-WP-071 published release, CORR-WP-01, and GOV-WP-02 are not redesigned. Core-only capabilities must not be described as user-facing until an App/WPF call site exists.
+Completed MVP-1~3, R1, R2, R3, STAB-WP-01~04, UX-WP-01~11, KB-WP-01/02, FEEDBACK-WP-01/02, QA-WP-01~09, REL-WP-071 published release, CORR-WP-01, GOV-WP-02, and ARCH-WP-01 are not redesigned. Core-only capabilities must not be described as user-facing until an App/WPF call site exists.
 
 ## 1. Final Product Boundary
 
@@ -37,20 +37,23 @@ Before material work read, in order:
 4. `docs/40_ADR_Architecture_Evolution.md` and `docs/41_Approval_and_Pilot_Gates.md`.
 5. `docs/28_Security_Review_Checklist.md`.
 6. The selected `prompts/codex/<WP-ID>_*.md`.
-7. Relevant `.claude/skills/<skill>/SKILL.md` and its direct support files.
+7. Native `.agents/skills/risk-local-codex-lifecycle/SKILL.md`.
+8. Relevant transitional `.claude/skills/<skill>/SKILL.md` and its direct support files.
 
 For repository-wide diagnosis, use `risk-repo-audit` before `risk-status-sync`/`risk-doc-truth-sync`/`risk-wp-planner`.
 
 ## 3. Role And Workflow
 
-Codex is Implementation Engineer / Test Engineer. Work one WP at a time on `feature/<WP-ID>-*` unless the user explicitly requests a planning/truth-sync branch.
+Local Codex owns planning, implementation, local verification, Draft PR authoring, and review coordination. Work one WP at a time on `feature/<WP-ID>-*` unless the user explicitly requests a planning/truth-sync branch.
 
 ```text
-Claude planning -> Codex implementation + local gate -> Claude review
--> Codex fix -> final review -> squash PR -> truth-sync -> next WP
+Local Codex plan -> implementation + local gate -> Draft PR
+-> separate Local Codex exact-head review -> fix/re-review
+-> squash PR -> truth-sync -> next WP
 ```
 
-- Do not merge before required review/explicit user authorization.
+- Important PRs require a separate Local Codex task/context that did not author the final diff. Under the current single GitHub account, record `independent_review_verdict` and `reviewed_head` in PR evidence instead of requiring an impossible counted self-approval.
+- Do not merge before local evidence, hosted required checks, independent review, and explicit or standing user authorization.
 - Preserve unrelated user changes. Use a clean worktree when the root is dirty.
 - Never use force push, hard reset, or main direct push.
 - One WP has one measurable goal. Put unrelated findings in the backlog.
@@ -86,7 +89,7 @@ No approval means no dependency, model, credential, real Pack, or runtime change
 - Do not claim a local package candidate is a published release.
 - `CheckCount == 0` or equivalent absence of validation must never be displayed as PASS.
 
-For UI work, run architecture preflight first. `MainWindow.xaml.cs` is a known concentration point; `ARCH-WP-01` precedes broad new UI work after CORR/GOV.
+For UI work, run architecture preflight first. ARCH-WP-01 split the former `MainWindow.xaml.cs` concentration point; broad UI work must preserve those behavior-invariant partial boundaries and prove user reachability.
 
 ## 7. Test And Security Gate
 
@@ -106,7 +109,7 @@ Required report:
 - Gate A result from `docs/28`/`risk-security-guard`.
 - changed files and user-facing behavior.
 
-Hosted CI (`test`, `wpf-build`) is an independent second gate after this workflow change is merged and observed green. Local verification remains required for Windows/WPF/package evidence.
+Hosted CI (`test`, `wpf-build`) is an independent second gate. Local verification remains required for Windows/WPF/package evidence. If Actions are unavailable or quota-blocked, run and preserve the closest local equivalent as `local-fallback-only`; it is not hosted green and does not satisfy protected-branch checks.
 
 ## 8. Release And Gate Rules
 
@@ -131,9 +134,9 @@ Use only: `VERIFIED`, `PARTIAL`, `SCAFFOLD_ONLY`, `PLACEHOLDER`, `BLOCKED`, `NOT
 
 Evidence qualifiers such as `local-gate`, `Core-only`, `user-reported`, and `published` must remain explicit. Do not use DONE/PASS without scope and evidence.
 
-## 10. Skill Bridge
+## 10. Native Skill Entry And Transitional Catalog
 
-Codex reads project Skills as checklists; it does not pretend they executed automatically.
+Codex auto-discovers `.agents/skills/risk-local-codex-lifecycle` as the repository lifecycle entry point. Existing `.claude/skills/*` remain transitional domain checklists until migrated; their technical controls remain applicable, but legacy actor/merge wording is superseded by this file, the native lifecycle Skill, and `docs/32`.
 
 - Repository diagnosis: `risk-repo-audit`.
 - State/docs/planning: `risk-status-sync`, `risk-doc-truth-sync`, `risk-wp-planner`.
@@ -148,7 +151,7 @@ Codex reads project Skills as checklists; it does not pretend they executed auto
 - Local model: `risk-llm-approval` then STOP.
 - Test PC/Pilot: `risk-gate-bc`, `risk-team-pilot`.
 
-Completion reports include `Applied Skill Checklists: ...`. Skill files are changed only when the user explicitly asks for Skill improvement.
+Completion reports include `Applied Skills/Checklists: ...`. Skill files are changed only when the user explicitly asks for Skill improvement or the requested governance migration requires it.
 
 ## 11. Branch And PR
 
@@ -156,6 +159,7 @@ Completion reports include `Applied Skill Checklists: ...`. Skill files are chan
 - PR required, squash only, subject includes `(#PR)`.
 - No force push, branch deletion bypass, or main direct push.
 - Live head SHA must be rechecked before merge.
+- Important PR evidence includes `independent_review_verdict: pass` and the exact `reviewed_head` from a separate Local Codex task/context.
 - Public-repository hard protection is active with actual CI checks `test` and `wpf-build`; `docs/32` governs changes. Do not require a nonexistent check or one-account self-approval.
 
 ## 12. Completion Report

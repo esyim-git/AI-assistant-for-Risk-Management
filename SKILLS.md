@@ -2,23 +2,29 @@
 
 ## 1. Purpose And Baseline
 
-Project Skills make Claude and Codex repeat fragile repository workflows consistently without copying large checklists into every prompt.
+Project Skills make Local Codex repeat fragile repository workflows consistently without copying large checklists into every prompt.
 
-- v0.7.1 release Build Commit: `fa755256` (PR #136, docs-only). Product code-test baseline remains `4efb8e6` (PR #135); docs/workflow-only merges may advance current main without changing either.
-- VERSION `0.7.1`, SmokeTest `Total=907 PASS=907 FAIL=0`.
+- Current main and product code-test baseline: `0a3386f` (PR #139, ARCH-WP-01). The v0.7.1 release Build Commit remains `fa755256` (PR #136); docs-only merges may advance current main without changing either product or release provenance.
+- VERSION `0.7.1`, current-main SmokeTest `Total=910 PASS=910 FAIL=0` (reproduced 2026-07-13 at `0a3386f`).
 - Latest published release: unsigned `v0.7.1`, ZIP SHA256 `282B71385FEE83B4ED7AD221CAF84AD3A6B4E2B5E5191601F4240AEED0419018`.
 - GOV-WP-02: `VERIFIED` by 2026-07-11 REST readback (Phase A protection + secret scanning/push protection).
-- NEXT UP: `ARCH-WP-01` (`docs/39` + `prompts/codex/ARCH-WP-01_mainwindow_partial_decomposition.md`); user-driven Gate B/C runs in parallel on the published v0.7.1 ZIP using `docs/54`.
+- NEXT UP: `BLOCKED pending status/truth-sync`. ARCH-WP-01 is already merged as PR #139; run `risk-status-sync -> risk-doc-truth-sync -> risk-wp-planner` before selecting the next implementation WP. User-driven Gate B/C runs independently on the published v0.7.1 ZIP using `docs/54`.
 
 Current truth: `docs/53_Repository_Audit_and_v1_Execution_Plan.md` and `docs/39` Resume Brief.
 
 ## 2. Location And Use
 
-Each Skill lives at `.claude/skills/<skill-name>/SKILL.md`; long checklists live one level below it. Claude selects the relevant Skill. Codex explicitly reads it as a checklist through the Skill Bridge.
+The native lifecycle entry lives at `.agents/skills/risk-local-codex-lifecycle/SKILL.md` and is auto-discoverable by Codex. The 19 existing `.claude/skills/<skill-name>/SKILL.md` packages remain a transitional domain-checklist catalog; Local Codex selects and reads only those relevant to the task. Legacy actor wording inside that catalog does not override `AGENTS.md`, the native lifecycle Skill, or `docs/32`.
 
 Applying a Skill is not a Gate PASS. Evidence and approvals remain mandatory.
 
-## 3. Skill Catalog (19)
+## 3. Native Codex Skill (1)
+
+| Skill | Purpose | Class |
+|---|---|---|
+| `risk-local-codex-lifecycle` | Plan, isolate, implement, verify, publish, independently review, merge, and clean up Risk repo work | Auto-discovered lifecycle router |
+
+## 4. Transitional Domain Catalog (19)
 
 | # | Skill | Purpose | Class |
 |---|---|---|---|
@@ -42,12 +48,13 @@ Applying a Skill is not a Gate PASS. Evidence and approvals remain mandatory.
 | 18 | `risk-arch-refactor` | Behavior-preserving structural decomposition | Preflight |
 | 19 | `risk-team-pilot` | Pilot Go/No-Go, kit, KPI, rollback, closure | Evidence Gate |
 
-## 4. Standard Chains
+## 5. Standard Chains
 
 ### Repository audit / next direction
 
 ```text
-risk-repo-audit
+$risk-local-codex-lifecycle
+-> risk-repo-audit
 -> risk-status-sync
 -> risk-doc-truth-sync
 -> risk-wp-planner (exactly one NEXT UP)
@@ -90,13 +97,13 @@ risk-gate-bc formal closure
 risk-llm-approval -> STOP until explicit approval
 ```
 
-## 5. Classification
+## 6. Classification
 
 - **Path-scoped**: `risk-security-guard`, `risk-smoke-governance`, `risk-data-limit-review`, `risk-rag-ncr-governance`, `risk-ui-ux-review`.
 - **Preflight**: `risk-repo-audit`, `risk-status-sync`, `risk-doc-truth-sync`, `risk-wp-planner`, `risk-codex-review`, `risk-analytics-design`, `risk-feedback-learning`, `risk-branch-governance`, `risk-release-cut`, `risk-arch-refactor`.
 - **Evidence/STOP Gate**: `risk-release-verify`, `risk-gate-bc`, `risk-llm-approval`, `risk-team-pilot`.
 
-## 6. Common Guardrails
+## 7. Common Guardrails
 
 - External NuGet/API/telemetry/auto-update/auto-execution 0.
 - Real data/schema, internal/NCR original, secret/key/certificate, model/runtime repository inclusion 0.
@@ -107,11 +114,11 @@ risk-llm-approval -> STOP until explicit approval
 - Current main SHA, code-test baseline SHA, published tag SHA, and package Build Commit are reported separately.
 - STOP items never become implementation WPs without approval.
 
-## 7. Current Sequence
+## 8. Current Sequence
 
-1. `ARCH-WP-01` behavior-invariant MainWindow partial decomposition.
-2. UI reachability WPs for Prior-Day, streaming/XLSX profile, Clause search, and reviewed Example reflection.
-3. .NET 10 migration before Pilot.
-4. Formal Gate B/C evidence runs in parallel from published v0.7.1; Team Pilot follows formal closure on a supported LTS build.
+1. ARCH-WP-01 is complete at PR #139; truth-sync the roadmap and select exactly one new NEXT UP WP.
+2. Candidate sequence remains UI reachability WPs for Prior-Day, streaming/XLSX profile, Clause search, and reviewed Example reflection, but order is not authorized until truth-sync.
+3. .NET 10 migration remains required before Pilot.
+4. Formal Gate B/C evidence runs independently from published v0.7.1; Team Pilot follows formal closure on a supported LTS build.
 
 Approval tracks (signing, real NCR/internal Pack, Local LLM/runtime/model) remain independent and STOP-governed.

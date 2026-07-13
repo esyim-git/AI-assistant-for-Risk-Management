@@ -20,6 +20,7 @@ That constraint ended when the repository became public.
 - Visibility is public.
 - Phase A hard branch protection is active: PR required; strict `test`/`wpf-build`; conversation resolution, linear history, and admin enforcement ON; force push/deletion OFF.
 - Required approvals remain 0 and Code Owner review remains OFF until a distinct approval-capable reviewer exists.
+- Important PRs use a separate Local Codex task/context for exact-head review evidence; this does not claim a counted GitHub approval.
 - PR CI and the `main` push soft-guard trigger are active. GOV-WP-02 final exact-head SHA/run and `test`/`wpf-build` conclusions are recorded in PR #138 evidence after the last push.
 - Secret scanning and push protection are enabled.
 
