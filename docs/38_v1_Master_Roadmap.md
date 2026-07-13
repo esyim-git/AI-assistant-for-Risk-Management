@@ -2,17 +2,19 @@
 
 ## 0. Current Baseline
 
-- v0.7.1 release Build Commit: `fa755256` (PR #136, docs-only). Product code-test baseline remains `4efb8e6` (PR #135); docs/workflow-only merges may advance current main without changing either.
+- Truth-sync base: `origin/main` `b4eafce` (PR #140, Local Codex workflow/docs migration) as observed on 2026-07-13. This planning PR may advance current main again but does not change the product-code or published-release baselines.
+- Product code-test baseline: `0a3386f` (PR #139, ARCH-WP-01). Published v0.7.1 release Build Commit remains `fa755256` (PR #136, docs-only).
 - VERSION `0.7.1`.
-- Local gate: build warning 0/error 0, SmokeTest `Total=907 PASS=907 FAIL=0`, Unclassified 0.
+- Truth-sync-base local gate (2026-07-13): build warning 0/error 0, SmokeTest `Total=910 PASS=910 FAIL=0`, Unclassified 0. The published v0.7.1 package was cut at `fa755256` with `Total=907 PASS=907 FAIL=0`; do not rewrite release evidence as 910.
 - Latest published release: unsigned `v0.7.1` (`fa755256`), ZIP SHA256 `282B71385FEE83B4ED7AD221CAF84AD3A6B4E2B5E5191601F4240AEED0419018`.
 - v0.7.1 code cut + CORR-WP-01 + final rebuild/tag/Release: `VERIFIED` (published release evidence attached).
 - Pre-CORR candidate (`abab29b`, SHA256 `A70D0B37AD92344A2ECFBE0D4D96360F56CBAFFF94363249F0BD1A20ADC1ECDC`) is invalid after #135 and must not be published.
 - Formal Gate B/C: `BLOCKED` (`docs/54`). v0.7.0 user-reported evidence remains historical in `docs/48`; v0.7.1 starts a release-specific round.
 - GOV-WP-02: `VERIFIED` by 2026-07-11 REST readback. Phase A protection requires strict `test`/`wpf-build`, conversation resolution, linear history, and admin enforcement; force/deletion are OFF; secret scanning/push protection are ON; approvals 0/Code Owner OFF preserve the current single-account workflow.
-- **NEXT UP = ARCH-WP-01** (behavior-invariant `MainWindow` partial decomposition; package `docs/39`, prompt `prompts/codex/ARCH-WP-01_mainwindow_partial_decomposition.md`). Published v0.7.1 Gate B/C is user-driven in parallel (`docs/54`).
+- ARCH-WP-01: `VERIFIED` at `0a3386f` (#139). `MainWindow.xaml.cs` is 345 lines, six role-based partials are present, and three additive UiContract guards raised the current product baseline from 907 to 910 without changing XAML or behavior.
+- **NEXT UP = UI-WP-12** (existing Prior-Day Core reachability in the Risk Dashboard and report; package `docs/39`, prompt `prompts/codex/UI-WP-12_prior_day_wpf_reachability.md`). Published v0.7.1 Gate B/C is user-driven in parallel (`docs/54`).
 
-Completed MVP-1~3, R1, R2, R3, STAB-WP-01~04, UX-WP-01~11, KB-WP-01/02, FEEDBACK-WP-01/02, QA-WP-01~09, REL-WP-071 published release, and CORR-WP-01 are not redesigned.
+Completed MVP-1~3, R1, R2, R3, STAB-WP-01~04, UX-WP-01~11, KB-WP-01/02, FEEDBACK-WP-01/02, QA-WP-01~09, REL-WP-071 published release, CORR-WP-01, GOV-WP-02, and ARCH-WP-01 are not redesigned.
 
 Current repository audit and detailed sequencing: `docs/53_Repository_Audit_and_v1_Execution_Plan.md`. WP history: `docs/39`.
 
@@ -33,7 +35,7 @@ External dependency, Vector/Embedding, LLM runtime/model, signing credential/too
 | REL | v0.7.1 | post-v0.7.0 shipped-artifact parity | Local/Release | VERIFIED; published at `fa755256` (unsigned) |
 | CORR | v0.7.1 pre-publish | zero-check reconciliation must be `NOT_RUN` | Data/Report | VERIFIED (#135, `4efb8e6`) |
 | GOV | v0.7.x | public PR CI, actual checks, branch protection, secret scanning | Governance | VERIFIED (GOV-WP-02; 2026-07-11 REST readback) |
-| v0.8 | v0.8.x | behavior-preserving UI decomposition and Core capability reachability | A/B | NOT_IMPLEMENTED |
+| v0.8 | v0.8.x | behavior-preserving UI decomposition and Core capability reachability | A/B | PARTIAL: ARCH-WP-01 VERIFIED; UI reachability pending |
 | Runtime | v0.9.x | .NET 10 LTS migration before .NET 8 EOS | Release/B | NOT_IMPLEMENTED |
 | KB/NCR | v0.9.x+ | approved external Pack tool/SOP; real content remains approval-gated | RAG/NCR | PARTIAL / APPROVAL_REQUIRED |
 | R4 | post-approval | Local LLM adapter/runtime/model | Model | APPROVAL_REQUIRED / STOP |
@@ -62,8 +64,8 @@ External dependency, Vector/Embedding, LLM runtime/model, signing credential/too
 
 ```text
 GOV-WP-02 VERIFIED
-  -> ARCH-WP-01 (NEXT UP)
-  -> UI-WP-12 Prior-Day
+  -> ARCH-WP-01 VERIFIED
+  -> UI-WP-12 Prior-Day (NEXT UP)
   -> DATA-UI-WP-01 / KB-UI-WP-01 / FEEDBACK-WP-03
   -> RUNTIME-WP-01 (.NET 10)
   -> formal Gate B/C
@@ -91,8 +93,8 @@ Historical WP details and per-test increments remain in `docs/39`.
 | C-28 | Clause Pack/search/snippet gate | KB-WP-01/02 | Kb tests | VERIFIED Core; WPF NOT_IMPLEMENTED |
 | C-31 | Reconciliation display truth-state | CORR-WP-01 | Report + UiContract regression; `Total=907` | VERIFIED (#135, `4efb8e6`) |
 | C-32 | Public PR CI and branch protection | audit change + GOV-WP-02 | #138 final exact-head checks (PR evidence) + REST readback | VERIFIED |
-| C-33 | MainWindow decomposition | ARCH-WP-01 | behavior/UI contract parity | NOT_IMPLEMENTED |
-| C-34 | Prior-Day WPF reachability | UI-WP-12 | UiContract/Limit/Report + Gate B | NOT_IMPLEMENTED |
+| C-33 | MainWindow decomposition | ARCH-WP-01 | `MainWindow.xaml.cs` 345 lines + six partials + 3 additive UiContract guards; `Total=910` | VERIFIED (#139, `0a3386f`) |
+| C-34 | Prior-Day WPF reachability | UI-WP-12 | UiContract/Limit/Report local gate; rendered workflow remains Gate B | NOT_IMPLEMENTED / NEXT UP |
 | C-35 | .NET 10 LTS runtime | RUNTIME-WP-01 | build/smoke/package/Gate B | NOT_IMPLEMENTED |
 
 ## 6. Risk Register
@@ -109,7 +111,7 @@ Historical WP details and per-test increments remain in `docs/39`.
 | RR-18 | public main unprotected, audit-input CI manual, secret scan off | High | workflow restoration + GOV-WP-02 Phase A/security settings | VERIFIED mitigation |
 | RR-19 | .NET 8 EOS 2026-11-10 | High | RUNTIME-WP-01 before Pilot | OPEN |
 | RR-20 | Core-only features described as user-facing | Medium | reachability matrix + UI WPs | OPEN |
-| RR-21 | MainWindow 1,614-line concentration | Medium | ARCH-WP-01 | OPEN |
+| RR-21 | MainWindow 1,614-line concentration | Medium | ARCH-WP-01 | VERIFIED mitigation (#139; shell 345 lines) |
 | RR-22 | mutable path roots depend on CWD | Medium | injected app-data root design | OPEN |
 
 ## 7. Gates
@@ -124,6 +126,6 @@ Historical WP details and per-test increments remain in `docs/39`.
 ## 8. Handoff
 
 - Implementation source: `docs/39` Resume Brief and one matching prompt.
-- Current audit: `docs/53`.
+- Audit basis: `docs/53` is the 2026-07-11 pre-ARCH assessment snapshot; current execution truth is this roadmap plus `docs/39`.
 - Architecture: `docs/40`; approval: `docs/41`/`docs/51`; active Gate evidence: `docs/54` (`docs/48` historical); v0.7.1: `docs/52`.
-- Work through feature/planning branches and squash PRs. Recheck live head SHA before merge.
+- Work through feature/planning branches and squash PRs under the Local Codex lifecycle. Important PRs require an independent exact-head review before merge; recheck live head SHA after every push.
