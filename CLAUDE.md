@@ -4,8 +4,8 @@ Compatibility guide retained for existing links and historical records. Claude-s
 
 ## 0. Current Truth
 
-- Current main and product code-test baseline: `0a3386f` (PR #139, ARCH-WP-01). The v0.7.1 release Build Commit remains `fa755256` (PR #136); later code/test merges advance the product baseline without changing published release provenance.
-- VERSION `0.7.1`; authoritative current-main SmokeTest `Total=910 PASS=910 FAIL=0` (reproduced 2026-07-13 at `0a3386f`).
+- Product code-test baseline: `0a3386f` (PR #139, ARCH-WP-01). Resolve current main live; the review base for this governance change was `0a3386f`. The v0.7.1 release Build Commit remains `fa755256` (PR #136); later code/test merges advance the product baseline without changing published release provenance.
+- VERSION `0.7.1`; authoritative product-baseline SmokeTest `Total=910 PASS=910 FAIL=0` (reproduced 2026-07-13 at `0a3386f`).
 - Latest published release is unsigned `v0.7.1` at `fa755256`; ZIP SHA256 is `282B71385FEE83B4ED7AD221CAF84AD3A6B4E2B5E5191601F4240AEED0419018`.
 - Formal Gate B/C is `BLOCKED` for v0.7.1 (`docs/54`); v0.7.0 user-reported history in `docs/48` does not carry forward.
 - **GOV-WP-02 = VERIFIED** by 2026-07-11 REST readback: `main` Phase A protection is active on strict `test`/`wpf-build`, secret scanning and push protection are enabled, and approvals 0/Code Owner OFF preserve the single-account workflow.

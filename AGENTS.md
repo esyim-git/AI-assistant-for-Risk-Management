@@ -4,7 +4,7 @@ Local Codex 및 구현 Agent는 이 파일을 반드시 따른다. 충돌 우선
 
 ## 0. Current Baseline
 
-- Current main and product code-test baseline: `0a3386f5de8209ced9443d371375d63ee0309343` (PR #139, ARCH-WP-01). The v0.7.1 release Build Commit remains `fa7552567cb432ec6a4afe9900b3eca480fc5780` (PR #136); later code/test merges advance the product baseline without changing published release provenance.
+- Product code-test baseline: `0a3386f5de8209ced9443d371375d63ee0309343` (PR #139, ARCH-WP-01). Resolve current main live instead of pinning it here; the review base for this governance change was `0a3386f5de8209ced9443d371375d63ee0309343`. The v0.7.1 release Build Commit remains `fa7552567cb432ec6a4afe9900b3eca480fc5780` (PR #136); later code/test merges advance the product baseline without changing published release provenance.
 - VERSION: `0.7.1`.
 - Authoritative local gate at `0a3386f`: build warning 0/error 0, SmokeTest `Total=910 PASS=910 FAIL=0`, Unclassified 0 (reproduced 2026-07-13).
 - Latest published release: `v0.7.1` (`fa755256`, unsigned), ZIP SHA256 `282B71385FEE83B4ED7AD221CAF84AD3A6B4E2B5E5191601F4240AEED0419018`.
