@@ -7,15 +7,15 @@
 | 항목 | 현재 |
 |---|---|
 | v0.7.1 release Build Commit | `fa755256` (PR #136, docs-only); current main은 live Git 확인 |
-| Product code-test baseline | `4efb8e6` (PR #135) |
+| Product code-test baseline | `0a3386f` (PR #139, ARCH-WP-01); current main은 live Git 확인 |
 | VERSION | `0.7.1` |
 | 최신 공개 Release | `v0.7.1` (`fa755256`, 미서명), ZIP SHA256 `282B7138...9018` |
 | v0.7.1 | `VERIFIED` (published); build/00~03 PASS, manifest 0.7.1 required 27/27 |
-| Build / SmokeTest | warning 0, error 0 / `Total=907 PASS=907 FAIL=0` |
+| Build / SmokeTest | warning 0, error 0 / `Total=910 PASS=910 FAIL=0` (2026-07-13, `0a3386f`) |
 | 외부 NuGet | `PackageReference` 0, `NuGet.Config <clear/>` |
 | Formal Gate B/C | `BLOCKED` for v0.7.1 (`docs/54`); v0.7.0 user-reported 이력은 `docs/48` |
 | Repository governance | `VERIFIED` (2026-07-11 REST): PR + strict `test`/`wpf-build`, conversation resolution, linear history, admin enforcement; force/deletion OFF; secret scanning/push protection ON |
-| NEXT UP | `ARCH-WP-01` (`prompts/codex/ARCH-WP-01_mainwindow_partial_decomposition.md`); published v0.7.1 Gate B/C는 사용자 병행 (`docs/54`) |
+| NEXT UP | `BLOCKED pending status/truth-sync`; ARCH-WP-01은 PR #139로 완료. `docs/38`/`docs/39` 정합 후 WP 1개를 다시 선정하며, published v0.7.1 Gate B/C는 독립 병행 (`docs/54`) |
 
 전체 진단·근거·로드맵은 [docs/53_Repository_Audit_and_v1_Execution_Plan.md](docs/53_Repository_Audit_and_v1_Execution_Plan.md), 실행 원장은 [docs/39_Work_Package_Backlog.md](docs/39_Work_Package_Backlog.md)를 따른다.
 
@@ -82,7 +82,7 @@ dotnet build RiskManagementAI.sln -c Release
 dotnet run --project tests/RiskManagementAI.SmokeTests/RiskManagementAI.SmokeTests.csproj -c Release
 ```
 
-정상 기준: build warning/error 0, `Total=907 PASS=907 FAIL=0`, `Unclassified=0`.
+정상 기준: build warning/error 0, `Total=910 PASS=910 FAIL=0`, `Unclassified=0`.
 
 Release candidate:
 
@@ -111,19 +111,20 @@ Get-Content VERSION
 ## Workflow
 
 ```text
-Claude: architecture/WP/review/truth-sync
-Codex : one WP implementation + local gate + PR
-User  : release/approval/Test-PC/Pilot owner
+Local Codex          : planning + one WP implementation + local gate + Draft PR/review coordination
+Separate Codex task  : important PR exact-head independent review
+User                 : release/approval/Test-PC/Pilot owner
 ```
 
 PR은 squash-only, main 직접 push와 force push 금지. `test`/`wpf-build` 자동 PR CI는 #134에서 복원됐고 GOV closeout PR #138의 최종 exact-head/run은 PR evidence에 기록한다. [docs/32](docs/32_Branch_Governance.md) Phase A 보호와 secret scanning/push protection은 2026-07-11 REST readback으로 `VERIFIED`다.
 
 ## Roadmap
 
-1. `ARCH-WP-01` MainWindow 행위 불변 partial 분해.
-2. Prior-Day, streaming/XLSX profile, Clause, Feedback retrieval UI 배선.
-3. .NET 10 LTS 전환.
-4. published v0.7.1부터 formal Gate B/C 증거를 병행하고, 지원 LTS 후보에서 Team Pilot을 봉인.
-5. 승인된 범위에서만 signing, NCR Pack, Local LLM을 진행.
+1. `ARCH-WP-01` MainWindow 행위 불변 partial 분해는 PR #139로 완료.
+2. `risk-status-sync -> risk-doc-truth-sync -> risk-wp-planner`로 roadmap/Resume Brief를 정렬하고 NEXT UP 1개를 선정.
+3. 후보군은 Prior-Day, streaming/XLSX profile, Clause, Feedback retrieval UI 배선이며, truth-sync 전 순서는 미승인.
+4. .NET 10 LTS 전환.
+5. published v0.7.1부터 formal Gate B/C 증거를 독립 병행하고, 지원 LTS 후보에서 Team Pilot을 봉인.
+6. 승인된 범위에서만 signing, NCR Pack, Local LLM을 진행.
 
 관련 정본: [docs/38_v1_Master_Roadmap.md](docs/38_v1_Master_Roadmap.md), [docs/39_Work_Package_Backlog.md](docs/39_Work_Package_Backlog.md), [docs/40_ADR_Architecture_Evolution.md](docs/40_ADR_Architecture_Evolution.md), [docs/41_Approval_and_Pilot_Gates.md](docs/41_Approval_and_Pilot_Gates.md).

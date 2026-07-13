@@ -40,7 +40,7 @@ Applied and re-read through REST on 2026-07-11:
 - Allow force pushes: OFF.
 - Allow deletions: OFF.
 
-Claude/Codex review evidence remains mandatory in the PR body/comments under the project workflow even though GitHub's numeric approval count is 0.
+Independent Local Codex review evidence remains mandatory in the PR body/comments even though GitHub's numeric approval count is 0. For important PRs, a separate Local Codex task/context that did not author the final diff records `independent_review_verdict: pass|changes_required` and the exact `reviewed_head` SHA. This is an internal evidence gate, not a counted GitHub approval.
 
 ## Phase B Protection (Independent Reviewer Added)
 
@@ -76,7 +76,8 @@ Local Windows build/smoke/package remains the implementation/release evidence ga
 1. Read `main` protection through REST and confirm strict `test`/`wpf-build`, PR requirement, conversation resolution, linear history, admin enforcement, and force/deletion OFF.
 2. Read repository `security_and_analysis` and confirm secret scanning/push protection remain enabled.
 3. On each ordinary PR, confirm both required checks run on the exact head and unresolved conversations/red checks block merge.
-4. Confirm a clean, up-to-date PR can squash merge without impossible self-approval.
-5. Do **not** probe protection by direct/force pushing to `main`; REST readback plus ordinary PR behavior is the safe verification path.
+4. Confirm important PRs have a separate Local Codex exact-head verdict and that it matches the current PR head.
+5. Confirm a clean, up-to-date PR can squash merge without impossible self-approval.
+6. Do **not** probe protection by direct/force pushing to `main`; REST readback plus ordinary PR behavior is the safe verification path.
 
 > Related: `docs/29_GitHub_Sync_Guide.md`, `docs/35_Private_Free_Soft_Guard.md`, `docs/53`, `.github/workflows/`.

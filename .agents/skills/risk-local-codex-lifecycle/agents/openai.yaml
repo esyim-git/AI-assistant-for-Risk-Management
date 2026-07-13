@@ -1,0 +1,7 @@
+interface:
+  display_name: "Risk Local Codex Lifecycle"
+  short_description: "Risk repo Local Codex lifecycle and review gate"
+  default_prompt: "Use $risk-local-codex-lifecycle to run this Risk repository task through the governed Local Codex workflow."
+
+policy:
+  allow_implicit_invocation: true

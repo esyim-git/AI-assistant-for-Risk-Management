@@ -1,51 +1,98 @@
-# 49. Project Skills 운영 가이드 (Claude · Codex)
+# 49. Project Skills 운영 가이드 (Local Codex)
 
 ## 목적 / 범위
-Claude Code와 Codex가 반복 작업을 일관되게 수행하도록 도입한 **Project Skills 체계**의 운영 가이드. 정본 인덱스는 root **`SKILLS.md`**, 원칙은 **`CLAUDE.md §12`**(Claude)·**`AGENTS.md §8`**(Codex Bridge)·**`prompts/codex/README_skills_usage.md`**(Codex 사용법). 본 문서는 구조·생명주기 매핑·유지보수 규약을 정리한다. **제외**: Skill 본문(각 `.claude/skills/<name>/SKILL.md`).
+
+Local Codex가 계획·구현·검증·PR·독립 리뷰·머지·정리까지 반복 작업을 일관되게 수행하도록 하는 Project Skills 운영 가이드다. 정본 우선순위는 root `AGENTS.md` → 지정 WP → 대상 Prompt → native lifecycle Skill → 관련 domain checklist다.
 
 ## 1. 구조
+
 ```text
-SKILLS.md                                  # 정본 인덱스(19 skill·호출 순서·금지)
+.agents/skills/risk-local-codex-lifecycle/
+    SKILL.md                               # Codex 자동 발견 lifecycle entry
+    agents/openai.yaml                    # UI metadata
+SKILLS.md                                 # native + transitional catalog index
 .claude/skills/<skill-name>/
-    SKILL.md                               # frontmatter(name/description/호출방식/allowed-tools) + 간결 본문
-    <topic>.md                             # 긴 체크리스트/템플릿 support 파일(선택)
-CLAUDE.md §12                              # Claude Skill 운영 원칙
-AGENTS.md §8                               # Codex Skill Bridge(읽는 체크리스트)
-prompts/codex/README_skills_usage.md       # Codex 사용법
+    SKILL.md                               # transitional domain checklist
+    <topic>.md                             # 긴 checklist/support file(선택)
+AGENTS.md                                 # current actor, boundary, merge authority
+CLAUDE.md                                 # 기존 링크 호환용 guide; active actor 정본 아님
+prompts/codex/README_skills_usage.md       # Codex 실행 요약
 ```
-- **호출 방식**: frontmatter `disable-model-invocation: true` = 수동(Claude 명시 호출 / Codex 참조). `paths:` 스코프 = 해당 경로 작업 시 자동 적용.
 
-## 2. 19 Skill ↔ 생명주기 매핑
-| 단계 | Skill |
+- `.agents/skills/`가 Local Codex의 native discovery surface다.
+- 기존 19개 `.claude/skills/`는 한 번에 복제하지 않고 transitional domain checklist로 재사용한다.
+- transitional checklist의 기술·보안·테스트 기준은 유지한다. Claude actor 또는 Claude review를 요구하는 legacy 문구는 `AGENTS.md`, native lifecycle Skill, `docs/32`의 현재 규칙으로 대체 해석한다.
+- Skill 적용은 Gate PASS가 아니다. SHA·테스트·보안·승인 증거가 별도로 필요하다.
+
+## 2. Native Lifecycle Skill
+
+`risk-local-codex-lifecycle`은 다음 lifecycle을 라우팅한다.
+
+```text
+evidence freeze
+-> clean worktree / bounded branch
+-> one-goal implementation
+-> local gate + Gate A
+-> Draft PR
+-> separate Local Codex exact-head review
+-> hosted required checks
+-> squash merge
+-> truth-sync + cleanup
+```
+
+중요 PR은 작성 task/context와 다른 Local Codex task/context가 최종 diff와 exact head를 읽고 PR에 아래 증거를 남긴다.
+
+```text
+independent_review_verdict: pass|changes_required
+reviewed_head: <full SHA>
+```
+
+이는 현재 단일 GitHub 계정에서 불가능한 counted self-approval을 흉내 내는 것이 아니라 내부 독립 검토 증거다. GitHub numeric approval은 별도 approval-capable actor가 생길 때까지 0을 유지한다.
+
+## 3. Transitional Domain Catalog (19)
+
+| 단계 | Checklist |
 |---|---|
-| 저장소 종합 감사 | `risk-repo-audit` (목표·현재 증거·사용자 도달성·출하 상태·로드맵 분리) |
-| 상태 파악 | `risk-status-sync` (기준선 이중 표기: 코드/테스트 baseline vs current main) |
-| 계획(WP) | `risk-wp-planner` |
-| 구현(Codex) | 도메인 Skill 참조: `risk-data-limit-review`·`risk-rag-ncr-governance`·`risk-analytics-design`·`risk-feedback-learning`·`risk-ui-ux-review`·`risk-llm-approval`·`risk-arch-refactor`(행위 불변 리팩터) |
+| 저장소 종합 감사 | `risk-repo-audit` |
+| 상태/문서/계획 | `risk-status-sync` → `risk-doc-truth-sync` → `risk-wp-planner` |
+| 구현 | 대상 domain checklist + `risk-security-guard` |
 | 테스트 | `risk-smoke-governance` |
-| 리뷰 | `risk-codex-review` + `risk-security-guard` (+ 리팩터 WP는 `risk-arch-refactor` 행위 불변 축) |
-| 머지/브랜치 | `risk-branch-governance` |
-| 문서 정합 | `risk-doc-truth-sync` |
-| 릴리스 | `risk-release-cut`(컷) → `risk-release-verify`(검증) → `risk-gate-bc`(실 PC 증거) |
-| 파일럿(R6) | `risk-team-pilot` (Gate B/C 봉인 선행·실 증거 기반 보고) |
+| 리뷰 | `risk-codex-review` + domain checklist + `risk-security-guard` |
+| 브랜치/머지 | `risk-branch-governance` |
+| 릴리스 | `risk-release-cut` → `risk-release-verify` → `risk-gate-bc` |
+| 파일럿 | `risk-team-pilot` |
+| Local model/runtime | `risk-llm-approval` → explicit approval 전 STOP |
 
-## 3. Claude 사용 (요약, 정본 = `CLAUDE.md §12`·§13)
-작업 시작 시 필요 Skill 선택 → Codex 인계 전 `risk-wp-planner` → 결과 `risk-codex-review` → Release 전 `risk-release-verify` → Gate B/C 전 `risk-gate-bc` → Local LLM은 `risk-llm-approval` 없이 진행 금지 → RAG/NCR은 `risk-rag-ncr-governance` 적용. **자동 Preflight**(`CLAUDE.md §13`): 사용자가 `/risk-*`를 매번 호출하지 않아도 작업 유형별 체인(계획/PR/UI/Data/RAG/Release/Gate/LLM)을 Claude가 표준 절차로 자동 적용한다. STOP Gate(release/gate/llm)는 자동 실행 아님(승인 선행).
+도메인 checklist 전체 목록과 분류는 root `SKILLS.md`가 정본이다.
 
-## 4. Codex 사용 (요약, 정본 = `AGENTS.md §8`·§9 / `README_skills_usage.md`)
-Codex는 Skill을 자동 실행하지 못한다 → **`SKILLS.md` + 관련 SKILL.md를 읽는 체크리스트로** 사용. **Automatic Skill Bridge**(`AGENTS.md §9`): 매 구현 전 항상 `AGENTS.md`→`SKILLS.md`→관련 SKILL.md→대상 WP 프롬프트를 스스로 읽고(사용자에게 문서 목록 재요청 0), 완료 보고에 **"Applied Skill Checklists"**(= "사용한 Skill 체크리스트") 명시. Skill 문서 수정 금지(명시 요청 제외).
+## 4. 실행 원칙
 
-## 5. 유지보수 규약
-- **신규 Skill**: `.claude/skills/<risk-name>/SKILL.md` 추가(frontmatter name=폴더명 일치) → `SKILLS.md §4` 표·호출 순서 갱신 → 필요 시 `CLAUDE.md §12`/`AGENTS.md §8` 반영.
-- **Skill 갱신**: 본문은 코드/문서 현실과 정합 유지(`risk-doc-truth-sync`로 점검). 긴 체크리스트는 support `.md`로 분리.
-- **개명/삭제**: `git mv`로 폴더 개명 후 frontmatter `name` + 모든 cross-reference(`SKILLS.md`·다른 SKILL.md·docs)를 새 이름으로 일괄 정렬.
-- **드리프트 금지**: Skill은 코드 동작을 바꾸지 않으며, 절대 원칙(`CLAUDE.md §3`)·STOP(`§11.5`)·과대표기 금지(`§11.4`)를 전제한다.
+1. 사용자가 Skill 이름을 지정하지 않아도 material work 시작 시 native lifecycle Skill을 적용한다.
+2. 대상 작업에 필요한 transitional checklist만 읽는다. 긴 support file은 해당 `SKILL.md`가 직접 지시할 때만 읽는다.
+3. dirty checkout의 사용자 변경을 보존하고, 구현/PR 작업은 live `origin/main`에서 만든 clean non-temporary worktree를 우선한다.
+4. 한 PR은 측정 가능한 목표 하나만 가진다. cross-repo 또는 범위 밖 발견은 handoff/backlog로 남긴다.
+5. completion report에 `Applied Skills/Checklists`, exact SHA, tests, Gate A, hosted checks, independent review, cleanup을 기록한다.
 
-## 6. 보안 유의사항
-Skill 문서에 실데이터·실 테이블/컬럼명·내부규정 원문·NCR 공식본 원문·secret/토큰·모델파일 경로(실)·외부 다운로드 지침을 넣지 않는다. 예시는 더미만.
+## 5. CI와 머지
 
-## 7. 테스트 기준 / 향후 확장
-- 테스트: Skill은 문서이므로 코드 SmokeTest 영향 0(정본 `Total=900`). Skill 추가/개명이 코드·테스트를 바꾸면 안 된다.
-- 향후: 워크플로(다중 에이전트) 패턴, Skill별 자동 점검 hook은 별도 검토(현재 범위 밖).
+- 로컬 Windows Release build/SmokeTest/Gate A는 항상 필요하다.
+- hosted `test`/`wpf-build`는 protected branch의 독립 second gate다.
+- Actions quota/가용성 문제 시 가장 가까운 local equivalent를 실행하고 `local-fallback-only`로 기록한다.
+- local fallback은 hosted green 또는 required check 충족으로 표현하지 않는다. required checks가 성공하기 전에는 merge를 계속 차단한다.
+- merge는 exact-head 재확인, unresolved conversation 0, independent verdict `pass`, authorization을 모두 만족한 뒤 squash로만 한다.
 
-> 관련: `SKILLS.md`, `CLAUDE.md §12`, `AGENTS.md §8`, `prompts/codex/README_skills_usage.md`, `.claude/skills/`.
+## 6. 유지보수 규약
+
+- native lifecycle 변경: `.agents/skills/risk-local-codex-lifecycle` → `SKILLS.md` → `AGENTS.md`/본 문서/usage guide 순으로 정합을 확인한다.
+- domain checklist 변경: 필요한 항목만 `.claude/skills/<name>`에서 갱신하고 actor/merge 중복 규칙을 새로 만들지 않는다.
+- 신규 native Skill은 중복 기능보다 반복적으로 필요한 독립 workflow일 때만 추가한다.
+- Skill 생성/갱신은 Codex `skill-creator` scaffold와 validator를 사용한다.
+- historical 문서는 당시 actor/상태를 보존하고 current guide로 링크한다. 과거 기록을 현재 운영 근거로 재해석하지 않는다.
+
+## 7. 보안 / 검증
+
+- Skill 문서에 실데이터, 실 schema, 내부규정/NCR 원문, secret/token, certificate/key, 모델파일, 외부 다운로드 지침을 넣지 않는다.
+- Offline, NuGet 0, external API/telemetry/auto-update 0, SQL/VBA auto-execution 0, hash-only audit, NoModel, approval STOP을 유지한다.
+- Skill 구조는 `quick_validate.py`로 검증한다. Skill-only 변경도 product test 불변을 확인하며, 코드/도구 동작을 건드렸다면 full local gate를 실행한다.
+
+> 관련: `AGENTS.md`, `SKILLS.md`, `CLAUDE.md`, `docs/32_Branch_Governance.md`, `prompts/codex/README_skills_usage.md`, `.agents/skills/`, `.claude/skills/`.
