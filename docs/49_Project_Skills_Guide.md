@@ -2,7 +2,7 @@
 
 ## 목적 / 범위
 
-Local Codex가 계획·구현·검증·PR·독립 리뷰·머지·정리까지 반복 작업을 일관되게 수행하도록 하는 Project Skills 운영 가이드다. 정본 우선순위는 root `AGENTS.md` → native lifecycle Skill → 대상 WP/Prompt → 관련 domain checklist다.
+Local Codex가 계획·구현·검증·PR·독립 리뷰·머지·정리까지 반복 작업을 일관되게 수행하도록 하는 Project Skills 운영 가이드다. 정본 우선순위는 root `AGENTS.md` → 지정 WP → 대상 Prompt → native lifecycle Skill → 관련 domain checklist다.
 
 ## 1. 구조
 

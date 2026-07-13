@@ -29,7 +29,7 @@ Never weaken Offline, NuGet 0, no external API/telemetry/auto-update, no automat
 ## Governed Lifecycle
 
 1. **Freeze evidence.** Record repo path, current branch, `origin/main`, dirty state, relevant release/baseline SHA, formal Gate state, and task boundary.
-2. **Isolate changes.** Preserve unrelated user edits. If the checkout is dirty, use a clean non-temporary worktree from live `origin/main`. Use `feature/<WP-ID>-<slug>` for implementation and `planning/<slug>` for docs/truth-sync.
+2. **Isolate changes.** Preserve unrelated user edits. If the checkout is dirty, use a clean non-temporary worktree from live `origin/main`. Follow `AGENTS.md`/`docs/32`: use `feature/<WP-ID>-<slug>` for implementation, `planning/<slug>` for docs/truth-sync, `release/vX.Y.Z` for release preparation, and `hotfix/<slug>` for urgent correction. Defer any future branch class to the current branch-governance guide.
 3. **Implement narrowly.** One measurable goal per PR. Cross-cutting findings become a documented follow-up unless required for correctness or safety.
 4. **Verify locally.** Run the exact WP checks. Code/tooling behavior changes require Release build, SmokeTest with exact `Total=N PASS=N FAIL=0`, Unclassified 0, Gate A, and dependency/boundary checks.
 5. **Publish deliberately.** Stage explicit paths, inspect the staged diff, commit, push the branch, and open a Draft PR with scope, exclusions, tests, Gate state, and rollback.
